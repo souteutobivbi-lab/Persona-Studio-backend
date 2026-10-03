@@ -306,42 +306,52 @@ async def generate_portrait(
     else:
         age_desc = "natural skin with visible pores, authentic appearance"
 
-    # Always start from the appearance text, strip any existing framing words
+    # Strip any framing words from skill file appearance so we control framing
     import re as _re
     base = appearance
-    # Remove any existing framing instructions so we can replace with waist-up
-    base = _re.sub(r'\b(upper body|head shot|headshot|bust shot|close.?up|shoulder up|chest up|torso)\b',
-                   '', base, flags=_re.IGNORECASE).strip().strip(',').strip()
+    base = _re.sub(
+        r'\b(upper body|head\s?shot|bust shot|close.?up|shoulder up|chest up|85mm|f2\.8|f/2\.8)\b',
+        '', base, flags=_re.IGNORECASE
+    ).strip().strip(',').strip()
 
-    if "studio portrait" in base.lower() or "canon" in base.lower():
-        # Skill file already has full prompt — inject age desc and force waist-up
-        prompt = f"{base}, {age_desc}, waist up framing showing full torso and hands, in the middle"
-    else:
-        prompt = (
-            f"Studio portrait photograph of a {persona_age} year old {base}, "
-            f"{age_desc}, "
-            f"{outfit}, seamless white studio backdrop, "
-            f"waist up framing showing full torso and hands, facing camera directly, "
-            f"Canon EOS 5D Mark IV 85mm f/2.8, single large softbox at 45 degrees camera left, "
-            f"white reflector fill on right, visible skin pores, natural skin subsurface scattering, "
-            f"fine hair strands, no retouching, no filters, no airbrushing, no digital smoothing, "
-            f"editorial photography, in the middle"
-        )
-    # Append strong negative framing to prevent close-up crops
-    prompt += (", full waist-up composition, torso and hands visible in frame, "
-               "NOT a headshot, NOT a close-up, NOT cropped at shoulders, "
-               "subject occupies upper two-thirds of frame, breathing room below waist")
+    # Extract core description — remove existing studio/camera language we'll rebuild
+    core = _re.sub(
+        r'(studio portrait photograph of a \d+ year old\s*|'
+        r'canon eos.*?(?:,|$)|seamless white studio backdrop.*?(?:,|$)|'
+        r'in the middle.*?(?:,|$)|no retouching.*?(?:,|$)|'
+        r'single large softbox.*?(?:,|$)|white reflector.*?(?:,|$))',
+        '', base, flags=_re.IGNORECASE
+    ).strip().strip(',').strip()
+
+    if not core or len(core) < 20:
+        core = base  # fallback to full appearance if stripping went too far
+
+    # FLUX rule: lead with framing instruction — this is what controls crop
+    # 50mm lens naturally frames waist-up; 85mm pulls to headshot
+    prompt = (
+        f"High resolution waist-up portrait photograph of a {persona_age} year old {core}, "
+        f"hands clasped in front, full torso visible, arms visible, "
+        f"{age_desc}, "
+        f"{outfit}, "
+        f"seamless pure white studio backdrop, subject centred in frame, "
+        f"Canon EOS 5D Mark IV 50mm f/2.0 lens, "
+        f"large softbox key light at 45 degrees camera left, white fill reflector on right, "
+        f"visible skin pores, natural skin subsurface scattering, fine hair strands, "
+        f"no retouching, no airbrushing, no digital smoothing, "
+        f"commercial editorial photography"
+    )
 
     images = []
     try:
         for i in range(min(count, 4)):
             result = fal_client.subscribe("fal-ai/flux/dev", arguments={
                 "prompt": prompt,
-                "image_size": "portrait_4_3",  # 768x1024 — supported named size
-                "num_inference_steps": 28,
+                # portrait_4_3 = 768x1024 — tall enough for waist-up
+                "image_size": "portrait_4_3",
+                "num_inference_steps": 35,  # more steps = better prompt following
                 "num_images": 1,
                 "enable_safety_checker": False,
-                "guidance_scale": 4.0  # slightly higher to enforce prompt more strictly
+                "guidance_scale": 3.5
             })
             img_url = result["images"][0]["url"]
             async with httpx.AsyncClient(timeout=30) as client:
