@@ -1145,11 +1145,18 @@ function goStep(n){
 
 // ── SKILL PARSING ──────────────────────────────────────
 function parseSkillForUI(text, updateTopic=true){
-  // Extract niche
-  const nicheMap={wealth:['wealth','finance','money','invest'],property:['property','real estate','builder','build'],
-    'interior design':['interior','design','luxury','taste'],'health':['health','wellness','nutrition','fitness'],
-    relationships:['relationship','love','dating'],mindset:['mindset','personal development','self'],
-    'luxury lifestyle':['luxury lifestyle']};
+  const lines=text.split('\n');
+
+  // ── Niche detection ──────────────────────────────────
+  const nicheMap={
+    wealth:['niche: wealth','niche: finance','wealth · ','finance · '],
+    property:['niche: property','property · ','master builder','property development'],
+    'interior design':['niche: interior','interior design · ','authority of taste'],
+    health:['niche: health','health & wellness','health · '],
+    relationships:['niche: relationships','relationships · '],
+    mindset:['niche: mindset','mindset · ','personal development'],
+    'luxury lifestyle':['niche: luxury','luxury lifestyle']
+  };
   for(const [niche,kws] of Object.entries(nicheMap)){
     if(kws.some(kw=>text.toLowerCase().includes(kw))){
       S.niche=niche;
@@ -1158,45 +1165,92 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // Extract hooks / example topics → fill topic suggestions
+  // ── Topic suggestions — pull ONLY from specific sections ─────
+  // Sections that contain real usable topics: HOOKS, EXAMPLE SCRIPTS, CONTENT PILLARS
   const suggestions=[];
-  const lines=text.split('\n');
+  let inGoodSection=false;
+  const goodSections=['HOOKS THAT WORK','HOOKS THAT STOP','CONTENT PILLARS','EXAMPLE SCRIPTS','SCRIPT STRUCTURE'];
+  const badSections=['VOCABULARY TO','AVOID','SIGNATURE ANCHOR','OUTFIT','APPEARANCE','SIGN-OFF','PLATFORM','TARGET AUDIENCE'];
+
   for(const line of lines){
-    // Hook lines
-    const m1=line.match(/^[-•]\s*[""](.{15,80})[""]/);
-    const m2=line.match(/^[-•]\s*(.{20,80}\.{3}|.{20,80}\?)/);
-    const m3=line.match(/"([^"]{15,80})"/);
-    if(m1)suggestions.push(m1[1]);
-    else if(m2&&!line.toLowerCase().includes('avoid')&&!line.toLowerCase().includes('never'))suggestions.push(m2[1].trim());
-    else if(m3)suggestions.push(m3[1]);
-    if(suggestions.length>=8)break;
+    const upper=line.trim().toUpperCase();
+    // Track which section we are in
+    if(goodSections.some(s=>upper.includes(s))) inGoodSection=true;
+    if(badSections.some(s=>upper.startsWith(s)||upper.includes('--------'))) inGoodSection=false;
+
+    if(!inGoodSection) continue;
+    const trimmed=line.trim();
+    if(!trimmed||trimmed.startsWith('--')||trimmed.startsWith('==')) continue;
+
+    // Bullet lines with real hook text
+    const m1=trimmed.match(/^[-•]\s*"(.{20,90})"/);
+    const m2=trimmed.match(/^[-•]\s*(.{25,90}(?:\.\.\.|[?!]))\s*$/);
+    // Content pillar lines: "1. Building quality — ..."
+    const m3=trimmed.match(/^\d+\.\s+(.{20,80}(?:—|-).{10,60})$/);
+    // Script opener lines (the hook sentence of an example script)
+    const m4=trimmed.match(/^"(.{25,100})"/);
+
+    if(m1) suggestions.push(m1[1]);
+    else if(m2) suggestions.push(m2[1].trim());
+    else if(m3) suggestions.push(m3[1].replace(/—|-/,'—').trim());
+    else if(m4&&inGoodSection) suggestions.push(m4[1].split('.')[0].trim());
+
+    if(suggestions.length>=8) break;
   }
 
+  // Deduplicate and filter out anything that looks like a vocab word (too short, comma-separated)
+  const cleaned=suggestions
+    .filter(s=>s.length>20&&!s.includes('","')&&!s.includes("','")&&s.split(' ').length>3)
+    .filter((s,i,a)=>a.indexOf(s)===i)
+    .slice(0,6);
+
   const sugEl=document.getElementById('topicSuggestions');
-  if(sugEl&&suggestions.length){
-    sugEl.style.display='flex';
-    document.getElementById('topicBadge').style.display='inline-flex';
-    sugEl.innerHTML=suggestions.slice(0,6).map(s=>`
-      <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.style.background='var(--p3)';this.style.color='var(--p2)';" data-val="${s.replace(/"/g,'&quot;')}">${s.length>50?s.substring(0,50)+'…':s}</button>`).join('');
-    if(updateTopic&&suggestions[0]&&!document.getElementById('topicInp').value){
-      document.getElementById('topicInp').value=suggestions[0];
+  if(sugEl){
+    if(cleaned.length){
+      sugEl.style.display='flex';
+      document.getElementById('topicBadge').style.display='inline-flex';
+      sugEl.innerHTML=cleaned.map(s=>`
+        <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.classList.add('active');" data-val="${s.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">${s.length>55?s.substring(0,55)+'…':s}</button>`).join('');
+      if(updateTopic&&!document.getElementById('topicInp').value){
+        document.getElementById('topicInp').value=cleaned[0];
+      }
+    } else {
+      sugEl.style.display='none';
     }
   }
 
-  // Scene suggestions
+  // ── Scene suggestions — pull from SCENE SUGGESTIONS section only ──
   const sceneEl=document.getElementById('sceneSuggestions');
   if(sceneEl){
-    const sceneLines=lines.filter(l=>l.includes('Prompt')||l.includes('SCENE')||l.includes('scene_description'));
-    const scenes=sceneLines.map(l=>{const m=l.match(/"([^"]{15,100})"/);return m?m[1]:null;}).filter(Boolean);
-    sceneEl.innerHTML=scenes.slice(0,3).map(s=>`
-      <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;" data-val="${s.replace(/"/g,'&quot;')}">${s.substring(0,38)}…</button>`).join('');
+    let inSceneSection=false;
+    const scenePrompts=[];
+    for(const line of lines){
+      if(line.toUpperCase().includes('SCENE SUGGESTION')||line.toUpperCase().includes('BACKGROUND SCENE')) inSceneSection=true;
+      if(inSceneSection&&line.toUpperCase().includes('TARGET AUDIENCE')) inSceneSection=false;
+      if(!inSceneSection) continue;
+      // Match: "warm library, amber lighting..." style prompts
+      const m=line.match(/[""]([^""]{20,120})[""]/) || line.match(/"([^"]{20,120})"/);
+      if(m&&!m[1].includes('photorealistic')&&!m[1].includes('portrait')) scenePrompts.push(m[1]);
+      // Also match bare description lines like: "- Raw brick workshop or converted industrial space"
+      const m2=line.trim().match(/^[-•]\s+(.{20,80}(?:space|room|office|library|kitchen|studio|setting|property|scene).*)/i);
+      if(m2) scenePrompts.push(m2[1].trim());
+      if(scenePrompts.length>=4) break;
+    }
+    sceneEl.innerHTML=scenePrompts.slice(0,3).map(s=>`
+      <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;" data-val="${s.replace(/"/g,'&quot;')}">${s.substring(0,42)}…</button>`).join('');
   }
 
-  // Portrait prompt
-  const apLine=lines.find(l=>l.includes('Studio portrait photograph')||l.includes('portrait photograph'));
-  if(apLine){
-    const prompt=apLine.replace(/^[^:]*:/,'').trim().replace(/^["']/,'').replace(/["']$/,'');
-    if(prompt&&document.getElementById('portraitPrompt'))document.getElementById('portraitPrompt').value=prompt;
+  // ── Portrait prompt — pull from APPEARANCE section ──────────
+  let inAppearance=false;
+  for(const line of lines){
+    if(line.toUpperCase().includes('APPEARANCE') && line.toUpperCase().includes('PORTRAIT')) inAppearance=true;
+    if(inAppearance&&line.trim().length>0&&!line.toUpperCase().includes('APPEARANCE')){
+      const prompt=line.replace(/^[^:]*:/,'').trim().replace(/^["'-]/,'').trim();
+      if(prompt.length>30&&document.getElementById('portraitPrompt')){
+        document.getElementById('portraitPrompt').value=prompt;
+      }
+      break;
+    }
   }
 }
 
@@ -1398,16 +1452,39 @@ async function genPortrait(){
   }catch(e){st.style.display='none';toast('Error: '+e.message,'err');}
 }
 async function genScene(){
-  const prompt=document.getElementById('sceneInp').value.trim();if(!prompt)return toast('Describe the scene','err');
+  const prompt=document.getElementById('sceneInp').value.trim();
+  if(!prompt)return toast('Describe the scene first','err');
+  // Find the generate button and show loading state
+  const btn=event?.target||document.querySelector('[onclick="genScene()"]');
+  const origText=btn?.textContent;
+  if(btn){btn.disabled=true;btn.textContent='Generating...';}
+  // Show preview area with loading message
+  document.getElementById('scenePreview').style.display='block';
+  document.getElementById('sceneImg').style.opacity='0.3';
+  document.getElementById('sceneImg').src='';
+  const prevDiv=document.getElementById('scenePreview');
+  prevDiv.querySelector('div').textContent='⟳ Generating scene with FLUX... ~15 seconds';
+  prevDiv.querySelector('div').style.color='var(--amber)';
   try{
     const fd=new FormData();fd.append('scene_description',prompt);
-    const r=await fetch(`${API()}/generate-scene`,{method:'POST',body:fd});const d=await r.json();
+    const r=await fetch(`${API()}/generate-scene`,{method:'POST',body:fd});
+    const d=await r.json();
     if(d.error)throw new Error(d.error);
     const imgUrl=API()+d.image_url;
-    document.getElementById('sceneImg').src=imgUrl;document.getElementById('scenePreview').style.display='block';
-    const resp=await fetch(imgUrl);const blob=await resp.blob();S.sceneFile=new File([blob],'scene.png',{type:'image/png'});
+    document.getElementById('sceneImg').src=imgUrl;
+    document.getElementById('sceneImg').style.opacity='1';
+    prevDiv.querySelector('div').textContent='✓ Scene ready';
+    prevDiv.querySelector('div').style.color='var(--green)';
+    const resp=await fetch(imgUrl);const blob=await resp.blob();
+    S.sceneFile=new File([blob],'scene.png',{type:'image/png'});
     toast('Scene ready');
-  }catch(e){toast('Error: '+e.message,'err');}
+  }catch(e){
+    prevDiv.querySelector('div').textContent='Error: '+e.message;
+    prevDiv.querySelector('div').style.color='var(--red)';
+    toast('Scene error: '+e.message,'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=origText||'✦ Generate';}
+  }
 }
 function uploadScene(input){
   const file=input.files[0];if(!file)return;S.sceneFile=file;
