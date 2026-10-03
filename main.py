@@ -247,17 +247,32 @@ async def generate_portrait(
     import fal_client
     os.environ["FAL_KEY"] = FAL_KEY
     jid = str(uuid.uuid4())[:8]
-    # Use the appearance prompt directly if it already contains studio language,
-    # otherwise wrap it with photorealism signals
+    # Build portrait prompt with strong age, framing and realism signals
+    age_int = int(persona_age) if str(persona_age).isdigit() else 40
+    # Age-specific descriptors to prevent FLUX from defaulting to ~30s appearance
+    if age_int >= 55:
+        age_desc = "deep character lines, silver or salt-and-pepper hair, aged hands visible, crow's feet, natural age spots"
+    elif age_int >= 48:
+        age_desc = "visible laughter lines around eyes, subtle forehead lines, mature skin with natural texture, slight crow's feet"
+    elif age_int >= 40:
+        age_desc = "fine lines around eyes, natural skin with visible pores, mature refined appearance, subtle laughter lines"
+    else:
+        age_desc = "natural skin with visible pores, authentic appearance"
+
     if "studio portrait" in appearance.lower() or "canon" in appearance.lower():
-        prompt = appearance
+        # Skill file already has a full prompt — inject waist-up and age descriptors
+        prompt = appearance.replace("upper body", "waist up").replace("Upper body", "waist up")
+        if "waist" not in prompt.lower():
+            prompt = prompt.rstrip() + f", waist up framing, {age_desc}"
     else:
         prompt = (
             f"Studio portrait photograph of a {persona_age} year old {appearance}, "
-            f"{outfit}, seamless white studio backdrop, upper body, facing camera, "
+            f"{age_desc}, "
+            f"{outfit}, seamless white studio backdrop, waist up framing, facing camera directly, "
             f"Canon EOS 5D Mark IV 85mm f/2.8, single large softbox at 45 degrees camera left, "
-            f"visible skin pores, natural skin subsurface scattering, fine hair strands, "
-            f"no retouching, no filters, no airbrushing, in the middle"
+            f"white reflector fill on right, visible skin pores, natural skin subsurface scattering, "
+            f"fine hair strands, no retouching, no filters, no airbrushing, no digital smoothing, "
+            f"editorial photography, in the middle"
         )
     images = []
     try:
@@ -352,19 +367,39 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
         set_job(jid, {"status": "running", "stage": "removing_background", "progress": 10})
         print(f"[{jid}] Removing background...")
         portrait_rgba = rembg_remove(Image.open(portrait_path))
-        print(f"[{jid}] Background removed.")
+
+        # Fix white halo — erode the alpha mask edges to remove fringe pixels
+        import numpy as np
+        rgba_arr = np.array(portrait_rgba)
+        alpha = rgba_arr[:, :, 3]
+        # Erode alpha by 2px using a simple minimum filter to remove edge fringe
+        from PIL import ImageFilter
+        alpha_img = Image.fromarray(alpha)
+        alpha_eroded = alpha_img.filter(ImageFilter.MinFilter(3))  # 3px min = 1px erosion
+        alpha_eroded = alpha_eroded.filter(ImageFilter.GaussianBlur(radius=1))  # feather edge
+        rgba_arr[:, :, 3] = np.array(alpha_eroded)
+        portrait_rgba = Image.fromarray(rgba_arr)
+        print(f"[{jid}] Background removed + halo fixed.")
 
         if scene_path and Path(scene_path).exists():
             set_job(jid, {"status": "running", "stage": "compositing", "progress": 20})
             print(f"[{jid}] Compositing...")
             bg = Image.open(scene_path).convert("RGBA")
+            # Scale scene to fill portrait dimensions
             bg = bg.resize(portrait_rgba.size, Image.LANCZOS)
-            bg.paste(portrait_rgba, (0, 0), portrait_rgba)
+            composite = Image.new("RGBA", portrait_rgba.size, (0, 0, 0, 255))
+            composite.paste(bg, (0, 0))
+            composite.paste(portrait_rgba, (0, 0), portrait_rgba)
             final_portrait_path = str(UPLOAD_DIR / f"{jid}_composite.png")
-            bg.convert("RGB").save(final_portrait_path)
+            composite.convert("RGB").save(final_portrait_path)
             print(f"[{jid}] Composite done.")
         else:
-            final_portrait_path = portrait_path
+            # No scene — paste onto black background (not transparent) for Flashtalk
+            bg = Image.new("RGB", portrait_rgba.size, (0, 0, 0))
+            bg.paste(portrait_rgba, (0, 0), portrait_rgba)
+            final_portrait_path = str(UPLOAD_DIR / f"{jid}_nobg.png")
+            bg.save(final_portrait_path)
+            print(f"[{jid}] Portrait on black background saved.")
 
         set_job(jid, {"status": "running", "stage": "uploading", "progress": 30})
         print(f"[{jid}] Uploading...")
@@ -391,16 +426,25 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
 
         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
+
+        # Flashtalk outputs 768x448 (landscape). Scale to fill 9:16 (1080x1920).
+        # Strategy: scale width to 1080, then pad height to 1920 with blurred background.
+        # This fills the full vertical frame without black bars or squashing.
         ret = subprocess.run([
             "ffmpeg", "-i", raw_path,
             "-vf", (
-                "scale=448:448:force_original_aspect_ratio=decrease,"
-                "pad=448:768:(ow-iw)/2:(oh-ih)/2:black,"
+                # Step 1: scale to 1080 wide, keep aspect ratio (~1080x608)
+                "scale=1080:-2,"
+                # Step 2: pad to full 9:16 (1080x1920) with black, centred vertically
+                "pad=1080:1920:0:(oh-ih)/2:black,"
+                # Step 3: grain filter for skin texture realism
                 "noise=alls=15:allf=t+u,"
                 "unsharp=5:5:1.8:5:5:0.0,"
                 "eq=contrast=1.06:brightness=-0.02:saturation=0.92"
             ),
-            "-c:v", "libx264", "-crf", "17", "-c:a", "copy",
+            "-c:v", "libx264", "-crf", "17", "-preset", "fast",
+            "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
             final_path, "-y"
         ], capture_output=True)
         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
