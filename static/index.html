@@ -63,10 +63,16 @@ img{display:block;}
 /* VIDEO GRID */
 .video-section{padding:36px 48px 72px;}
 .video-section-inner{max-width:1200px;margin:0 auto;}
-.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;}
+.video-grid{display:flex;flex-direction:column;gap:40px;}
+.ratio-section-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.ratio-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.ratio-row-916{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,220px));gap:16px;}
+.ratio-row-11{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,320px));gap:16px;}
+.ratio-row-45{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,270px));gap:16px;}
+.ratio-row-169{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px;}
 .vc{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:all .2s;}
 .vc:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--sh);}
-.vc-thumb{aspect-ratio:9/16;background:var(--surface);position:relative;overflow:hidden;}
+.vc-thumb{background:var(--surface);position:relative;overflow:hidden;}
 .vc-thumb video{width:100%;height:100%;object-fit:cover;display:block;}
 .vc-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.75));opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center;}
 .vc:hover .vc-overlay{opacity:1;}
@@ -1145,29 +1151,41 @@ function renderPublic(pg){
 }
 
 function renderPublicHome(){
-  // Build filter bar
   const bar=document.getElementById('filterBar');
   const published=S.videos.filter(v=>v.published);
   const personaNames=[...new Set(published.map(v=>v.persona))];
-  bar.innerHTML=`<button class="filter-tab ${currentFilter==='all'?'on':''}" onclick="filterVideos('all',this)">All</button>`
+  const ratios=[...new Set(published.map(v=>v.ratio||'9:16'))];
+  const ratioLabels={'9:16':'TikTok','1:1':'Square','4:5':'Reels','16:9':'YouTube'};
+
+  bar.innerHTML=
+    `<button class="filter-tab ${currentFilter==='all'?'on':''}" onclick="filterVideos('all',this)">All</button>`
+    // Persona filters
     +personaNames.map(name=>{
       const p=S.personas.find(p=>p.name===name);
       const col=p?.color||'#7c3aed';
-      const img=p?.portrait?`<img src="${p.portrait}"/>`:name[0];
+      const avHtml=p?.portrait?`<img src="${p.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:name[0];
       return `<button class="filter-tab ${currentFilter===name?'on':''}" onclick="filterVideos('${name}',this)">
-        <div class="filter-tab-av" style="background:${col};">${img}</div>${name.split(' ')[0]}
+        <div class="filter-tab-av" style="background:${col};">${avHtml}</div>${name.split(' ')[0]}
       </button>`;
-    }).join('');
+    }).join('')
+    // Ratio filters — only show if more than one ratio exists
+    +(ratios.length>1?'<div style="width:1px;background:var(--border);height:24px;margin:0 6px;flex-shrink:0;"></div>':'')
+    +(ratios.length>1?ratios.map(r=>`
+      <button class="filter-tab ${currentFilter===r?'on':''}" onclick="filterVideos('${r}',this)">
+        ${ratioLabels[r]||r}
+      </button>`).join(''):'');
 
   renderVideoGrid();
 }
 
-function filterVideos(name,el){
-  currentFilter=name;
+function filterVideos(val,el){
+  currentFilter=val;
   document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
   renderVideoGrid();
 }
+
+
 
 function renderVideoGrid(){
   const grid=document.getElementById('pubVideoGrid');
@@ -1176,31 +1194,54 @@ function renderVideoGrid(){
     grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">No videos published yet</div><div class="empty-state-sub">Published videos appear here.</div></div>`;
     return;
   }
-  grid.innerHTML=published.map((v,i)=>{
-    const ratio=v.ratio||'9:16';
-    // Determine aspect ratio style for the thumb container
-    const aspectStyle=ratio==='1:1'?'aspect-ratio:1/1':ratio==='16:9'?'aspect-ratio:16/9':ratio==='4:5'?'aspect-ratio:4/5':'aspect-ratio:9/16';
-    return `
-    <div class="vc" id="vc-${i}">
-      <div class="vc-thumb" style="${aspectStyle};" onclick="toggleVideoPlay(${i})">
-        <video id="vcv-${i}" src="${v.url}" preload="metadata" playsinline loop
-          style="width:100%;height:100%;object-fit:cover;display:block;"></video>
-        <div class="vc-overlay" id="vco-${i}">
-          <div class="vc-play" id="vcp-${i}">▶</div>
-        </div>
-        <button onclick="event.stopPropagation();openVideoModal('${v.url}','${v.title}','${v.time}')"
-          style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;transition:opacity .2s;"
-          class="vc-fs-btn">⛶</button>
-      </div>
-      <div class="vc-info">
-        <div class="vc-title">${v.title}</div>
-        <div class="vc-meta">${v.time}</div>
-        <div class="vc-persona" style="background:${v.color}18;color:${v.color};border:1px solid ${v.color}35;">${v.persona}</div>
+
+  // Group by ratio
+  const ratioGroups={
+    '9:16':{label:'TikTok · Shorts · Reels (9:16)', rowClass:'ratio-row-916', videos:[]},
+    '4:5': {label:'Instagram Reels (4:5)',           rowClass:'ratio-row-45',  videos:[]},
+    '1:1': {label:'Instagram Square (1:1)',           rowClass:'ratio-row-11',  videos:[]},
+    '16:9':{label:'YouTube · Landscape (16:9)',       rowClass:'ratio-row-169', videos:[]}
+  };
+
+  published.forEach((v,i)=>{
+    const r=v.ratio||'9:16';
+    if(ratioGroups[r]) ratioGroups[r].videos.push({v,i});
+    else ratioGroups['9:16'].videos.push({v,i});
+  });
+
+  const ratioAspect={'9:16':'aspect-ratio:9/16','4:5':'aspect-ratio:4/5','1:1':'aspect-ratio:1/1','16:9':'aspect-ratio:16/9'};
+
+  let html='';
+  for(const [ratio,group] of Object.entries(ratioGroups)){
+    if(!group.videos.length) continue;
+    const aspect=ratioAspect[ratio]||'aspect-ratio:9/16';
+    html+=`<div>
+      <div class="ratio-section-title">${group.label} <span style="color:var(--dim);font-weight:400;">${group.videos.length} video${group.videos.length!==1?'s':''}</span></div>
+      <div class="${group.rowClass}">
+        ${group.videos.map(({v,i})=>`
+        <div class="vc" id="vc-${i}">
+          <div class="vc-thumb" style="${aspect};" onclick="toggleVideoPlay(${i})">
+            <video id="vcv-${i}" src="${v.url}" preload="metadata" playsinline loop
+              style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+            <div class="vc-overlay" id="vco-${i}">
+              <div class="vc-play" id="vcp-${i}">▶</div>
+            </div>
+            <button onclick="event.stopPropagation();openVideoModal('${v.url}','${v.title}','${v.time}','${ratio}')"
+              style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;transition:opacity .2s;"
+              class="vc-fs-btn">⛶</button>
+          </div>
+          <div class="vc-info">
+            <div class="vc-title">${v.title}</div>
+            <div class="vc-meta">${v.time}</div>
+            <div class="vc-persona" style="background:${v.color}18;color:${v.color};border:1px solid ${v.color}35;">${v.persona}</div>
+          </div>
+        </div>`).join('')}
       </div>
     </div>`;
-  }).join('');
+  }
+  grid.innerHTML=html;
 
-  // Show fullscreen button on hover
+  // Fullscreen button on hover
   grid.querySelectorAll('.vc').forEach(card=>{
     const fsBtn=card.querySelector('.vc-fs-btn');
     card.addEventListener('mouseenter',()=>{if(fsBtn)fsBtn.style.opacity='1';});
@@ -1270,12 +1311,21 @@ function renderPublicPersonas(){
 }
 
 // ── VIDEO MODAL ────────────────────────────────────────
-function openVideoModal(url,title,time){
-  document.getElementById('modalVideo').src=url;
-  document.getElementById('modalVideo').play().catch(()=>{});
+function openVideoModal(url,title,time,ratio){
+  const modal=document.getElementById('videoModal');
+  const wrap=modal.querySelector('.modal-wrap');
+  const vid=document.getElementById('modalVideo');
+  // Size modal based on ratio
+  const r=ratio||'9:16';
+  if(r==='16:9') wrap.style.width='min(860px,95vw)';
+  else if(r==='1:1') wrap.style.width='min(540px,92vw)';
+  else if(r==='4:5') wrap.style.width='min(440px,92vw)';
+  else wrap.style.width='min(380px,92vw)';
+  vid.src=url;
+  vid.play().catch(()=>{});
   document.getElementById('modalTitle').textContent=title;
   document.getElementById('modalMeta').textContent=time;
-  document.getElementById('videoModal').classList.remove('hidden');
+  modal.classList.remove('hidden');
 }
 function closeVideoModal(){
   document.getElementById('videoModal').classList.add('hidden');
