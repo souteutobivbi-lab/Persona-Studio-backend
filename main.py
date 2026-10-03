@@ -429,6 +429,64 @@ async def run_lora_training(jid, zip_url, trigger_word, persona_name):
 async def lora_status(job_id: str):
     return get_job(job_id)
 
+@app.post("/generate-outfits")
+async def generate_outfits(
+    persona_name: str = Form(...),
+    persona_age: str = Form(...),
+    niche: str = Form("general"),
+    style_context: str = Form("")
+):
+    from groq import Groq
+    client = Groq(api_key=GROQ_KEY)
+
+    system_prompt = """You are a professional wardrobe stylist and image consultant for British AI influencer personas.
+Generate outfit descriptions suitable for professional short-form video content.
+Each outfit must:
+- Be specific and visual — describe the garment, colour, fabric feel, and one accessory
+- Match the persona's niche, authority level and brand identity
+- Look professional and appropriate for the target audience
+- Be distinct from each other — different colours, styles, formality levels
+- Sound like something a real British professional would wear on camera
+Return ONLY a JSON array of exactly 5 outfit strings. No markdown, no explanation."""
+
+    user_prompt = f"""Generate 5 distinct outfit options for {persona_name}, aged {persona_age}, British, in the {niche} niche.
+Style context from their skill file: {style_context[:500] if style_context else 'Professional British influencer'}
+
+Each outfit description should be 10-20 words covering: main garment + colour + one key accessory or styling detail.
+Example format: "Cream structured blazer over black silk top, single diamond pendant, hair swept back"
+
+Return: ["outfit1", "outfit2", "outfit3", "outfit4", "outfit5"]"""
+
+    try:
+        response = client.chat.completions.create(
+            model="qwen/qwen3.8-27b",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=400,
+            temperature=0.8
+        )
+        raw = response.choices[0].message.content.strip()
+        if "<think>" in raw:
+            raw = raw[raw.rfind("</think>")+8:].strip()
+        raw = raw.replace("```json","").replace("```","").strip()
+        outfits = json.loads(raw)
+        if not isinstance(outfits, list):
+            outfits = [outfits]
+        outfits = [o.strip().strip('"').strip("'") for o in outfits if o and len(o.strip())>5]
+        return {"outfits": outfits[:5]}
+    except Exception as e:
+        # Fallback outfits based on niche
+        fallbacks = {
+            "wealth": ["Black tailored blazer, diamond necklace, dark silk top","Cream structured blazer, pearl earrings, ivory blouse","Charcoal power suit, minimal gold jewellery","Navy double-breasted blazer, silk shirt, understated watch","White blazer, black top, sleek updo"],
+            "interior design": ["Cream silk blouse, tortoiseshell glasses, delicate gold necklace","Camel structured blazer, minimal jewellery, elegant updo","Deep teal blazer, pearl earrings, refined makeup","Ivory fine knit, gold earrings, effortless styling","Burgundy silk top, understated necklace, natural makeup"],
+            "property": ["Dark navy jacket, open collar shirt, no tie","Charcoal blazer, quality checked shirt","Dark suit jacket, white shirt","Navy overcoat, smart casual shirt","Dark jacket, crew neck, understated"],
+            "health": ["Clean white linen shirt, natural minimal look","Sage green top, fresh natural makeup","Cream athleisure top, dewy skin","Soft grey knit, understated earrings","White and cream layers, clean appearance"],
+        }
+        niche_key = next((k for k in fallbacks if k in niche.lower()), "wealth")
+        return {"outfits": fallbacks[niche_key]}
+
 @app.post("/generate-portrait")
 async def generate_portrait(
     persona_name: str = Form(...),

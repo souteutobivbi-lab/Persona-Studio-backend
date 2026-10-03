@@ -608,16 +608,75 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 <div class="ratio-btn" onclick="pickRatio(this,'16:9',768,432)"><svg width="24" height="14" viewBox="0 0 24 14"><rect x="1" y="1" width="22" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span>16:9</span><small style="font-size:10px;color:var(--dim);">YouTube</small></div>
               </div>
             </div>
-            <div class="card">
+            <div class="card" id="portraitCard">
               <div class="card-hd">Portrait <span class="badge" id="portraitBadge">None</span></div>
-              <div class="p-grid" id="portraitGrid">
-                <div class="p-slot" onclick="document.getElementById('portUpload').click()"><span style="font-size:18px;color:var(--dim);">＋</span></div>
+
+              <!-- LOCKED IDENTITY MODE — shown when persona has a LoRA -->
+              <div id="portraitLoraMode" style="display:none;">
+                <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:10px;margin-bottom:14px;">
+                  <img id="portraitLoraRef" style="width:72px;height:96px;object-fit:cover;border-radius:8px;border:2px solid var(--green);flex-shrink:0;" src=""/>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">🔒 Identity locked — <span id="portraitLoraName"></span></div>
+                    <div style="font-size:11px;color:var(--muted);line-height:1.6;">FLUX will generate a new image of this exact person. Choose what outfit and styling you want for this video.</div>
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:8px;">
+                  <div class="lbl">Choose outfit for this video</div>
+                  <div id="outfitSuggestions" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+                  <input class="inp" id="loraOutfitInp" placeholder="e.g. cream cashmere blazer, pearl earrings, minimal makeup"/>
+                  <div style="font-size:10px;color:var(--dim);margin-top:4px;">Select from suggestions above or type your own</div>
+                </div>
+                <div class="field" style="margin-bottom:12px;">
+                  <div class="lbl">Styling notes <span style="color:var(--dim);font-weight:400;">(optional)</span></div>
+                  <input class="inp" id="loraStylingInp" placeholder="e.g. hair down and wavy, bold lip, no glasses"/>
+                </div>
+                <button class="gen-btn" id="loraGenBtn" onclick="genPortraitWithLora()">✦ Generate portrait of <span id="loraGenBtnName"></span> in this outfit</button>
+                <div id="portraitLoraResult" style="display:none;margin-top:14px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-bottom:10px;">
+                    <div>
+                      <div style="font-size:10px;color:var(--dim);margin-bottom:5px;text-align:center;text-transform:uppercase;letter-spacing:.06em;">Identity reference</div>
+                      <div style="aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:2px solid var(--green);">
+                        <img id="portraitLoraRefCompare" style="width:100%;height:100%;object-fit:cover;" src=""/>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;color:var(--dim);margin-bottom:5px;text-align:center;text-transform:uppercase;letter-spacing:.06em;">Generated for video</div>
+                      <div style="aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+                        <img id="portraitLoraGenImg" style="width:100%;height:100%;object-fit:cover;" src=""/>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:8px;">
+                    <button class="btn ghost" style="flex:1;font-size:12px;" onclick="genPortraitWithLora()">↺ Regenerate</button>
+                    <button class="btn primary" style="flex:1;font-size:12px;" onclick="goStep(5)">Use this → Generate video</button>
+                  </div>
+                </div>
+                <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;"></div>
+                <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:12px;">
+                  <button class="btn ghost" style="font-size:11px;width:100%;" onclick="document.getElementById('portraitManualMode').style.display='block';this.style.display='none';">Or upload / use a different photo instead</button>
+                </div>
+                <div id="portraitManualMode" style="display:none;margin-top:10px;">
+                  <div class="p-grid" id="portraitGrid">
+                    <div class="p-slot" onclick="document.getElementById('portUpload').click()"><span style="font-size:18px;color:var(--dim);">＋</span></div>
+                  </div>
+                  <input type="file" id="portUpload" accept="image/*" style="display:none;" onchange="uploadPortrait(this)">
+                </div>
               </div>
-              <input type="file" id="portUpload" accept="image/*" style="display:none;" onchange="uploadPortrait(this)">
-              <div style="font-size:11px;color:var(--dim);margin:10px 0 5px;">Or generate with FLUX:</div>
-              <textarea class="inp" id="portraitPrompt" style="min-height:56px;font-size:12px;" placeholder="Paste appearance prompt from skill file..."></textarea>
-              <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px;" onclick="genPortrait()">✦ Generate with FLUX</button>
-              <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:6px;display:none;">Generating... ~10 seconds</div>
+
+              <!-- STANDARD MODE — shown when no LoRA -->
+              <div id="portraitStandardMode">
+                <div class="p-grid" id="portraitGrid">
+                  <div class="p-slot" onclick="document.getElementById('portUpload').click()"><span style="font-size:18px;color:var(--dim);">＋</span></div>
+                </div>
+                <input type="file" id="portUpload" accept="image/*" style="display:none;" onchange="uploadPortrait(this)">
+                <div style="font-size:11px;color:var(--dim);margin:10px 0 5px;">Or generate with FLUX:</div>
+                <textarea class="inp" id="portraitPrompt" style="min-height:56px;font-size:12px;" placeholder="Paste appearance prompt from skill file..."></textarea>
+                <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px;" onclick="genPortrait()">✦ Generate with FLUX</button>
+                <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:6px;display:none;"></div>
+                <div style="font-size:11px;color:var(--muted);margin-top:10px;">
+                  No identity lock yet. <button class="btn ghost sm" onclick="showPanel('portraits',null)" style="font-size:11px;">Set up identity lock →</button>
+                </div>
+              </div>
             </div>
             <div class="card">
               <div class="card-hd">Background scene <span style="font-size:11px;color:var(--dim);font-weight:400;">(optional)</span></div>
@@ -1270,6 +1329,8 @@ function activatePersona(p,pillEl){
   if(p.voiceId){ S.voiceId=p.voiceId; }
   updateRpVoice();
   if(document.getElementById('portraitPrompt'))document.getElementById('portraitPrompt').value=p.appearance||'';
+  // Refresh portrait step if it's currently visible
+  if(document.getElementById('sp4')?.classList.contains('on')) renderPortraitStep();
   showPersonaDetail(p);
 }
 
@@ -1384,6 +1445,7 @@ function goStep(n){
     else if(i<n-1)t.classList.add('done');
   });
   if(n===3)loadVoices();
+  if(n===4)renderPortraitStep();
 }
 
 // ── SKILL PARSING ──────────────────────────────────────
@@ -1520,6 +1582,28 @@ function parseSkillForUI(text, updateTopic=true){
     }
     break;
   }
+
+  // ── Outfit extraction — OUTFIT STYLE section ──
+  const outfits=[];
+  let inOutfit=false;
+  for(const line of lines){
+    const upper=line.trim().toUpperCase();
+    if(/^[-=]{4,}$/.test(line.trim())) continue;
+    if(upper.startsWith('OUTFIT STYLE')||upper.startsWith('OUTFIT')) { inOutfit=true; continue; }
+    if(inOutfit && upper.length>3 && /^[A-Z][A-Z\s&·]{5,}$/.test(line.trim()) && !line.trim().startsWith('-')) { inOutfit=false; continue; }
+    if(!inOutfit) continue;
+    const trimmed=line.trim();
+    if(!trimmed) continue;
+    // Bullet outfit lines
+    const m=trimmed.match(/^[-•]\s+(.{15,120})/);
+    if(m){
+      const o=m[1].trim();
+      if(!o.toLowerCase().includes('never')&&!o.toLowerCase().includes('no logo')&&!o.toLowerCase().includes('avoid'))
+        outfits.push(o);
+    }
+    if(outfits.length>=8) break;
+  }
+  window._skillOutfits=outfits.length?outfits:null;
 }
 
 async function loadSkill(input){
@@ -1794,6 +1878,168 @@ function uploadPortrait(input){
     grid.children[0].classList.add('selected');document.getElementById('portraitBadge').textContent='✓';toast('Portrait uploaded');
   };reader.readAsDataURL(file);
 }
+async function populateOutfitSuggestions(p){
+  const el=document.getElementById('outfitSuggestions');
+  if(!el) return;
+
+  // Show loading state
+  el.innerHTML=`<div style="font-size:11px;color:var(--dim);">⟳ Loading outfit suggestions...</div>`;
+
+  // Try skill file outfits first
+  let outfits=window._skillOutfits||[];
+
+  // If skill has outfits — use them
+  if(outfits.length>=3){
+    renderOutfitChips(outfits);
+    return;
+  }
+
+  // Otherwise generate 5 via Groq
+  try{
+    const fd=new FormData();
+    fd.append('persona_name', p.name||'persona');
+    fd.append('persona_age', p.age||'40');
+    fd.append('niche', p.niche||'general');
+    fd.append('style_context', p.appearance||'');
+    const r=await fetch(`${API()}/generate-outfits`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.outfits&&d.outfits.length) renderOutfitChips(d.outfits);
+    else renderOutfitChips(defaultOutfits(p));
+  }catch(e){
+    renderOutfitChips(defaultOutfits(p));
+  }
+}
+
+function defaultOutfits(p){
+  // Niche-aware fallback outfits
+  const niche=(p?.niche||'').toLowerCase();
+  if(niche.includes('wealth')||niche.includes('finance')){
+    return ['Black tailored blazer, diamond necklace, dark top','Cream structured blazer, pearl earrings, ivory blouse','Charcoal power suit, minimal gold jewellery','Navy double-breasted blazer, silk shirt, understated watch','White blazer, black top, sleek updo'];
+  } else if(niche.includes('interior')||niche.includes('design')||niche.includes('luxury')){
+    return ['Cream silk blouse, tortoiseshell glasses, delicate gold necklace','Camel structured blazer, minimal jewellery, elegant updo','Deep teal blazer, pearl earrings, refined makeup','Ivory fine knit, gold earrings, effortless styling','Burgundy silk top, understated necklace, natural makeup'];
+  } else if(niche.includes('property')||niche.includes('builder')){
+    return ['Dark navy jacket, open collar shirt, no tie','Charcoal blazer, quality checked shirt, practical styling','Dark suit jacket, white shirt, confident posture','Navy overcoat, smart casual shirt, grounded look','Dark jacket, crew neck, understated and earned'];
+  } else if(niche.includes('health')||niche.includes('wellness')){
+    return ['Clean white linen shirt, natural minimal look','Sage green top, fresh natural makeup, calm styling','Cream athleisure top, dewy skin, natural hair','Soft grey knit, understated earrings, warm expression','White and cream layers, clean and vital appearance'];
+  } else {
+    return ['Classic black blazer, minimal jewellery, refined look','Cream structured top, elegant styling, natural makeup','Navy blazer, silk shirt, professional composure','Charcoal knit, gold earrings, understated confidence','White blouse, tailored jacket, polished appearance'];
+  }
+}
+
+function renderOutfitChips(outfits){
+  const el=document.getElementById('outfitSuggestions');
+  if(!el) return;
+  el.innerHTML=outfits.slice(0,5).map((o,i)=>`
+    <div onclick="selectOutfit(this,'${o.replace(/'/g,"\\'")}',${i})"
+      id="outfit-chip-${i}"
+      style="padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div>
+        <div style="font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px;">Option ${i+1}</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5;">${o}</div>
+      </div>
+      <div style="font-size:16px;color:var(--dim);flex-shrink:0;">○</div>
+    </div>`).join('');
+}
+
+function selectOutfit(el,outfit,idx){
+  // Deselect all
+  document.querySelectorAll('[id^="outfit-chip-"]').forEach(c=>{
+    c.style.borderColor='var(--border)';
+    c.style.background='var(--surface)';
+    c.querySelector('div:last-child').textContent='○';
+  });
+  // Select this
+  el.style.borderColor='var(--purple)';
+  el.style.background='var(--p3)';
+  el.querySelector('div:last-child').textContent='●';
+  // Fill input
+  document.getElementById('loraOutfitInp').value=outfit;
+}
+
+function renderPortraitStep(){
+  const p=S.persona;
+  const hasLora=!!(p?.loraUrl);
+  const loraMode=document.getElementById('portraitLoraMode');
+  const stdMode=document.getElementById('portraitStandardMode');
+  if(!loraMode||!stdMode) return;
+
+  if(hasLora){
+    // Show locked identity mode
+    loraMode.style.display='block';
+    stdMode.style.display='none';
+    // Populate reference image and name
+    const refImg=document.getElementById('portraitLoraRef');
+    const refCompare=document.getElementById('portraitLoraRefCompare');
+    const nameEl=document.getElementById('portraitLoraName');
+    const btnName=document.getElementById('loraGenBtnName');
+    if(refImg) refImg.src=p.portrait||'';
+    if(refCompare) refCompare.src=p.portrait||'';
+    if(nameEl) nameEl.textContent=p.name;
+    if(btnName) btnName.textContent=p.name;
+    document.getElementById('portraitBadge').textContent='🔒 '+p.name+' identity locked';
+    document.getElementById('portraitLoraResult').style.display='none';
+    // Populate outfit suggestions
+    populateOutfitSuggestions(p);
+  } else {
+    // Show standard mode
+    loraMode.style.display='none';
+    stdMode.style.display='block';
+    // Pre-fill appearance prompt from persona
+    const prompt=document.getElementById('portraitPrompt');
+    if(prompt&&!prompt.value) prompt.value=p?.appearance||'';
+    document.getElementById('portraitBadge').textContent='None';
+  }
+}
+
+async function genPortraitWithLora(){
+  const p=S.persona;
+  if(!p?.loraUrl) return toast('No identity lock found — set up LoRA first','err');
+
+  const outfit=document.getElementById('loraOutfitInp').value.trim();
+  const styling=document.getElementById('loraStylingInp').value.trim();
+  if(!outfit) return toast('Enter an outfit for this video first','err');
+
+  const btn=document.getElementById('loraGenBtn');
+  btn.disabled=true; btn.innerHTML='⟳ Generating...';
+  const st=document.getElementById('portraitGenStatus');
+  st.style.display='block';
+  st.textContent='Generating '+p.name+' in new outfit with locked identity... ~25 seconds';
+  document.getElementById('portraitLoraResult').style.display='none';
+
+  try{
+    const fd=new FormData();
+    fd.append('persona_name', p.name);
+    fd.append('persona_age', p.age||'40');
+    fd.append('appearance', p.appearance||'');
+    fd.append('outfit', outfit+(styling?', '+styling:''));
+    fd.append('lora_url', p.loraUrl);
+    fd.append('trigger_word', p.triggerWord||'');
+    fd.append('count','1');
+    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    const imgUrl=API()+d.images[0];
+
+    // Show comparison
+    document.getElementById('portraitLoraGenImg').src=imgUrl;
+    document.getElementById('portraitLoraResult').style.display='block';
+    document.getElementById('portraitBadge').textContent='🔒 Generated ✓';
+    st.style.display='none';
+
+    // Set as the portrait for video generation
+    const resp=await fetch(imgUrl);
+    const blob=await resp.blob();
+    S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
+    toast('Portrait ready — '+p.name+' in new outfit');
+  }catch(e){
+    st.textContent='Error: '+e.message;
+    toast('Error: '+e.message,'err');
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML='✦ Generate portrait of <span id="loraGenBtnName">'+p.name+'</span> in this outfit';
+  }
+}
+
 async function genPortrait(){
   const prompt=document.getElementById('portraitPrompt').value.trim()||S.persona?.appearance;
   if(!prompt)return toast('Add appearance prompt first','err');
