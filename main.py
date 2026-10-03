@@ -224,60 +224,86 @@ async def generate_script(
     from groq import Groq
     client = Groq(api_key=GROQ_KEY)
 
-    # Build skill instruction block — drives all script quality
+    # Extract first name for self-introduction
+    first_name = persona_name.split()[0] if persona_name else "I"
+
+    # Build skill instruction block
     if skill_context and len(skill_context.strip()) > 50:
         skill_block = f"""
-PERSONA SKILL FILE — follow this precisely:
+PERSONA SKILL FILE — follow every instruction precisely:
 {skill_context[:3000]}
 
-You must:
+You MUST:
 - Use ONLY vocabulary listed under VOCABULARY TO USE
-- Avoid every word and phrase under VOCABULARY TO AVOID
-- Follow the SCRIPT STRUCTURE exactly (Hook / Body / CTA)
-- Match the VOICE & TONE description with precision
-- Use hooks from HOOKS THAT WORK or HOOKS THAT STOP THE SCROLL as structural models
-- End with one of the SIGN-OFFS listed in the skill file
-- Write in this persona's specific, distinctive voice — not generic influencer language
-- Pull from EXAMPLE SCRIPTS as tone references — not to copy but to match register
+- Avoid every word and phrase listed under VOCABULARY TO AVOID
+- Match the VOICE & TONE description exactly
+- Use the SCRIPT STRUCTURE from the skill file
+- Draw hooks from HOOKS THAT WORK / HOOKS THAT STOP THE SCROLL as structural models
+- End with one of the SIGN-OFFS from the skill file
+- The self-introduction must use the persona's first name and role as defined in the skill file
 """
     else:
         skill_block = f"""
 Persona: {persona_name}, {persona_age} years old, British, {niche} niche.
 Voice: authoritative, measured, direct. No hype. No filler. British understatement.
-Structure: Hook (5 words max) / Body (one specific concrete insight) / CTA (quiet, natural).
 """
 
-    system_prompt = """You are a professional short-form video scriptwriter specialising in British AI influencer content.
-You write scripts that sound like a real, specific person with earned authority — not a content creator.
+    system_prompt = f"""You are a professional short-form video scriptwriter for British AI influencer content.
+You write scripts that build real audiences through genuine expertise — not entertainment, not motivation, not lifestyle. Education and authority.
 
-Every script must have:
-1. A HOOK that stops the scroll in the first breath — a hard truth, a specific claim, a reframe, or a disruption of assumption. No warm-up. No preamble.
-2. A BODY that delivers ONE specific, concrete insight with a named mechanism — not vague, not motivational filler, not a list
-3. A CTA that sounds completely natural — the way this specific person signs off, not a generic call to action
+SCRIPT STRUCTURE — every script must follow this exactly:
 
-Non-negotiable rules:
-- Maximum 42 words per script
-- No emojis, no hashtags, no stage directions, no asterisks, no quotation marks around the whole script
-- Banned phrases: "game changer", "level up", "hustle", "grind", "passive income", "amazing", "literally", "guys", "awesome"
-- Each of the 5 scripts must use a completely different hook, angle and energy
-- The body insight must be SPECIFIC — name the mechanism, the number, the exact thing people miss
-- Scripts must sound spoken, not written — short sentences, natural rhythm, real pauses
-- British English only: colour, realise, whilst, neighbour, practise
-- Strip all thinking tags from output
-- Return ONLY a valid JSON array of exactly 5 strings. No markdown. No explanation. No preamble."""
+1. SELF-INTRODUCTION (first 8-10 words):
+   The persona introduces themselves by first name and role every single time.
+   Examples:
+   - "I'm {first_name}. I've spent twenty years in property development."
+   - "My name is {first_name} — interior designer and authority on space."
+   - "{first_name} here. Wealth strategist. And I need to tell you something."
+   This is non-negotiable. Every script starts with who they are.
 
-    user_prompt = f"""Write 5 distinct 15-second video scripts for {persona_name}, aged {persona_age}.
+2. HOOK / INSIGHT (the body — 30-40 words):
+   ONE specific, factual, researched insight that the audience genuinely did not know.
+   Must be:
+   - Specific and verifiable — cite a number, a principle, a named concept, a mechanism
+   - Genuinely educational — teach them something real about the niche
+   - Surprising — challenge a common assumption with evidence or expertise
+   - Connected to the topic directly
+   Not: vague observations, motivational filler, generic advice
+
+3. CTA / SIGN-OFF (final 8-12 words):
+   Natural, unhurried, persona-specific. Tells the viewer exactly what to do next and why.
+   Must drive followership — give a specific reason to follow, not just "follow me".
+   Examples:
+   - "Follow for one insight every week that most designers never share."
+   - "I cover this in depth tomorrow. Follow so you don't miss it."
+   - "More on this. Follow — every video covers one thing that changes how you see this."
+
+TARGET LENGTH: 55-70 words per script (approximately 20 seconds spoken at measured British pace)
+
+NON-NEGOTIABLE RULES:
+- Every script opens with first name and role — no exceptions
+- All facts and insights must be accurate and specific — no made-up statistics
+- No emojis, hashtags, stage directions, asterisks
+- Banned phrases: "game changer", "level up", "hustle", "grind", "passive income", "amazing", "literally", "guys", "awesome", "journey"
+- British English: colour, realise, whilst, neighbour, practise, grey
+- Scripts must sound spoken — short sentences, natural pauses, real rhythm
+- Each of the 5 scripts must approach the topic from a genuinely different angle
+- Return ONLY a valid JSON array of exactly 5 strings. No markdown. No explanation."""
+
+    user_prompt = f"""Write 5 distinct ~20-second video scripts for {persona_name}, aged {persona_age}, British.
 Topic: {topic}
 Niche: {niche}
 
 {skill_block}
 
-The 5 scripts must each approach the topic from a completely different angle:
-1. Open with a hard truth or counterintuitive claim that challenges what they think they know
-2. Open with a specific number, timeframe, or concrete detail that earns instant credibility
-3. Open with the mistake most people make — name it precisely
-4. Open with a pattern this persona has observed repeatedly — "thirty years tells you..." style
-5. Open with a direct reframe — what they call X is actually Y
+The 5 scripts must each cover a genuinely different aspect, angle or insight on the topic:
+1. A foundational principle most people in the audience violate without knowing it
+2. A specific named technique, rule or standard used by professionals in this niche
+3. The most common expensive mistake made — with a real consequence named
+4. A counterintuitive truth backed by experience or research — what they assume is wrong
+5. A practical one-sentence rule the audience can apply immediately after watching
+
+Each script: self-introduction → factual insight → follow CTA. 55-70 words. Spoken naturally.
 
 Return ONLY: ["script1", "script2", "script3", "script4", "script5"]"""
 
@@ -287,8 +313,8 @@ Return ONLY: ["script1", "script2", "script3", "script4", "script5"]"""
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        max_tokens=900,
-        temperature=0.82
+        max_tokens=1500,
+        temperature=0.75
     )
     raw = response.choices[0].message.content.strip()
     try:
