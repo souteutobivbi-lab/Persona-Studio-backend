@@ -1662,32 +1662,59 @@ async function startGen(){
     const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
     if(d.error)throw new Error(d.error);
     const job=d.job_id||jid;
+    window._genStart=Date.now();
+    // Stage label map for human-readable display
+    const stageLabels={
+      starting:'Starting pipeline...',
+      removing_background:'Removing background from portrait...',
+      compositing:'Compositing portrait onto scene...',
+      uploading:'Uploading files to fal.ai...',
+      generating_video:'Flashtalk generating lip-sync video — this takes 30–90 seconds...',
+      downloading:'Downloading generated video...',
+      processing:'Encoding video for mobile streaming...',
+      grain_filter:'Applying grain filter...',
+      uploading_cdn:'Uploading to CDN...',
+      done:'Complete!'
+    };
     pollIv=setInterval(async()=>{
       try{
         const sr=await fetch(`${API()}/video-status/${job}`);const sd=await sr.json();
-        document.getElementById('genPbar').style.width=(sd.progress||0)+'%';
-        document.getElementById('genStage').textContent=sd.stage||'Processing...';
+        const prog=Math.min(sd.progress||0,99);
+        document.getElementById('genPbar').style.width=prog+'%';
+        const elapsed=Math.round((Date.now()-window._genStart)/1000);
+        const label=sd.message||stageLabels[sd.stage]||sd.stage||'Processing...';
+        document.getElementById('genStage').innerHTML=
+          `<span>${label}</span> <span style="color:var(--dim);margin-left:6px;">${elapsed}s</span>`;
         const st=sd.stage;
-        if(st==='removing_background')updatePipe(1,'run','Removing background...');
-        if(st==='compositing'){updatePipe(1,'done');updatePipe(2,'run');}
-        if(st==='uploading'||st==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Flashtalk generating...');}
-        if(st==='downloading'){updatePipe(3,'done');updatePipe(4,'run');}
-        if(st==='processing'||st==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Grain filter...');}
+        if(st==='removing_background'){updatePipe(1,'run','Removing background...');}
+        if(st==='compositing'){updatePipe(1,'done');updatePipe(2,'run','Compositing...');}
+        if(st==='uploading'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Uploading...');}
+        if(st==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Flashtalk lip-sync (~30–90s)...');}
+        if(st==='downloading'){updatePipe(3,'done');updatePipe(4,'run','Downloading...');}
+        if(st==='processing'||st==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Encoding for mobile...');}
+        if(st==='uploading_cdn'){updatePipe(4,'done');updatePipe(5,'run','Uploading to CDN...');}
         if(sd.status==='complete'){
           clearInterval(pollIv);pollIv=null;
           document.getElementById('cancelGenBtn').style.display='none';
           [1,2,3,4,5].forEach(n=>updatePipe(n,'done'));
-          document.getElementById('genPbar').style.width='100%';document.getElementById('genStage').textContent='Done!';
+          const total=Math.round((Date.now()-window._genStart)/1000);
+          document.getElementById('genPbar').style.width='100%';
+          document.getElementById('genStage').innerHTML=`<span style="color:var(--green);">✓ Done in ${total}s</span>`;
           const url=sd.url||`${API()}/download/${job}`;S.lastVideoUrl=url;
           document.getElementById('vprev').innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;border-radius:11px;" playsinline></video>`;
           document.getElementById('postGenBtns').style.display='flex';
           btn.textContent='✦ Generate another';btn.disabled=false;
           const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false};
-          S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready!');
+          S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
         }
-        if(sd.status==='error'){clearInterval(pollIv);pollIv=null;document.getElementById('cancelGenBtn').style.display='none';toast('Error: '+sd.error,'err');btn.disabled=false;btn.textContent='✦ Try again';}
+        if(sd.status==='error'){
+          clearInterval(pollIv);pollIv=null;
+          document.getElementById('cancelGenBtn').style.display='none';
+          document.getElementById('genStage').innerHTML=`<span style="color:var(--red);">✕ Error: ${sd.error}</span>`;
+          toast('Error: '+sd.error,'err');btn.disabled=false;btn.textContent='✦ Try again';
+        }
       }catch(e){}
-    },3000);
+    },2000);
   }catch(e){toast('Error: '+e.message,'err');btn.disabled=false;btn.textContent='✦ Generate video';}
 }
 function updatePipe(n,status,sub){

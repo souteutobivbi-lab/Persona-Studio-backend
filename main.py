@@ -307,16 +307,22 @@ async def generate_portrait(
     else:
         age_desc = "natural skin with visible pores, authentic appearance"
 
-    if "studio portrait" in appearance.lower() or "canon" in appearance.lower():
-        # Skill file already has a full prompt — inject waist-up and age descriptors
-        prompt = appearance.replace("upper body", "waist up").replace("Upper body", "waist up")
-        if "waist" not in prompt.lower():
-            prompt = prompt.rstrip() + f", waist up framing, {age_desc}"
+    # Always start from the appearance text, strip any existing framing words
+    import re as _re
+    base = appearance
+    # Remove any existing framing instructions so we can replace with waist-up
+    base = _re.sub(r'\b(upper body|head shot|headshot|bust shot|close.?up|shoulder up|chest up|torso)\b',
+                   '', base, flags=_re.IGNORECASE).strip().strip(',').strip()
+
+    if "studio portrait" in base.lower() or "canon" in base.lower():
+        # Skill file already has full prompt — inject age desc and force waist-up
+        prompt = f"{base}, {age_desc}, waist up framing showing full torso and hands, in the middle"
     else:
         prompt = (
-            f"Studio portrait photograph of a {persona_age} year old {appearance}, "
+            f"Studio portrait photograph of a {persona_age} year old {base}, "
             f"{age_desc}, "
-            f"{outfit}, seamless white studio backdrop, waist up framing, facing camera directly, "
+            f"{outfit}, seamless white studio backdrop, "
+            f"waist up framing showing full torso and hands, facing camera directly, "
             f"Canon EOS 5D Mark IV 85mm f/2.8, single large softbox at 45 degrees camera left, "
             f"white reflector fill on right, visible skin pores, natural skin subsurface scattering, "
             f"fine hair strands, no retouching, no filters, no airbrushing, no digital smoothing, "
@@ -327,7 +333,8 @@ async def generate_portrait(
         for i in range(min(count, 4)):
             result = fal_client.subscribe("fal-ai/flux/dev", arguments={
                 "prompt": prompt,
-                "image_size": "portrait_4_3",
+                # portrait_16_9 gives more vertical space — better for waist-up
+                "image_size": {"width": 768, "height": 1024},
                 "num_inference_steps": 28,
                 "num_images": 1,
                 "enable_safety_checker": False,
@@ -449,13 +456,15 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
             bg.save(final_portrait_path)
             print(f"[{jid}] Portrait on black background saved.")
 
-        set_job(jid, {"status": "running", "stage": "uploading", "progress": 30})
+        set_job(jid, {"status": "running", "stage": "uploading", "progress": 30,
+                      "message": "Uploading portrait and audio to fal.ai..."})
         print(f"[{jid}] Uploading...")
         portrait_url = fal_client.upload_file(final_portrait_path)
         audio_url = fal_client.upload_file(audio_path)
         print(f"[{jid}] Uploaded.")
 
-        set_job(jid, {"status": "running", "stage": "generating_video", "progress": 40})
+        set_job(jid, {"status": "running", "stage": "generating_video", "progress": 45,
+                      "message": "Flashtalk generating lip-sync video... (~30-60 seconds)"})
         print(f"[{jid}] Starting flashtalk...")
         result = fal_client.subscribe(
             "fal-ai/flashtalk",
@@ -466,33 +475,34 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
         if not output_url:
             raise Exception("No video URL from flashtalk: " + str(result))
 
-        set_job(jid, {"status": "running", "stage": "downloading", "progress": 80})
+        set_job(jid, {"status": "running", "stage": "downloading", "progress": 80,
+                      "message": "Downloading video from fal.ai..."})
         import urllib.request
         raw_path = str(OUTPUT_DIR / f"{jid}_raw.mp4")
         urllib.request.urlretrieve(output_url, raw_path)
         print(f"[{jid}] Downloaded.")
 
-        set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
+        set_job(jid, {"status": "running", "stage": "processing", "progress": 88,
+                      "message": "Applying grain filter and encoding for mobile..."})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
 
-        # Flashtalk outputs 768x448 (landscape). Scale to fill 9:16 (1080x1920).
-        # Strategy: scale width to 1080, then pad height to 1920 with blurred background.
-        # This fills the full vertical frame without black bars or squashing.
+        # Flashtalk outputs 768x448 (landscape).
+        # Scale to fill 9:16 (1080x1920) — video fills width, padded top/bottom.
+        # CRF 23 + preset fast = good quality, smaller file, faster streaming.
         ret = subprocess.run([
             "ffmpeg", "-i", raw_path,
             "-vf", (
-                # Step 1: scale to 1080 wide, keep aspect ratio (~1080x608)
                 "scale=1080:-2,"
-                # Step 2: pad to full 9:16 (1080x1920) with black, centred vertically
                 "pad=1080:1920:0:(oh-ih)/2:black,"
-                # Step 3: grain filter for skin texture realism
-                "noise=alls=15:allf=t+u,"
-                "unsharp=5:5:1.8:5:5:0.0,"
-                "eq=contrast=1.06:brightness=-0.02:saturation=0.92"
+                "noise=alls=12:allf=t+u,"
+                "unsharp=3:3:1.2:3:3:0.0,"
+                "eq=contrast=1.05:brightness=-0.01:saturation=0.95"
             ),
-            "-c:v", "libx264", "-crf", "17", "-preset", "fast",
-            "-c:a", "aac", "-b:a", "128k",
+            "-c:v", "libx264", "-crf", "23", "-preset", "fast",
+            "-profile:v", "baseline", "-level", "3.1",
+            "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
             "-movflags", "+faststart",
+            "-maxrate", "2M", "-bufsize", "4M",
             final_path, "-y"
         ], capture_output=True)
         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
@@ -502,12 +512,14 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
         if not Path(final_path).exists():
             final_path = raw_path
 
+        set_job(jid, {"status": "running", "stage": "uploading_cdn", "progress": 95,
+                      "message": "Uploading to CDN for permanent storage..."})
         print(f"[{jid}] Uploading final video to fal.ai storage...")
         final_url = fal_client.upload_file(final_path)
         print(f"[{jid}] Final URL: {final_url}")
 
         set_job(jid, {"status": "complete", "progress": 100, "stage": "done",
-                      "output": final_path, "url": final_url})
+                      "message": "Video ready!", "output": final_path, "url": final_url})
         print(f"[{jid}] Pipeline complete!")
 
     except Exception as e:
