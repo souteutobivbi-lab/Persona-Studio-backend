@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Persona Studio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#08080c;--surface:#0f0f15;--card:#13131a;--border:#1e1e2c;--border2:#2a2a3a;
+  --text:#f0f0f6;--muted:#7a7a90;--dim:#3a3a50;
+  --purple:#7c3aed;--purple2:#a78bfa;--purple3:#1e1030;
+  --green:#22c55e;--green2:#0f2a14;--amber:#f59e0b;--red:#ef4444;--teal:#14b8a6;
+  --radius:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
+h1{font-size:22px;font-weight:500;}h2{font-size:18px;font-weight:500;}h3{font-size:15px;font-weight:500;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* ── VIEWS ── */
+.view{display:none;min-height:100vh;}
+.view.active{display:block;}
+
+/* ══════════════════════════════════════════
+   SHOWCASE (Public homepage)
+══════════════════════════════════════════ */
+#showcase{background:linear-gradient(180deg,#0d0010 0%,#08080c 60%);}
+.showcase-nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid #1a0030;}
+.showcase-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#fff;}
+.showcase-logo-icon{width:36px;height:36px;border-radius:10px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.showcase-hero{text-align:center;padding:60px 20px 40px;}
+.showcase-hero h1{font-size:42px;font-weight:700;background:linear-gradient(135deg,#fff 0%,var(--purple2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;}
+.showcase-hero p{font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 28px;}
+.showcase-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-hero{padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.btn-hero.primary{background:var(--purple);color:#fff;}
+.btn-hero.primary:hover{background:var(--purple2);}
+.btn-hero.secondary{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+.btn-hero.secondary:hover{color:var(--text);border-color:var(--purple);}
+.showcase-section{padding:0 32px 60px;}
+.showcase-section-title{font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;padding-left:4px;}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+.video-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .2s;}
+.video-card:hover{border-color:var(--purple);transform:translateY(-2px);}
+.video-thumb{aspect-ratio:9/16;background:var(--surface);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.video-thumb video,.video-thumb img{width:100%;height:100%;object-fit:cover;}
+.video-thumb-placeholder{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--dim);}
+.video-thumb-placeholder .icon{font-size:28px;}
+.video-play-overlay{position:absolute;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
+.video-card:hover .video-play-overlay{opacity:1;}
+.play-btn{width:44px;height:44px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;}
+.video-info{padding:12px;}
+.video-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.video-meta{font-size:11px;color:var(--muted);}
+.persona-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;margin-top:6px;}
+
+.showcase-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:600px;margin:0 auto 60px;}
+.showcase-stat{text-align:center;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;}
+.showcase-stat-val{font-size:28px;font-weight:700;color:var(--text);}
+.showcase-stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
+
+.empty-showcase{text-align:center;padding:80px 20px;color:var(--muted);}
+.empty-showcase .icon{font-size:48px;margin-bottom:16px;display:block;}
+
+/* ══════════════════════════════════════════
+   STUDIO (Creator workspace)
+══════════════════════════════════════════ */
+#studio{display:none;}
+#studio.active{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 12px;}
+.logo{display:flex;align-items:center;gap:9px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.logo-mark{width:32px;height:32px;border-radius:9px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-text{font-size:14px;font-weight:600;}
+.logo-sub{font-size:10px;color:var(--dim);}
+
+.nav-label{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 5px 8px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);margin-bottom:2px;transition:all .12s;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.on{background:var(--purple3);color:var(--purple2);}
+.nav-item .ico{width:18px;text-align:center;font-size:15px;}
+
+.persona-stack{display:flex;flex-direction:column;gap:5px;}
+.p-pill{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);cursor:pointer;background:var(--card);transition:all .12s;}
+.p-pill:hover{border-color:var(--border2);}
+.p-pill.on{border-color:var(--purple);background:var(--purple3);}
+.p-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;}
+.p-nm{font-size:12px;font-weight:500;}
+.p-ro{font-size:10px;color:var(--dim);}
+.add-p{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;border:1px dashed var(--border2);cursor:pointer;color:var(--dim);font-size:12px;transition:all .12s;margin-top:4px;}
+.add-p:hover{border-color:var(--purple);color:var(--purple2);}
+.side-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--border);}
+
+/* Main area */
+.main-area{display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 22px;border-bottom:1px solid var(--border);background:var(--surface);}
+.tb-title{font-size:15px;font-weight:500;}
+.tb-right{display:flex;gap:7px;}
+.btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .12s;}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+.btn.ghost:hover{background:var(--card);color:var(--text);}
+.btn.primary{background:var(--purple);color:#fff;}
+.btn.primary:hover{opacity:.9;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Panels */
+.workspace{display:grid;grid-template-columns:1fr 300px;flex:1;overflow:hidden;}
+.canvas{padding:22px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
+.right-panel{background:var(--surface);border-left:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+
+/* Tab panels */
+.tab-panel{display:none;flex-direction:column;gap:18px;}
+.tab-panel.on{display:flex;}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px 18px;}
+.card-hd{font-size:13px;font-weight:500;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--purple3);color:var(--purple2);border:1px solid #3b1d6e;font-weight:500;}
+.badge.green{background:var(--green2);color:var(--green);border-color:#166534;}
+
+/* Steps */
+.step-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;}
+.step-t{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--dim);transition:all .12s;}
+.step-t.on{border-color:var(--purple);color:var(--purple2);}
+.step-t.done{border-color:var(--green);color:var(--green);}
+.step-panel{display:none;flex-direction:column;gap:14px;}
+.step-panel.on{display:flex;}
+
+/* Form */
+.field{display:flex;flex-direction:column;gap:5px;}
+.lbl{font-size:11px;color:var(--muted);font-weight:500;}
+.inp{background:#0a0a12;border:1px solid var(--border2);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;width:100%;outline:none;transition:border .12s;font-family:inherit;}
+.inp:focus{border-color:var(--purple);}
+.inp::placeholder{color:var(--dim);}
+select.inp{cursor:pointer;}
+textarea.inp{resize:vertical;min-height:72px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+
+/* Aspect ratio */
+.ratio-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.ratio-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border2);font-size:12px;color:var(--muted);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.ratio-btn:hover{border-color:var(--border2);color:var(--text);}
+.ratio-btn.on{border-color:var(--purple);background:var(--purple3);color:var(--purple2);}
+.ratio-icon{display:flex;align-items:center;justify-content:center;}
+.ratio-icon svg{fill:currentColor;}
+
+/* Niches */
+.niche-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.niche-chip{padding:5px 11px;border-radius:20px;border:1px solid var(--border2);font-size:12px;color:var(--muted);cursor:pointer;transition:all .12s;}
+.niche-chip:hover{border-color:var(--border2);color:var(--text);}
+.niche-chip.on{background:var(--purple3);border-color:var(--purple);color:var(--purple2);}
+
+/* Portrait grid */
+.p-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
+.p-slot{aspect-ratio:3/4;border-radius:9px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--surface);transition:all .12s;position:relative;}
+.p-slot:hover{border-color:var(--purple);}
+.p-slot img{width:100%;height:100%;object-fit:cover;}
+.p-slot.generating{border-color:var(--amber);}
+.p-slot.done{border-color:var(--green);}
+.p-slot.selected{border:2px solid var(--purple);}
+.p-slot .sel-check{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--purple);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;}
+
+/* Script box */
+.script-box{background:#0a0a12;border:1px solid var(--border2);border-radius:9px;padding:13px;font-size:14px;line-height:1.7;color:var(--text);min-height:80px;position:relative;outline:none;}
+.script-box[contenteditable]:focus{border-color:var(--purple);}
+.wc{position:absolute;bottom:8px;right:10px;font-size:11px;color:var(--dim);}
+
+/* Voice */
+.voice-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
+.v-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface);transition:all .12s;}
+.v-item:hover{border-color:var(--border2);}
+.v-item.on{border-color:var(--purple);background:var(--purple3);}
+.v-ico{width:30px;height:30px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+
+/* Pipeline */
+.pipeline{display:flex;flex-direction:column;gap:3px;}
+.pipe{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;}
+.pipe.wait{background:var(--card);}
+.pipe.run{background:var(--purple3);border:1px solid #3b1d6e;}
+.pipe.done{background:var(--green2);border:1px solid #166534;}
+.pipe.err{background:#1f0a0a;border:1px solid #7f1d1d;}
+.pipe-n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.pipe.wait .pipe-n{background:var(--dim);color:var(--bg);}
+.pipe.run .pipe-n{background:var(--purple);color:#fff;}
+.pipe.done .pipe-n{background:var(--green);color:var(--bg);}
+.pipe.err .pipe-n{background:var(--red);color:#fff;}
+.pipe-label{font-size:12px;font-weight:500;}
+.pipe.wait .pipe-label{color:var(--dim);}
+.pipe.run .pipe-label{color:var(--purple2);}
+.pipe.done .pipe-label{color:var(--green);}
+.pipe.err .pipe-label{color:var(--red);}
+.pipe-sub{font-size:10px;color:var(--dim);margin-top:1px;}
+.pipe-right{margin-left:auto;font-size:10px;}
+
+/* Progress */
+.pbar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:2px;background:var(--purple);transition:width .3s;}
+
+/* Video preview */
+.vprev{aspect-ratio:9/16;border-radius:11px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;max-height:280px;align-self:center;}
+.vprev video{width:100%;height:100%;object-fit:cover;}
+.vprev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--dim);}
+.vprev-empty .ico{font-size:28px;}
+
+/* Gen button */
+.gen-btn{width:100%;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .12s;margin-top:3px;}
+.gen-btn:hover{opacity:.9;}
+.gen-btn:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed;}
+
+/* Upload zone */
+.upload-zone{border:1px dashed var(--border2);border-radius:9px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:var(--surface);transition:all .12s;text-align:center;}
+.upload-zone:hover{border-color:var(--purple);background:var(--purple3);}
+.upload-zone .ico{font-size:22px;color:var(--dim);}
+.upload-zone span{font-size:12px;color:var(--muted);}
+.upload-zone small{font-size:10px;color:var(--dim);}
+
+/* Skill uploader */
+.skill-zone{border:1px dashed var(--border2);border-radius:9px;padding:14px;background:var(--surface);transition:all .12s;cursor:pointer;}
+.skill-zone:hover{border-color:var(--purple);}
+.skill-loaded{background:var(--purple3);border-color:var(--purple);}
+.skill-name{font-size:12px;color:var(--purple2);font-weight:500;margin-top:4px;}
+
+/* Stats */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px;}
+.stat-v{font-size:20px;font-weight:600;}
+.stat-l{font-size:11px;color:var(--dim);margin-top:2px;}
+
+/* Toggle */
+.tog-row{display:flex;align-items:center;justify-content:space-between;}
+.tog{width:34px;height:19px;border-radius:9px;background:var(--purple);position:relative;cursor:pointer;flex-shrink:0;}
+.tog::after{content:'';position:absolute;width:15px;height:15px;border-radius:50%;background:#fff;top:2px;right:2px;transition:right .15s;}
+.tog.off{background:var(--border2);}
+.tog.off::after{right:17px;}
+
+/* Section label */
+.slbl{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;}
+.divider{height:1px;background:var(--border);margin:2px 0;}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:11px 15px;font-size:13px;color:var(--text);z-index:9999;transform:translateY(80px);opacity:0;transition:all .25s;max-width:300px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-color:var(--green);}
+.toast.err{border-color:var(--red);}
+
+/* Publish badge */
+.pub-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .12s;}
+.pub-badge.pub{background:#0f2a14;color:var(--green);border:1px solid #166534;}
+.pub-badge.unpub{background:var(--card);color:var(--dim);border:1px solid var(--border2);}
+.pub-badge.unpub:hover{border-color:var(--purple);color:var(--purple2);}
+
+@media(max-width:768px){
+  #studio.active{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .workspace{grid-template-columns:1fr;}
+  .right-panel{display:none;}
+  .video-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SHOWCASE VIEW
+═══════════════════════════════════════════ -->
+<div id="showcase" class="view active">
+  <nav class="showcase-nav">
+    <div class="showcase-logo">
+      <div class="showcase-logo-icon">✦</div>
+      <div>
+        <div>Persona Studio</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:400;">AI Influencer Platform</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn ghost" onclick="openStudio()">Creator login</button>
+      <button class="btn primary" onclick="openStudio()">Open Studio →</button>
+    </div>
+  </nav>
+
+  <div class="showcase-hero">
+    <h1>AI Influencers.<br>Real Results.</h1>
+    <p>Three compelling AI personas. Thirty powerful scripts. One automated content pipeline.</p>
+    <div class="showcase-cta">
+      <button class="btn-hero primary" onclick="openStudio()">Start creating</button>
+      <button class="btn-hero secondary" onclick="scrollToVideos()">Watch the videos ↓</button>
+    </div>
+  </div>
+
+  <div style="padding:0 32px;margin-bottom:40px;">
+    <div class="showcase-stats">
+      <div class="showcase-stat">
+        <div class="showcase-stat-val" id="showcaseVideoCount">0</div>
+        <div class="showcase-stat-label">Videos published</div>
+      </div>
+      <div class="showcase-stat">
+        <div class="showcase-stat-val">3</div>
+        <div class="showcase-stat-label">AI personas</div>
+      </div>
+      <div class="showcase-stat">
+        <div class="showcase-stat-val">~$1.25</div>
+        <div class="showcase-stat-label">Per video</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Persona sections -->
+  <div class="showcase-section" id="showcaseVideos">
+    <div class="showcase-section-title">Featured videos</div>
+    <div class="video-grid" id="showcaseGrid">
+      <div class="empty-showcase">
+        <span class="icon">🎬</span>
+        <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px;">No videos published yet</div>
+        <div style="margin-bottom:20px;">Create your first AI influencer video in the studio</div>
+        <button class="btn primary" onclick="openStudio()">Open Studio →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Personas section -->
+  <div class="showcase-section">
+    <div class="showcase-section-title">Meet the personas</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:700px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;margin:0 auto 12px;">VS</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Victoria Sterling</div>
+        <div style="font-size:11px;color:var(--muted);">Transformation Authority · 52</div>
+        <div style="font-size:11px;color:var(--purple2);margin-top:8px;font-style:italic;">"I want that"</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#0f6e56;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;margin:0 auto 12px;">MS</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Marcus Stone</div>
+        <div style="font-size:11px;color:var(--muted);">Master Builder · 58</div>
+        <div style="font-size:11px;color:var(--teal);margin-top:8px;font-style:italic;">"I trust that"</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#993556;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;margin:0 auto 12px;">SH</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Sophia Hart</div>
+        <div style="font-size:11px;color:var(--muted);">Authority of Taste · 41</div>
+        <div style="font-size:11px;color:#f9a8d4;margin-top:8px;font-style:italic;">"I love that"</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:40px 20px;border-top:1px solid var(--border);color:var(--dim);font-size:12px;">
+    Built with FLUX · ElevenLabs · fal.ai · Groq · ffmpeg
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     STUDIO VIEW
+═══════════════════════════════════════════ -->
+<div id="studio" class="view">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">✦</div>
+      <div>
+        <div class="logo-text">Persona Studio</div>
+        <div class="logo-sub">Creator workspace</div>
+      </div>
+    </div>
+
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item on" onclick="showPanel('dashboard',this)"><span class="ico">⊞</span> Dashboard</div>
+    <div class="nav-item" onclick="showPanel('create',this)"><span class="ico">◈</span> Create video</div>
+    <div class="nav-item" onclick="showPanel('scripts',this)"><span class="ico">≡</span> Scripts</div>
+    <div class="nav-item" onclick="showPanel('portraits',this)"><span class="ico">◉</span> Portraits</div>
+    <div class="nav-item" onclick="showPanel('history',this)"><span class="ico">◷</span> All videos</div>
+
+    <div class="nav-label">Personas</div>
+    <div class="persona-stack" id="sidePersonas">
+      <div class="p-pill on" onclick="activatePersona(this,'Victoria Sterling','#7c3aed','VS','Transformation Authority','52','British woman, warm brown skin, dark hair slicked back, diamond necklace','wealth')">
+        <div class="p-av" style="background:#7c3aed">VS</div>
+        <div><div class="p-nm">Victoria Sterling</div><div class="p-ro">Wealth · 52</div></div>
+      </div>
+      <div class="p-pill" onclick="activatePersona(this,'Marcus Stone','#0f6e56','MS','Master Builder','58','British man, salt-pepper stubble, steel-grey hair, strong build','property')">
+        <div class="p-av" style="background:#0f6e56">MS</div>
+        <div><div class="p-nm">Marcus Stone</div><div class="p-ro">Property · 58</div></div>
+      </div>
+      <div class="p-pill" onclick="activatePersona(this,'Sophia Hart','#993556','SH','Authority of Taste','41','British woman, hazel eyes, chestnut hair, tortoiseshell glasses','interior design')">
+        <div class="p-av" style="background:#993556">SH</div>
+        <div><div class="p-nm">Sophia Hart</div><div class="p-ro">Design · 41</div></div>
+      </div>
+      <div class="add-p" onclick="showPanel('newpersona',null)"><span>＋</span> New persona</div>
+    </div>
+
+    <div class="side-foot">
+      <div class="nav-item" onclick="showView('showcase')"><span class="ico">🌐</span> View showcase</div>
+      <div class="nav-item" onclick="showPanel('settings',this)"><span class="ico">⚙</span> Settings</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-area">
+    <div class="topbar">
+      <div class="tb-title" id="tbTitle">Dashboard</div>
+      <div class="tb-right">
+        <button class="btn ghost" onclick="showView('showcase')">🌐 Showcase</button>
+        <button class="btn primary" onclick="showPanel('create',null);goStep(1)">＋ New video</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <div class="canvas">
+
+        <!-- DASHBOARD -->
+        <div id="panel-dashboard" class="tab-panel on">
+          <div class="stat-row">
+            <div class="stat"><div class="stat-v" id="dashVideos">0</div><div class="stat-l">Videos created</div></div>
+            <div class="stat"><div class="stat-v" id="dashPublished">0</div><div class="stat-l">Published</div></div>
+            <div class="stat"><div class="stat-v">~$1.25</div><div class="stat-l">Per video</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">Recent videos <span class="badge" id="dashBadge">0 total</span></div>
+            <div id="dashVideoList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
+              No videos yet. Create your first one above.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">Pipeline status <span class="badge green">All systems ready</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
+                <span style="color:var(--green)">✓</span> FLUX (local) — portrait + scene — free
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
+                <span style="color:var(--green)">✓</span> Groq — script generation — free
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
+                <span style="color:var(--green)">✓</span> ElevenLabs — voiceover — ~£0.01/video
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
+                <span style="color:var(--green)">✓</span> fal.ai sync-lipsync/v3 — video — ~$1.20/video
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
+                <span style="color:var(--green)">✓</span> ffmpeg grain filter — skin texture — free
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CREATE VIDEO -->
+        <div id="panel-create" class="tab-panel">
+          <div class="step-tabs" id="stepTabs">
+            <div class="step-t on" onclick="goStep(1)">1 · Persona</div>
+            <div class="step-t" onclick="goStep(2)">2 · Script</div>
+            <div class="step-t" onclick="goStep(3)">3 · Voice</div>
+            <div class="step-t" onclick="goStep(4)">4 · Scene</div>
+            <div class="step-t" onclick="goStep(5)">5 · Generate</div>
+          </div>
+
+          <!-- Step 1: Persona -->
+          <div id="sp1" class="step-panel on">
+            <div class="card">
+              <div class="card-hd">Active persona</div>
+              <div class="persona-stack" id="createPersonas">
+                <div class="p-pill on" onclick="pickCreatePersona(this,'Victoria Sterling','#7c3aed','52','British woman, warm brown skin, dark hair slicked back','wealth')">
+                  <div class="p-av" style="background:#7c3aed">VS</div>
+                  <div><div class="p-nm">Victoria Sterling</div><div class="p-ro">Transformation Authority · 52</div></div>
+                </div>
+                <div class="p-pill" onclick="pickCreatePersona(this,'Marcus Stone','#0f6e56','58','British man, salt-pepper stubble, grey hair','property')">
+                  <div class="p-av" style="background:#0f6e56">MS</div>
+                  <div><div class="p-nm">Marcus Stone</div><div class="p-ro">Master Builder · 58</div></div>
+                </div>
+                <div class="p-pill" onclick="pickCreatePersona(this,'Sophia Hart','#993556','41','British woman, hazel eyes, chestnut hair, tortoiseshell glasses','interior design')">
+                  <div class="p-av" style="background:#993556">SH</div>
+                  <div><div class="p-nm">Sophia Hart</div><div class="p-ro">Authority of Taste · 41</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Persona skill upload -->
+            <div class="card">
+              <div class="card-hd">Persona skill <span class="badge">Optional — shapes script tone</span></div>
+              <div class="skill-zone" id="skillZone" onclick="document.getElementById('skillFile').click()">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:20px;">📋</span>
+                  <div>
+                    <div style="font-size:13px;color:var(--text);" id="skillName">Upload persona skill</div>
+                    <div style="font-size:11px;color:var(--dim);">PDF or TXT — defines voice, tone, catchphrases, content pillars</div>
+                  </div>
+                </div>
+              </div>
+              <input type="file" id="skillFile" accept=".pdf,.txt,.md" style="display:none" onchange="loadSkill(this)">
+            </div>
+            <button class="gen-btn" onclick="goStep(2)">Next — Script →</button>
+          </div>
+
+          <!-- Step 2: Script -->
+          <div id="sp2" class="step-panel">
+            <div class="card">
+              <div class="card-hd">Niche</div>
+              <div class="niche-grid" id="niches">
+                <div class="niche-chip on" onclick="pickNiche(this,'wealth')">💰 Wealth</div>
+                <div class="niche-chip" onclick="pickNiche(this,'relationships')">❤️ Relationships</div>
+                <div class="niche-chip" onclick="pickNiche(this,'health')">🌿 Health</div>
+                <div class="niche-chip" onclick="pickNiche(this,'property')">🏠 Property</div>
+                <div class="niche-chip" onclick="pickNiche(this,'interior design')">🎨 Interior Design</div>
+                <div class="niche-chip" onclick="pickNiche(this,'finance')">📈 Finance</div>
+                <div class="niche-chip" onclick="pickNiche(this,'music')">🎵 Music</div>
+                <div class="niche-chip" onclick="pickNiche(this,'fashion')">👗 Fashion</div>
+                <div class="niche-chip" onclick="pickNiche(this,'mindset')">🧠 Mindset</div>
+                <div class="niche-chip" onclick="pickNiche(this,'luxury lifestyle')">✨ Luxury</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-hd">Topic</div>
+              <input class="inp" id="topicInp" placeholder="e.g. How to spot a property with hidden potential" />
+            </div>
+
+            <button class="gen-btn" id="genScriptBtn" onclick="generateScript()">✦ Generate script with AI</button>
+
+            <div class="card" id="scriptCard" style="display:none">
+              <div class="card-hd">Script <span class="badge" id="wcBadge">0 words</span></div>
+              <div class="script-box" id="scriptBox" contenteditable="true"></div>
+              <div style="display:flex;gap:7px;margin-top:10px;">
+                <button class="btn ghost" style="flex:1;font-size:12px" onclick="generateScript()">↺ Regenerate</button>
+                <button class="btn primary" style="flex:1;font-size:12px" onclick="goStep(3)">Next — Voice →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Voice -->
+          <div id="sp3" class="step-panel">
+            <div class="card">
+              <div class="card-hd">Select voice</div>
+              <div class="voice-list" id="voiceList">
+                <div style="color:var(--muted);font-size:12px;padding:8px">Loading voices...</div>
+              </div>
+            </div>
+            <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
+            <div id="voiceResult" style="display:none">
+              <div class="card">
+                <div class="card-hd">Preview</div>
+                <audio controls style="width:100%" id="audioEl"></audio>
+              </div>
+              <button class="gen-btn" style="background:var(--card);color:var(--text);border:1px solid var(--border2)" onclick="goStep(4)">Next — Scene →</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Scene -->
+          <div id="sp4" class="step-panel">
+            <!-- Aspect ratio -->
+            <div class="card">
+              <div class="card-hd">Aspect ratio</div>
+              <div class="ratio-grid" id="ratioGrid">
+                <div class="ratio-btn on" onclick="pickRatio(this,'9:16',512,768)">
+                  <svg width="18" height="28" viewBox="0 0 18 28"><rect x="1" y="1" width="16" height="26" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                  <span>9:16</span><small style="font-size:10px;color:var(--dim)">TikTok</small>
+                </div>
+                <div class="ratio-btn" onclick="pickRatio(this,'1:1',512,512)">
+                  <svg width="24" height="24" viewBox="0 0 24 24"><rect x="1" y="1" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                  <span>1:1</span><small style="font-size:10px;color:var(--dim)">Instagram</small>
+                </div>
+                <div class="ratio-btn" onclick="pickRatio(this,'4:5',512,640)">
+                  <svg width="20" height="25" viewBox="0 0 20 25"><rect x="1" y="1" width="18" height="23" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                  <span>4:5</span><small style="font-size:10px;color:var(--dim)">Reels</small>
+                </div>
+                <div class="ratio-btn" onclick="pickRatio(this,'16:9',768,432)">
+                  <svg width="28" height="18" viewBox="0 0 28 18"><rect x="1" y="1" width="26" height="16" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                  <span>16:9</span><small style="font-size:10px;color:var(--dim)">YouTube</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Portrait -->
+            <div class="card">
+              <div class="card-hd">Portrait <span class="badge" id="portraitBadge">None selected</span></div>
+              <div class="p-grid" id="portraitGrid">
+                <div class="p-slot" onclick="document.getElementById('portUpload').click()" title="Upload">
+                  <span style="font-size:18px;color:var(--dim)">＋</span>
+                </div>
+              </div>
+              <input type="file" id="portUpload" accept="image/*" style="display:none" onchange="uploadPortrait(this)">
+              <div style="font-size:11px;color:var(--dim);margin:8px 0 4px">Or generate with FLUX — describe your persona:</div>
+              <textarea class="inp" id="portraitPrompt" style="min-height:60px;font-size:12px" placeholder="e.g. British woman aged 36, blonde hair, blue eyes, pearl earrings, cream blazer, white background, upper body, natural skin, professional photography"></textarea>
+              <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="genPortrait()">✦ Generate portrait with FLUX</button>
+              <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:6px;display:none">Generating portrait... this takes ~30 seconds</div>
+            </div>
+
+            <!-- Scene -->
+            <div class="card">
+              <div class="card-hd">Background scene <span style="font-size:11px;color:var(--dim);font-weight:400">(optional)</span></div>
+              <input class="inp" id="sceneInp" placeholder="e.g. luxury library, warm amber lighting, bookshelves, city view" />
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn ghost" style="flex:1;font-size:12px" onclick="genScene()">✦ Generate with FLUX</button>
+                <button class="btn ghost" style="flex:1;font-size:12px" onclick="document.getElementById('sceneUpload').click()">↑ Upload image</button>
+              </div>
+              <input type="file" id="sceneUpload" accept="image/*" style="display:none" onchange="uploadScene(this)">
+              <div id="scenePreview" style="display:none;margin-top:10px;">
+                <div style="font-size:11px;color:var(--green);margin-bottom:6px;">✓ Scene ready</div>
+                <img id="sceneImg" style="width:100%;border-radius:8px;border:1px solid var(--border);" />
+              </div>
+            </div>
+
+            <button class="gen-btn" onclick="goStep(5)">Next — Generate →</button>
+          </div>
+
+          <!-- Step 5: Generate -->
+          <div id="sp5" class="step-panel">
+            <div class="card">
+              <div class="card-hd">Pipeline</div>
+              <div class="pipeline" id="pipelineEl">
+                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-label">Remove background</div><div class="pipe-sub">rembg · bria model</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-label">Composite portrait + scene</div><div class="pipe-sub">PIL</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-label">Generate talking video</div><div class="pipe-sub">fal.ai · flashtalk 14B</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-label">Process + grain filter</div><div class="pipe-sub">ffmpeg</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-label">Export MP4</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
+              </div>
+              <div class="pbar" style="margin-top:10px"><div class="pbar-fill" id="genPbar" style="width:0%"></div></div>
+              <div style="font-size:11px;color:var(--dim);margin-top:5px" id="genStage">Ready</div>
+            </div>
+
+            <div class="vprev" id="vprev">
+              <div class="vprev-empty"><div class="ico">▶</div><span style="font-size:12px">Video will appear here</span></div>
+            </div>
+
+            <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
+            <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;font-size:12px" onclick="cancelGen()">✕ Cancel</button>
+            <div style="display:flex;gap:8px;margin-top:4px;display:none" id="postGenBtns">
+              <button class="btn ghost" style="flex:1;font-size:12px" onclick="downloadVideo()">↓ Download</button>
+              <button class="btn primary" style="flex:1;font-size:12px" onclick="publishVideo()">🌐 Publish to showcase</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCRIPTS -->
+        <div id="panel-scripts" class="tab-panel">
+          <div class="card">
+            <div class="card-hd">Quick script generator</div>
+            <div class="g2">
+              <div class="field"><div class="lbl">Persona</div><input class="inp" id="qsPersona" value="Victoria Sterling"/></div>
+              <div class="field"><div class="lbl">Age</div><input class="inp" id="qsAge" value="52"/></div>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Niche</div>
+              <select class="inp" id="qsNiche">
+                <option>Wealth</option><option>Property</option><option>Relationships</option>
+                <option>Health</option><option>Interior Design</option><option>Finance</option>
+                <option>Music</option><option>Fashion</option><option>Mindset</option><option>Luxury Lifestyle</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Topic</div>
+              <input class="inp" id="qsTopic" placeholder="What to speak about..."/>
+            </div>
+            <button class="gen-btn" style="margin-top:12px" onclick="qsGenerate()">✦ Generate script</button>
+          </div>
+          <div class="card" id="qsResult" style="display:none">
+            <div class="card-hd">Script <span class="badge" id="qsWc">0 words</span></div>
+            <div class="script-box" id="qsScript" contenteditable="true"></div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn ghost" style="flex:1;font-size:12px" onclick="navigator.clipboard.writeText(document.getElementById('qsScript').textContent);toast('Copied','ok')">Copy</button>
+              <button class="btn primary" style="flex:1;font-size:12px" onclick="useScript()">Use in video →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PORTRAITS -->
+        <div id="panel-portraits" class="tab-panel">
+          <div class="card">
+            <div class="card-hd">Generate persona portraits <span class="badge">10 max per session</span></div>
+            <div class="g2">
+              <div class="field"><div class="lbl">Persona name</div><input class="inp" id="ppName" value="Victoria Sterling"/></div>
+              <div class="field"><div class="lbl">Age</div><input class="inp" id="ppAge" value="52"/></div>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Appearance</div>
+              <textarea class="inp" id="ppAppearance" placeholder="British woman, warm brown skin, dark hair slicked back, diamond necklace..."></textarea>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Outfit variation (changes per image)</div>
+              <input class="inp" id="ppOutfit" value="professional cream blazer" placeholder="Will vary across 10 images"/>
+            </div>
+            <button class="gen-btn" style="margin-top:12px" onclick="genPortraits10()">✦ Generate 10 portraits</button>
+          </div>
+          <div class="p-grid" style="grid-template-columns:repeat(5,1fr)" id="portraitGallery">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- ALL VIDEOS -->
+        <div id="panel-history" class="tab-panel">
+          <div class="card">
+            <div class="card-hd">All videos</div>
+            <div id="historyList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">
+              No videos yet.
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW PERSONA -->
+        <div id="panel-newpersona" class="tab-panel">
+
+          <!-- STEP 1: Skill upload FIRST -->
+          <div class="card">
+            <div class="card-hd">① Upload persona skill <span class="badge green">Start here — auto-fills everything</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+              Upload a skill file and the AI will automatically detect and fill in all persona details below. You can edit any field afterwards.
+            </div>
+            <div class="skill-zone" id="npSkillZone" onclick="document.getElementById('npSkillFile').click()">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:22px;">📋</span>
+                <div>
+                  <div style="font-size:13px;color:var(--text)" id="npSkillName">Upload skill file (PDF or TXT)</div>
+                  <div style="font-size:11px;color:var(--dim)">AI will read it and fill all fields automatically</div>
+                </div>
+              </div>
+            </div>
+            <input type="file" id="npSkillFile" accept=".pdf,.txt,.md" style="display:none" onchange="loadNpSkill(this)">
+            <div id="npSkillParsed" style="display:none;margin-top:10px;padding:10px;background:var(--green2);border:1px solid #166534;border-radius:8px;font-size:12px;color:var(--green);"></div>
+          </div>
+
+          <!-- STEP 2: Persona details (auto-filled or manual) -->
+          <div class="card">
+            <div class="card-hd">② Persona details <span style="font-size:11px;color:var(--dim);font-weight:400">Auto-filled from skill · edit as needed</span></div>
+            <div class="g2">
+              <div class="field"><div class="lbl">Name</div><input class="inp" id="npName" placeholder="e.g. Emma Clarke"/></div>
+              <div class="field"><div class="lbl">Age</div><input class="inp" id="npAge" placeholder="e.g. 34"/></div>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Role & niche</div><input class="inp" id="npRole" placeholder="e.g. Financial Coach · Wealth"/></div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Appearance (used for portrait generation)</div>
+              <textarea class="inp" id="npAppearance" placeholder="e.g. British woman, auburn hair, green eyes, freckles, natural makeup..." style="min-height:60px;"></textarea>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Signature anchors (fixed visual details)</div>
+              <input class="inp" id="npAnchors" placeholder="e.g. pearl earrings, warm smile, mole above left eyebrow"/>
+            </div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Catchphrase</div>
+              <input class="inp" id="npCatch" placeholder="e.g. Potential hides in plain sight."/>
+            </div>
+            <button class="gen-btn" style="margin-top:12px" onclick="createPersona()">✦ Create persona</button>
+          </div>
+
+          <!-- STEP 3: Portrait -->
+          <div class="card">
+            <div class="card-hd">③ Persona portrait <span class="badge">Used for video generation</span></div>
+            <div id="npPortraitPreview" style="display:none;margin-bottom:10px;">
+              <img id="npPortraitImg" style="width:120px;height:160px;object-fit:cover;border-radius:9px;border:2px solid var(--green);" />
+              <div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Portrait ready</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn ghost" style="flex:1;font-size:12px" onclick="document.getElementById('npPortraitFile').click()">↑ Upload photo</button>
+              <button class="btn ghost" style="flex:1;font-size:12px" onclick="npGenPortrait()">✦ Generate with FLUX</button>
+            </div>
+            <input type="file" id="npPortraitFile" accept="image/*" style="display:none" onchange="npUploadPortrait(this)">
+            <div id="npPortraitStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;">Generating portrait with FLUX...</div>
+          </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="panel-settings" class="tab-panel">
+          <div class="card">
+            <div class="card-hd">API keys</div>
+            <div class="field"><div class="lbl">Backend URL</div><input class="inp" id="apiUrl" value="https://persona-studio.homivis.com"/></div>
+            <div class="field" style="margin-top:10px"><div class="lbl">ElevenLabs API key</div><input class="inp" type="password" id="elKey" placeholder="sk_..."/></div>
+            <div class="field" style="margin-top:10px"><div class="lbl">fal.ai API key</div><input class="inp" type="password" id="falKey" placeholder="xxx:xxx"/></div>
+            <div class="field" style="margin-top:10px"><div class="lbl">Groq API key</div><input class="inp" type="password" id="groqKey" placeholder="gsk_..."/></div>
+            <button class="gen-btn" style="margin-top:12px" onclick="saveSettings()">Save</button>
+          </div>
+        </div>
+
+      </div><!-- /canvas -->
+
+      <!-- Right panel -->
+      <div class="right-panel">
+        <div class="slbl">Current persona</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+          <div class="p-av" id="rpAv" style="background:var(--purple);width:44px;height:44px;font-size:16px">VS</div>
+          <div>
+            <div style="font-size:14px;font-weight:500" id="rpName">Victoria Sterling</div>
+            <div style="font-size:11px;color:var(--dim)" id="rpRole">Transformation Authority · 52</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="slbl">Output settings</div>
+        <div style="display:flex;flex-direction:column;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;">
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Lip sync (fal.ai)</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Grain filter</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Background scene</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Auto-publish</span><div class="tog off" onclick="this.classList.toggle('off')"></div></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="slbl">Format</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--muted)">Ratio</span>
+            <span style="color:var(--purple2)" id="rpRatio">9:16 (TikTok)</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--muted)">Duration</span>
+            <span style="color:var(--purple2)">15 seconds</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--muted)">Est. cost</span>
+            <span style="color:var(--green)">~$1.25</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="slbl">Platforms</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">TikTok</div>
+          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">Instagram</div>
+          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">Shorts</div>
+          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">Facebook</div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="slbl">Persona skill</div>
+        <div id="rpSkill" style="font-size:12px;color:var(--dim);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
+          No skill loaded. Upload in Step 1 to shape AI scripting.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = localStorage.getItem('apiUrl') || 'https://persona-studio.homivis.com';
+let S = {
+  persona:{name:'Victoria Sterling',color:'#7c3aed',age:'52',appearance:'British woman, warm brown skin, dark hair slicked back',niche:'wealth',role:'Transformation Authority'},
+  niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL',
+  audioPath:'', audioJobId:'',
+  portraitFile:null, portraitPreview:'',
+  sceneFile:null,
+  ratio:{label:'9:16',w:512,h:768},
+  jobId:'', skill:'', skillName:'', videos:[]
+};
+let db = null;
+
+// ── Views ──────────────────────────────────────────────────────────
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  if(v==='showcase'){
+    document.getElementById('showcase').classList.add('active');
+    renderShowcase();
+  } else {
+    document.getElementById('studio').classList.add('active');
+  }
+}
+
+function openStudio(){showView('studio');}
+function scrollToVideos(){document.getElementById('showcaseVideos').scrollIntoView({behavior:'smooth'});}
+
+// ── Studio panels ──────────────────────────────────────────────────
+function showPanel(id, navEl){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
+  const el=document.getElementById('panel-'+id);
+  if(el) el.classList.add('on');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+  if(navEl) navEl.classList.add('on');
+  document.getElementById('tbTitle').textContent = {
+    dashboard:'Dashboard',create:'Create video',scripts:'Script generator',
+    portraits:'Portraits',history:'All videos',newpersona:'New persona',settings:'Settings'
+  }[id]||id;
+  if(id==='create') loadVoices();
+  if(id==='history') renderHistory();
+}
+
+// ── Persona ────────────────────────────────────────────────────────
+function activatePersona(el,name,color,initials,role,age,appearance,niche){
+  document.querySelectorAll('#sidePersonas .p-pill').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  S.persona={name,color,age,appearance,niche,role};
+  document.getElementById('rpAv').textContent=initials;
+  document.getElementById('rpAv').style.background=color;
+  document.getElementById('rpName').textContent=name;
+  document.getElementById('rpRole').textContent=role+' · '+age;
+}
+
+function pickCreatePersona(el,name,color,age,appearance,niche){
+  document.querySelectorAll('#createPersonas .p-pill').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  S.persona={...S.persona,name,color,age,appearance,niche};
+}
+
+// ── Steps ──────────────────────────────────────────────────────────
+function goStep(n){
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('sp'+n)?.classList.add('on');
+  document.querySelectorAll('.step-t').forEach((t,i)=>{
+    t.classList.remove('on','done');
+    if(i===n-1) t.classList.add('on');
+    else if(i<n-1) t.classList.add('done');
+  });
+  if(n===3) loadVoices();
+}
+
+// ── Skill loading ──────────────────────────────────────────────────
+async function loadSkill(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    S.skill=e.target.result;
+    S.skillName=file.name;
+    document.getElementById('skillName').textContent='⏳ Analysing skill file...';
+    document.getElementById('skillZone').classList.add('skill-loaded');
+    
+    // Auto-parse the skill file
+    try{
+      const fd=new FormData();
+      fd.append('skill_text', S.skill);
+      const r=await fetch(`${API}/parse-skill`,{method:'POST',body:fd});
+      const d=await r.json();
+      
+      if(d.status==='ok' && d.data){
+        const p=d.data;
+        // Auto-fill persona fields
+        if(p.name) { S.persona.name=p.name; document.getElementById('rpName').textContent=p.name; document.getElementById('tbTitle').textContent='Create video'; }
+        if(p.age) S.persona.age=p.age;
+        if(p.role) { S.persona.role=p.role; document.getElementById('rpRole').textContent=(p.role||'')+(p.age?' · '+p.age:''); }
+        if(p.niche) { S.niche=p.niche; document.querySelectorAll('.niche-chip').forEach(c=>{ c.classList.toggle('on', c.textContent.toLowerCase().includes(p.niche.toLowerCase())); }); }
+        if(p.appearance) S.persona.appearance=p.appearance;
+        if(p.voice_summary) S.skill_voice=p.voice_summary;
+        
+        // Show what was detected
+        const detected=[];
+        if(p.name) detected.push('Name: '+p.name);
+        if(p.age) detected.push('Age: '+p.age);
+        if(p.niche) detected.push('Niche: '+p.niche);
+        if(p.catchphrase) detected.push('Catchphrase: '+p.catchphrase);
+        
+        document.getElementById('skillName').textContent='✓ '+file.name;
+        document.getElementById('rpSkill').innerHTML=
+          '<span style="color:var(--green)">✓ Skill loaded & analysed</span>'+
+          '<div style="color:var(--text);font-size:12px;margin-top:6px;font-weight:500">'+file.name+'</div>'+
+          '<div style="color:var(--dim);font-size:11px;margin-top:4px;line-height:1.6">'+detected.join(' · ')+'</div>'+
+          (p.voice_summary?'<div style="color:var(--muted);font-size:11px;margin-top:6px;font-style:italic">'+p.voice_summary+'</div>':'');
+        
+        toast('Skill parsed — '+detected.length+' fields detected','ok');
+        
+        // If we're on new persona panel, populate those fields too
+        if(p.name && document.getElementById('npName')) document.getElementById('npName').value=p.name;
+        if(p.age && document.getElementById('npAge')) document.getElementById('npAge').value=p.age;
+        if(p.role && document.getElementById('npRole')) document.getElementById('npRole').value=p.role;
+        if(p.appearance && document.getElementById('npAppearance')) document.getElementById('npAppearance').value=p.appearance;
+        if(p.anchors && document.getElementById('npAnchors')) document.getElementById('npAnchors').value=p.anchors;
+        if(p.catchphrase && document.getElementById('npCatch')) document.getElementById('npCatch').value=p.catchphrase;
+        if(p.appearance && document.getElementById('portraitPrompt')) document.getElementById('portraitPrompt').value=p.appearance;
+      } else {
+        document.getElementById('skillName').textContent='✓ '+file.name+' (manual mode)';
+        toast('Skill loaded — could not auto-parse, AI will use raw text','ok');
+      }
+    } catch(e){
+      document.getElementById('skillName').textContent='✓ '+file.name;
+      toast('Skill loaded','ok');
+    }
+    
+    document.getElementById('rpSkill').innerHTML = document.getElementById('rpSkill').innerHTML ||
+      '<span style="color:var(--green)">✓</span> <span style="color:var(--text)">'+file.name+'</span>';
+  };
+  reader.readAsText(file);
+}
+
+async function loadNpSkill(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const skillText=e.target.result;
+    document.getElementById('npSkillName').textContent='⏳ Analysing...';
+    document.getElementById('npSkillZone').classList.add('skill-loaded');
+    
+    try{
+      const fd=new FormData();
+      fd.append('skill_text', skillText);
+      const r=await fetch(`${API}/parse-skill`,{method:'POST',body:fd});
+      const d=await r.json();
+      
+      if(d.status==='ok' && d.data){
+        const p=d.data;
+        if(p.name) document.getElementById('npName').value=p.name;
+        if(p.age) document.getElementById('npAge').value=p.age;
+        if(p.role) document.getElementById('npRole').value=p.role;
+        if(p.appearance) document.getElementById('npAppearance').value=p.appearance;
+        if(p.anchors) document.getElementById('npAnchors').value=p.anchors;
+        if(p.catchphrase) document.getElementById('npCatch').value=p.catchphrase;
+        if(p.appearance) document.getElementById('portraitPrompt') && (document.getElementById('portraitPrompt').value=p.appearance);
+        S.skill=skillText;
+        S.persona.name=p.name||S.persona.name;
+        S.persona.age=p.age||S.persona.age;
+        S.persona.appearance=p.appearance||S.persona.appearance;
+        S.niche=p.niche||S.niche;
+        
+        // Show what was detected
+        const detected=[];
+        if(p.name) detected.push('<b>'+p.name+'</b>');
+        if(p.age) detected.push('Age '+p.age);
+        if(p.role) detected.push(p.role);
+        if(p.niche) detected.push('Niche: '+p.niche);
+        if(p.catchphrase) detected.push('"'+p.catchphrase+'"');
+        
+        document.getElementById('npSkillName').textContent='✓ '+file.name;
+        const parsed=document.getElementById('npSkillParsed');
+        if(parsed){
+          parsed.style.display='block';
+          parsed.innerHTML='✓ Auto-filled from skill: '+detected.join(' · ')
+            +(p.voice_summary?'<div style="margin-top:6px;color:var(--muted);font-style:italic">'+p.voice_summary+'</div>':'');
+        }
+        toast('All fields auto-filled from skill file','ok');
+      } else {
+        document.getElementById('npSkillName').textContent='✓ '+file.name+' (loaded)';
+        S.skill=skillText;
+        toast('Skill loaded — fill fields manually','ok');
+      }
+    }catch(e){
+      document.getElementById('npSkillName').textContent='✓ '+file.name;
+      toast('Skill loaded','ok');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Niche & ratio ──────────────────────────────────────────────────
+function pickNiche(el,niche){
+  document.querySelectorAll('.niche-chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  S.niche=niche;
+}
+
+function pickRatio(el,label,w,h){
+  document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  S.ratio={label,w,h};
+  document.getElementById('rpRatio').textContent=label;
+  document.getElementById('ratioLabel').textContent=label;
+}
+
+// ── Script generation ──────────────────────────────────────────────
+async function generateScript(){
+  const topic=document.getElementById('topicInp').value.trim();
+  if(!topic) return toast('Enter a topic','err');
+  const btn=document.getElementById('genScriptBtn');
+  btn.disabled=true; btn.textContent='Generating...';
+  try{
+    const skillContext=S.skill?`\n\nPERSONA SKILL FILE:\n${S.skill.substring(0,2000)}`:'';
+    const fd=new FormData();
+    fd.append('persona_name',S.persona.name);
+    fd.append('persona_age',S.persona.age);
+    fd.append('niche',S.niche);
+    fd.append('topic',topic);
+    if(S.skill) fd.append('skill_context',S.skill.substring(0,2000));
+    const r=await fetch(`${API}/generate-script`,{method:'POST',body:fd});
+    const d=await r.json();
+    const scripts=d.scripts||[d.script];
+    S.script=scripts[0];
+    
+    // Show 5 selectable script cards
+    document.getElementById('scriptCard').style.display='block';
+    document.getElementById('scriptBox').textContent=scripts[0];
+    document.getElementById('wcBadge').textContent=scripts[0].split(' ').length+' words';
+    
+    // Build script selector
+    let selector=document.getElementById('scriptSelector');
+    if(!selector){
+      selector=document.createElement('div');
+      selector.id='scriptSelector';
+      selector.style='display:flex;flex-direction:column;gap:6px;margin-bottom:12px;';
+      document.getElementById('scriptCard').insertBefore(selector, document.getElementById('scriptCard').children[1]);
+    }
+    selector.innerHTML=scripts.map((s,i)=>`
+      <div onclick="selectScript(this,${i})" style="padding:10px 12px;border-radius:8px;border:1px solid ${i===0?'var(--purple)':'var(--border)'};background:${i===0?'var(--purple3)':'var(--card)'};cursor:pointer;transition:all .12s;">
+        <div style="font-size:10px;color:${i===0?'var(--purple2)':'var(--dim)'};font-weight:600;margin-bottom:4px;">OPTION ${i+1}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5">${s}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">${s.split(' ').length} words</div>
+      </div>`).join('');
+    window._scripts=scripts;
+    toast('5 scripts generated — pick your favourite','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+  finally{btn.disabled=false; btn.textContent='✦ Generate script with AI';}
+}
+
+function selectScript(el, idx){
+  document.querySelectorAll('#scriptSelector > div').forEach((d,i)=>{
+    d.style.border='1px solid '+(i===idx?'var(--purple)':'var(--border)');
+    d.style.background=i===idx?'var(--purple3)':'var(--card)';
+    d.querySelector('div:first-child').style.color=i===idx?'var(--purple2)':'var(--dim)';
+  });
+  const scripts=window._scripts||[];
+  S.script=scripts[idx]||'';
+  document.getElementById('scriptBox').textContent=S.script;
+  document.getElementById('wcBadge').textContent=S.script.split(' ').length+' words';
+}
+
+async function qsGenerate(){
+  const topic=document.getElementById('qsTopic').value.trim();
+  if(!topic) return toast('Enter a topic','err');
+  try{
+    const fd=new FormData();
+    fd.append('persona_name',document.getElementById('qsPersona').value);
+    fd.append('persona_age',document.getElementById('qsAge').value);
+    fd.append('niche',document.getElementById('qsNiche').value);
+    fd.append('topic',topic);
+    const r=await fetch(`${API}/generate-script`,{method:'POST',body:fd});
+    const d=await r.json();
+    const scripts=d.scripts||[d.script];
+    window._qsScripts=scripts;
+    
+    document.getElementById('qsResult').style.display='block';
+    document.getElementById('qsScript').textContent=scripts[0];
+    document.getElementById('qsWc').textContent=scripts[0].split(' ').length+' words';
+    
+    // Build selector
+    let sel=document.getElementById('qsSelector');
+    if(!sel){
+      sel=document.createElement('div');
+      sel.id='qsSelector';
+      sel.style='display:flex;flex-direction:column;gap:6px;margin-bottom:10px;';
+      document.getElementById('qsResult').insertBefore(sel, document.getElementById('qsResult').children[1]);
+    }
+    sel.innerHTML=scripts.map((s,i)=>`
+      <div onclick="selectQsScript(this,${i})" style="padding:10px 12px;border-radius:8px;border:1px solid ${i===0?'var(--purple)':'var(--border)'};background:${i===0?'var(--purple3)':'var(--card)'};cursor:pointer;">
+        <div style="font-size:10px;color:${i===0?'var(--purple2)':'var(--dim)'};font-weight:600;margin-bottom:4px;">OPTION ${i+1}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5">${s}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px;">${s.split(' ').length} words</div>
+      </div>`).join('');
+    toast('5 scripts ready — pick your favourite','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function selectQsScript(el, idx){
+  document.querySelectorAll('#qsSelector > div').forEach((d,i)=>{
+    d.style.border='1px solid '+(i===idx?'var(--purple)':'var(--border)');
+    d.style.background=i===idx?'var(--purple3)':'var(--card)';
+    d.querySelector('div:first-child').style.color=i===idx?'var(--purple2)':'var(--dim)';
+  });
+  const scripts=window._qsScripts||[];
+  document.getElementById('qsScript').textContent=scripts[idx]||'';
+  document.getElementById('qsWc').textContent=(scripts[idx]||'').split(' ').length+' words';
+}
+
+function useScript(){
+  S.script=document.getElementById('qsScript').textContent;
+  document.getElementById('scriptBox').textContent=S.script;
+  document.getElementById('scriptCard').style.display='block';
+  showPanel('create',null);
+  goStep(3);
+}
+
+// ── Voice ──────────────────────────────────────────────────────────
+async function loadVoices(){
+  try{
+    const r=await fetch(`${API}/voices`);
+    const voices=await r.json();
+    document.getElementById('voiceList').innerHTML=voices.map(v=>`
+      <div class="v-item ${v.id===S.voiceId?'on':''}" onclick="pickVoice(this,'${v.id}')">
+        <div class="v-ico">🎙</div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:500">${v.name}</div><div style="font-size:10px;color:var(--dim)">${v.description||''}</div></div>
+        <button onclick="event.stopPropagation();previewVoice('${v.id}','${v.name}')" style="background:var(--border2);border:none;color:var(--text);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">▶ Preview</button>
+      </div>`).join('');
+  // Add preview audio player
+  if(!document.getElementById('voicePreviewPlayer')){
+    const p=document.createElement('div');
+    p.id='voicePreviewArea';
+    p.style='display:none;margin-top:8px;';
+    p.innerHTML='<audio id="voicePreviewPlayer" controls style="width:100%"></audio><div id="voicePreviewLabel" style="font-size:11px;color:var(--dim);margin-top:4px;text-align:center"></div>';
+    document.getElementById('voiceList').after(p);
+  }
+  }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Backend not connected. Check Settings.</div>';}
+}
+
+function pickVoice(el,id){
+  document.querySelectorAll('.v-item').forEach(v=>v.classList.remove('on'));
+  el.classList.add('on');
+  S.voiceId=id;
+}
+
+async function previewVoice(voiceId, name){
+  const previewArea=document.getElementById('voicePreviewArea');
+  const player=document.getElementById('voicePreviewPlayer');
+  const label=document.getElementById('voicePreviewLabel');
+  previewArea.style.display='block';
+  label.textContent='Generating preview for '+name+'...';
+  player.src='';
+  try{
+    const fd=new FormData();
+    fd.append('script','Welcome to Persona Studio. I help you create powerful AI content that connects and converts.');
+    fd.append('voice_id',voiceId);
+    fd.append('job_id','preview_'+voiceId);
+    const r=await fetch(`${API}/generate-voice`,{method:'POST',body:fd});
+    const d=await r.json();
+    player.src=`${API}/audio/${d.job_id}`;
+    player.play();
+    label.textContent='Previewing: '+name;
+  }catch(e){label.textContent='Preview failed: '+e.message;}
+}
+
+async function genVoice(){
+  const script=document.getElementById('scriptBox').textContent||S.script;
+  if(!script) return toast('No script yet','err');
+  const btn=document.getElementById('genVoiceBtn');
+  btn.disabled=true; btn.textContent='Generating voiceover...';
+  try{
+    const fd=new FormData();
+    fd.append('script',script);
+    fd.append('voice_id',S.voiceId);
+    const jid='vid_'+Date.now();
+    fd.append('job_id',jid);
+    const r=await fetch(`${API}/generate-voice`,{method:'POST',body:fd});
+    const d=await r.json();
+    S.audioJobId=d.job_id;
+    S.jobId=d.job_id;
+    // Fetch audio as blob for video pipeline upload
+    const audioResp=await fetch(`${API}/audio/${d.job_id}`);
+    const audioBlob=await audioResp.blob();
+    S.audioFile=new File([audioBlob],'voice.mp3',{type:'audio/mpeg'});
+    document.getElementById('audioEl').src=`${API}/audio/${d.job_id}`;
+    document.getElementById('voiceResult').style.display='block';
+    toast('Voiceover ready','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+  finally{btn.disabled=false; btn.textContent='🎙 Generate voiceover';}
+}
+
+// ── Portrait ───────────────────────────────────────────────────────
+function uploadPortrait(input){
+  const file=input.files[0];
+  if(!file) return;
+  S.portraitFile=file; // store actual file for upload
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const grid=document.getElementById('portraitGrid');
+    const slot=grid.children[0];
+    slot.innerHTML=`<img src="${e.target.result}"/><div class="sel-check">✓</div>`;
+    slot.classList.add('selected');
+    S.portraitPreview=e.target.result;
+    document.getElementById('portraitBadge').textContent='1 selected';
+    toast('Portrait uploaded','ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function genPortrait(){
+  const prompt=document.getElementById('portraitPrompt').value.trim() || S.persona.appearance;
+  if(!prompt) return toast('Describe your persona appearance first','err');
+  
+  const status=document.getElementById('portraitGenStatus');
+  status.style.display='block';
+  status.textContent='Generating portrait with FLUX... ~10 seconds';
+  
+  try{
+    const fd=new FormData();
+    fd.append('persona_name',S.persona.name);
+    fd.append('persona_age',S.persona.age||'36');
+    fd.append('appearance',prompt);
+    fd.append('count','1');
+    const r=await fetch(`${API}/generate-portrait`,{method:'POST',body:fd});
+    const d=await r.json();
+    
+    if(d.error) throw new Error(d.error);
+    
+    // New backend returns images directly — no polling needed
+    const imgUrl = API + d.images[0];
+    const grid=document.getElementById('portraitGrid');
+    const slot=grid.children[0];
+    slot.innerHTML=`<img src="${imgUrl}"/><div class="sel-check">✓</div>`;
+    slot.classList.add('done','selected');
+    S.portraitPreview=imgUrl;
+    const resp=await fetch(imgUrl);
+    const blob=await resp.blob();
+    S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
+    document.getElementById('portraitBadge').textContent='Generated ✓';
+    status.style.display='none';
+    toast('Portrait ready','ok');
+  }catch(e){
+    status.style.display='none';
+    toast('Error: '+e.message,'err');
+  }
+}
+
+async function genScene(){
+  const prompt=document.getElementById('sceneInp').value.trim();
+  if(!prompt) return toast('Describe the scene','err');
+  toast('Generating scene with FLUX...','ok');
+  try{
+    const fd=new FormData();
+    fd.append('scene_description',prompt);
+    const r=await fetch(`${API}/generate-scene`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    const imgUrl=API+d.image_url;
+    const img=document.getElementById('sceneImg');
+    img.src=imgUrl;
+    document.getElementById('scenePreview').style.display='block';
+    const resp=await fetch(imgUrl);
+    const blob=await resp.blob();
+    S.sceneFile=new File([blob],'scene.png',{type:'image/png'});
+    toast('Scene ready','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function uploadScene(input){
+  const file=input.files[0];
+  if(!file) return;
+  S.sceneFile=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('sceneImg').src=e.target.result;
+    document.getElementById('scenePreview').style.display='block';
+    toast('Scene uploaded','ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function pollImage(promptId, cb, tries=0){
+  if(tries>30) return;
+  try{
+    const r=await fetch(`${API}/image-status/${promptId}`);
+    const d=await r.json();
+    if(d.status==='complete'&&d.images.length>0) cb(d.images[0]);
+    else setTimeout(()=>pollImage(promptId,cb,tries+1),3000);
+  }catch(e){setTimeout(()=>pollImage(promptId,cb,tries+1),3000);}
+}
+
+// ── Portrait gallery (10) ──────────────────────────────────────────
+async function genPortraits10(){
+  const name=document.getElementById('ppName').value;
+  const appearance=document.getElementById('ppAppearance').value;
+  if(!appearance) return toast('Describe appearance first','err');
+  
+  const outfits=['cream wool blazer','elegant dark suit','luxury knitwear','tailored long coat','silk blouse and blazer','minimalist white shirt','smart casual',
+    'formal evening wear','business casual with scarf','relaxed luxury'];
+  const gallery=document.getElementById('portraitGallery');
+  gallery.innerHTML='';
+  for(let i=0;i<10;i++){
+    const slot=document.createElement('div');
+    slot.className='p-slot generating';
+    slot.innerHTML=`<span style="font-size:10px;color:var(--amber)">${i+1}</span>`;
+    gallery.appendChild(slot);
+  }
+  
+  for(let i=0;i<10;i++){
+    try{
+      const fd=new FormData();
+      fd.append('persona_name',name);
+      fd.append('persona_age',document.getElementById('ppAge').value);
+      fd.append('appearance',appearance+', '+outfits[i]);
+      fd.append('count','1');
+      const r=await fetch(`${API}/generate-portrait`,{method:'POST',body:fd});
+      const d=await r.json();
+      if(d.error) throw new Error(d.error);
+      const imgUrl=API+d.images[0];
+      gallery.children[i].innerHTML=`<img src="${imgUrl}"/>`;
+      gallery.children[i].classList.remove('generating');
+      gallery.children[i].classList.add('done');
+    }catch(e){
+      gallery.children[i].innerHTML='<span style="font-size:10px;color:var(--red)">Error</span>';
+      gallery.children[i].classList.remove('generating');
+    }
+  }
+  toast('All 10 portraits done','ok');
+}
+
+let genPollInterval = null;
+
+function cancelGen(){
+  if(genPollInterval) clearInterval(genPollInterval);
+  genPollInterval = null;
+  const btn=document.getElementById('mainGenBtn');
+  btn.disabled=false; btn.textContent='✦ Generate video';
+  document.getElementById('cancelGenBtn').style.display='none';
+  document.getElementById('genStage').textContent='Cancelled';
+  document.getElementById('genPbar').style.width='0%';
+  // Reset pipeline
+  document.querySelectorAll('#pipelineEl .pipe').forEach(p=>{
+    p.className='pipe wait';
+    p.querySelector('.pipe-n').textContent=p.getAttribute('data-n')||'?';
+  });
+  toast('Generation cancelled','ok');
+}
+
+// ── Video generation ───────────────────────────────────────────────
+async function startGen(){
+  if(!S.portraitFile) return toast('Upload or generate a portrait first','err');
+  if(!S.audioFile) return toast('Generate a voiceover first','err');
+  
+  const btn=document.getElementById('mainGenBtn');
+  btn.disabled=true; btn.textContent='Generating...';
+  document.getElementById('cancelGenBtn').style.display='block';
+  document.getElementById('postGenBtns').style.display='none';
+  updatePipe(1,'run','Uploading files...');
+  
+  try{
+    const fd=new FormData();
+    fd.append('portrait', S.portraitFile, 'portrait.png');
+    fd.append('audio', S.audioFile, 'voice.mp3'); // send as file
+    const newJobId = 'vid_'+Date.now();
+    S.jobId = newJobId;
+    fd.append('job_id', newJobId);
+    if(S.sceneFile) fd.append('scene', S.sceneFile, 'scene.png');
+    
+    const r=await fetch(`${API}/generate-video`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    const jid=d.job_id||newJobId; // fallback to our generated ID
+    
+    updatePipe(1,'run','Removing background...');
+    
+    genPollInterval=setInterval(async()=>{
+      try{
+        const sr=await fetch(`${API}/video-status/${jid}`);
+        const sd=await sr.json();
+        const prog=sd.progress||0;
+        document.getElementById('genPbar').style.width=prog+'%';
+        document.getElementById('genStage').textContent=sd.stage||'Processing...';
+        
+        if(sd.stage==='removing_background') updatePipe(1,'run','Removing background...');
+        if(sd.stage==='compositing'){updatePipe(1,'done');updatePipe(2,'run','Compositing portrait + scene...');}
+        if(sd.stage==='uploading'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Uploading to fal.ai...');}
+        if(sd.stage==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','flashtalk generating...');}
+        if(sd.stage==='downloading'){updatePipe(3,'done');updatePipe(4,'run','Downloading...');}
+        if(sd.stage==='processing'){updatePipe(3,'done');updatePipe(4,'run','Applying grain filter...');}
+        if(sd.stage==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Applying grain filter...');}
+        
+        if(sd.status==='complete'){
+          clearInterval(genPollInterval);
+          genPollInterval=null;
+          document.getElementById('cancelGenBtn').style.display='none';
+          [1,2,3,4].forEach(n=>updatePipe(n,'done'));
+          updatePipe(5,'done');
+          document.getElementById('genPbar').style.width='100%';
+          document.getElementById('genStage').textContent='Done!';
+          
+          // Use permanent fal.ai URL if available, else Railway download endpoint
+          const videoUrl = sd.url || `${API}/download/${jid}`;
+          S.lastVideoUrl = videoUrl;
+          
+          const vprev=document.getElementById('vprev');
+          vprev.innerHTML=`<video src="${videoUrl}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;border-radius:11px;"></video>`;
+          
+          document.getElementById('postGenBtns').style.display='flex';
+          btn.textContent='✦ Generate another';
+          btn.disabled=false;
+          
+          const vid={jid,title:S.persona.name+' · '+S.niche,persona:S.persona.name,
+            color:S.persona.color,niche:S.niche,time:new Date().toLocaleString(),
+            url:videoUrl,published:false};
+          S.videos.unshift(vid);
+          saveVideos();
+          updateDashboard();
+          toast('Video ready!','ok');
+        }
+        if(sd.status==='error'){
+          clearInterval(genPollInterval);
+          genPollInterval=null;
+          document.getElementById('cancelGenBtn').style.display='none';
+          toast('Error: '+sd.error,'err');
+          btn.disabled=false; btn.textContent='✦ Try again';
+        }
+      }catch(e){}
+    },3000);
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    btn.disabled=false; btn.textContent='✦ Generate video';
+  }
+}
+
+function updatePipe(n,status,sub){
+  const pipes=document.querySelectorAll('#pipelineEl .pipe');
+  if(pipes[n-1]){
+    pipes[n-1].className='pipe '+status;
+    const num=pipes[n-1].querySelector('.pipe-n');
+    if(status==='done') num.textContent='✓';
+    else num.textContent=n;
+    if(sub) pipes[n-1].querySelector('.pipe-sub').textContent=sub;
+  }
+}
+
+function downloadVideo(){
+  const url = S.lastVideoUrl || (S.jobId ? `${API}/download/${S.jobId}` : null);
+  if(!url) return;
+  window.open(url);
+}
+
+function publishVideo(){
+  const vid=S.videos[0];
+  if(!vid) return;
+  vid.published=true;
+  saveVideos();
+  updateDashboard();
+  renderShowcase();
+  toast('Published to showcase!','ok');
+}
+
+// ── New persona portrait ───────────────────────────────────────────
+function npUploadPortrait(input){
+  const file=input.files[0];
+  if(!file) return;
+  window._npPortraitFile=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('npPortraitImg').src=e.target.result;
+    document.getElementById('npPortraitPreview').style.display='block';
+    toast('Portrait uploaded','ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function npGenPortrait(){
+  const appearance=document.getElementById('npAppearance').value.trim();
+  const age=document.getElementById('npAge').value||'36';
+  const name=document.getElementById('npName').value||'persona';
+  if(!appearance) return toast('Enter appearance description first','err');
+  
+  const status=document.getElementById('npPortraitStatus');
+  status.style.display='block';
+  status.textContent='Generating portrait... ~30 seconds';
+  
+  try{
+    const fd=new FormData();
+    fd.append('persona_name',name);
+    fd.append('persona_age',age);
+    fd.append('appearance',appearance);
+    fd.append('count','1');
+    const r=await fetch(`${API}/generate-portrait`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    const imgUrl=API+d.images[0];
+    document.getElementById('npPortraitImg').src=imgUrl;
+    document.getElementById('npPortraitPreview').style.display='block';
+    status.style.display='none';
+    const resp=await fetch(imgUrl);
+    const blob=await resp.blob();
+    window._npPortraitFile=new File([blob],'portrait.png',{type:'image/png'});
+    toast('Portrait generated','ok');
+  }catch(e){
+    status.textContent='Error: '+e.message+' — upload a photo instead';
+    toast('Error: '+e.message,'err');
+  }
+}
+
+// ── Persona creation ───────────────────────────────────────────────
+function createPersona(){
+  const name=document.getElementById('npName').value.trim();
+  if(!name) return toast('Enter a name','err');
+  const initials=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const colors=['#7c3aed','#0f6e56','#993556','#185fa5','#854f0b','#be185d'];
+  const color=colors[Math.floor(Math.random()*colors.length)];
+  const role=document.getElementById('npRole').value||'Content Creator';
+  const age=document.getElementById('npAge').value||'30';
+  
+  const appearance=document.getElementById('npAppearance').value;
+  const portraitSrc=document.getElementById('npPortraitImg').src;
+  
+  const stack=document.getElementById('sidePersonas');
+  const addBtn=stack.querySelector('.add-p');
+  const div=document.createElement('div');
+  div.className='p-pill';
+  div.onclick=()=>{
+    activatePersona(div,name,color,initials,role,age,appearance,'wealth');
+    // Load portrait if available
+    if(window._npPortraitFile){
+      S.portraitFile=window._npPortraitFile;
+      S.portraitPreview=portraitSrc;
+    }
+  };
+  // Show portrait thumbnail in sidebar if available
+  const avatarHtml = portraitSrc && portraitSrc.startsWith('data') 
+    ? `<div class="p-av" style="background:${color};overflow:hidden;"><img src="${portraitSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>`
+    : `<div class="p-av" style="background:${color}">${initials}</div>`;
+  div.innerHTML=`${avatarHtml}<div><div class="p-nm">${name}</div><div class="p-ro">${role}</div></div>`;
+  stack.insertBefore(div,addBtn);
+  toast('Persona created: '+name,'ok');
+  showPanel('dashboard',null);
+}
+
+// ── Dashboard & history ────────────────────────────────────────────
+function updateDashboard(){
+  const total=S.videos.length;
+  const pub=S.videos.filter(v=>v.published).length;
+  document.getElementById('dashVideos').textContent=total;
+  document.getElementById('dashPublished').textContent=pub;
+  document.getElementById('dashBadge').textContent=total+' total';
+  document.getElementById('showcaseVideoCount').textContent=pub;
+  
+  const list=document.getElementById('dashVideoList');
+  if(!total){list.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No videos yet.</div>';return;}
+  list.innerHTML=S.videos.slice(0,5).map(v=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+      <div style="width:32px;height:42px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:${v.color}">▶</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.title}</div>
+        <div style="font-size:10px;color:var(--dim)">${v.time}</div>
+      </div>
+      <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">
+        ${v.published?'✓ Published':'Publish'}
+      </div>
+    </div>`).join('');
+}
+
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(!S.videos.length){list.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No videos yet.</div>';return;}
+  list.innerHTML=S.videos.map(v=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:7px;">
+      <div style="width:36px;height:48px;border-radius:7px;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;color:${v.color}">▶</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${v.title}</div>
+        <div style="font-size:11px;color:var(--dim)">${v.time}</div>
+      </div>
+      <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">
+        ${v.published?'✓ Published':'Publish'}
+      </div>
+      <a href="${v.url}" style="color:var(--purple2);font-size:12px;text-decoration:none" download>↓</a>
+    </div>`).join('');
+}
+
+function togglePublish(jid){
+  const v=S.videos.find(v=>v.jid===jid);
+  if(!v) return;
+  v.published=!v.published;
+  saveVideos();
+  updateDashboard();
+  renderHistory();
+  renderShowcase();
+  toast(v.published?'Published to showcase':'Unpublished','ok');
+}
+
+// ── Showcase rendering ─────────────────────────────────────────────
+function renderShowcase(){
+  const published=S.videos.filter(v=>v.published);
+  document.getElementById('showcaseVideoCount').textContent=published.length;
+  const grid=document.getElementById('showcaseGrid');
+  if(!published.length){
+    grid.innerHTML=`<div class="empty-showcase" style="grid-column:1/-1">
+      <span class="icon" style="display:block">🎬</span>
+      <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px;">No videos published yet</div>
+      <div style="margin-bottom:20px;color:var(--muted)">Create your first AI influencer video in the studio</div>
+      <button class="btn primary" onclick="openStudio()">Open Studio →</button>
+    </div>`;
+    return;
+  }
+  grid.innerHTML=published.map(v=>`
+    <div class="video-card">
+      <div class="video-thumb">
+        <video src="${v.url}" muted loop preload="none" style="width:100%;height:100%;object-fit:cover;"></video>
+        <div class="video-play-overlay"><div class="play-btn">▶</div></div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">${v.title}</div>
+        <div class="video-meta">${v.time}</div>
+        <div class="persona-tag" style="background:${v.color}20;color:${v.color};border:1px solid ${v.color}40">
+          ${v.persona}
+        </div>
+      </div>
+    </div>`).join('');
+  
+  // Play on hover
+  grid.querySelectorAll('.video-card').forEach(card=>{
+    const video=card.querySelector('video');
+    if(!video) return;
+    card.addEventListener('mouseenter',()=>video.play().catch(()=>{}));
+    card.addEventListener('mouseleave',()=>{video.pause();video.currentTime=0;});
+  });
+}
+
+// ── Persistence ────────────────────────────────────────────────────
+function saveVideos(){
+  try{localStorage.setItem('homivis_videos',JSON.stringify(S.videos));}catch(e){}
+}
+
+function loadVideos(){
+  try{
+    const saved=localStorage.getItem('homivis_videos');
+    if(saved) S.videos=JSON.parse(saved);
+  }catch(e){}
+}
+
+function saveSettings(){
+  const url=document.getElementById('apiUrl').value;
+  localStorage.setItem('apiUrl',url);
+  toast('Settings saved','ok');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast show '+(type==='ok'?'ok':'err');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.className='toast',3000);
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+loadVideos();
+updateDashboard();
+renderShowcase();
+</script>
+</body>
+</html>

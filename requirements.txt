@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+httpx
+python-multipart
+groq
+fal-client
+Pillow
+aiofiles
+numpy
+rembg
+onnxruntime
