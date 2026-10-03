@@ -111,57 +111,56 @@ async def get_voices(gender: str = "female", accent: str = "british"):
             headers={"xi-api-key": ELEVENLABS_KEY})
     if r.status_code != 200:
         return JSONResponse({"error": "ElevenLabs error"}, status_code=400)
-    voices = r.json().get("voices", [])
+    all_voices = r.json().get("voices", [])
 
-    # Filter by gender and accent using ElevenLabs labels
-    def matches(v):
-        labels = {k.lower(): str(val).lower() for k, val in v.get("labels", {}).items()}
-        label_str = " ".join(labels.values())
-        # Check gender
-        gender_ok = gender.lower() in label_str
-        # Check British accent — accept british, english, uk, united kingdom
-        british_terms = ["british", "english", "uk", "united kingdom"]
-        accent_ok = any(t in label_str for t in british_terms)
-        return gender_ok and accent_ok
+    british_terms = ["british", "english", "uk", "united kingdom"]
+    british_name_hints = ["alice", "lily", "charlotte", "emily", "grace", "sophie", "emma",
+                          "james", "william", "george", "oliver", "henry", "thomas", "edward"]
 
-    filtered = [v for v in voices if matches(v)]
+    def voice_score(v):
+        labels = v.get("labels", {})
+        label_str = " ".join(str(val) for val in labels.values()).lower()
+        name_lower = v.get("name", "").lower()
+        score = 0
+        # Gender match — strong signal
+        g = labels.get("gender", labels.get("Gender", "")).lower()
+        if gender.lower() in g:
+            score += 10
+        elif gender.lower() in label_str:
+            score += 8
+        # British accent — strong signal
+        if any(t in label_str for t in british_terms):
+            score += 6
+        # British name hints
+        if any(h in name_lower for h in british_name_hints):
+            score += 3
+        # Penalise clear wrong gender
+        wrong = "male" if gender.lower() == "female" else "female"
+        if wrong == g and g:
+            score -= 20
+        return score
 
-    # Fallback — if ElevenLabs has no labelled British voices (labels vary by account),
-    # use known high-quality British voice IDs as a curated fallback list
-    british_female_ids = [
-        "EXAVITQu4vr4xnSDxMaL",  # Bella — British female
-        "21m00Tcm4TlvDq8ikWAM",  # Rachel — neutral British
-        "AZnzlk1XvdvUeBnXmlld",  # Domi — British female
-        "MF3mGyEYCl7XYWbV9V6O",  # Elli — British female
-        "TxGEqnHWrfWFTfGW9XjX",  # Josh — skip (male)
-        "pNInz6obpgDQGcFmaJgB",  # Adam — skip (male)
-        "yoZ06aMxZJJ28mfd3POQ",  # Sam — skip
-    ]
-    british_male_ids = [
-        "VR6AewLTigWG4xSOukaG",   # Arnold — British male
-        "ErXwobaYiN019PkySvjV",   # Antoni — British male
-        "ODq5zmih8GrVes37Dy39",   # Patrick — British male
-        "GBv7mTt0atIp3Br8iCZE",  # Thomas — British male
-    ]
+    # Score and sort all voices
+    scored = sorted(all_voices, key=voice_score, reverse=True)
 
-    if not filtered:
-        # Try filtering by known British voice IDs
-        target_ids = british_female_ids if gender.lower() == "female" else british_male_ids
-        filtered = [v for v in voices if v["voice_id"] in target_ids]
+    # Split into tiers
+    gender_and_british = [v for v in scored if voice_score(v) >= 14]
+    gender_only = [v for v in scored if 8 <= voice_score(v) < 14]
+    remainder = [v for v in scored if voice_score(v) >= 5]
 
-    if not filtered:
-        # Last resort — return all voices but sorted to put likely British ones first
-        british_hints = ["british", "english", "uk", "charlotte", "emily", "james", "william"]
-        def british_score(v):
-            label_str = " ".join(v.get("labels", {}).values()).lower()
-            name_lower = v.get("name", "").lower()
-            return sum(1 for h in british_hints if h in label_str or h in name_lower)
-        filtered = sorted(voices, key=british_score, reverse=True)[:12]
+    # Return best available: prefer British+gender, fallback to gender-only, fallback to remainder
+    if len(gender_and_british) >= 3:
+        result = gender_and_british
+    elif len(gender_only) >= 3:
+        result = gender_only
+    else:
+        result = remainder[:20]
 
     return [{"id": v["voice_id"], "name": v["name"],
-             "description": ", ".join(v.get("labels", {}).values()),
-             "gender": v.get("labels", {}).get("gender", ""),
-             "accent": v.get("labels", {}).get("accent", "")} for v in filtered]
+             "description": ", ".join(str(val) for val in v.get("labels", {}).values()),
+             "gender": v.get("labels", {}).get("gender", v.get("labels", {}).get("Gender", "")),
+             "accent": v.get("labels", {}).get("accent", v.get("labels", {}).get("Accent", ""))}
+            for v in result]
 
 @app.post("/generate-script")
 async def generate_script(
@@ -328,17 +327,21 @@ async def generate_portrait(
             f"fine hair strands, no retouching, no filters, no airbrushing, no digital smoothing, "
             f"editorial photography, in the middle"
         )
+    # Append strong negative framing to prevent close-up crops
+    prompt += (", full waist-up composition, torso and hands visible in frame, "
+               "NOT a headshot, NOT a close-up, NOT cropped at shoulders, "
+               "subject occupies upper two-thirds of frame, breathing room below waist")
+
     images = []
     try:
         for i in range(min(count, 4)):
             result = fal_client.subscribe("fal-ai/flux/dev", arguments={
                 "prompt": prompt,
-                # portrait_16_9 gives more vertical space — better for waist-up
-                "image_size": {"width": 768, "height": 1024},
+                "image_size": "portrait_4_3",  # 768x1024 — supported named size
                 "num_inference_steps": 28,
                 "num_images": 1,
                 "enable_safety_checker": False,
-                "guidance_scale": 3.5
+                "guidance_scale": 4.0  # slightly higher to enforce prompt more strictly
             })
             img_url = result["images"][0]["url"]
             async with httpx.AsyncClient(timeout=30) as client:

@@ -703,7 +703,12 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
         <!-- ALL VIDEOS -->
         <div id="panel-history" class="tab-panel">
-          <div class="card"><div class="card-hd">All videos</div><div id="historyList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No videos yet.</div></div>
+          <div class="card">
+            <div class="card-hd">All videos
+              <button class="btn ghost sm" onclick="clearAllVideos()" style="color:var(--red);border-color:rgba(239,68,68,.3);">Clear all</button>
+            </div>
+            <div id="historyList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No videos yet.</div>
+          </div>
         </div>
 
         <!-- DOCUMENTS -->
@@ -1064,8 +1069,13 @@ function pickCreatePersona(el,name){
   document.getElementById('rpName').textContent=p.name;
   document.getElementById('rpRole').textContent=p.role+' · '+p.age;
   if(p.appearance)document.getElementById('portraitPrompt').value=p.appearance;
-  S.niche=p.niche;
-  document.querySelectorAll('.niche-chip').forEach(c=>c.classList.toggle('on',c.textContent.toLowerCase().includes(p.niche?.toLowerCase()||'')));
+  S.niche=p.niche||'wealth';
+  // Update niche chip — find closest match
+  const pNiche=(p.niche||'').toLowerCase();
+  document.querySelectorAll('.niche-chip').forEach(c=>{
+    const chipText=c.textContent.toLowerCase().replace(/[^\w\s]/g,'').trim();
+    c.classList.toggle('on', pNiche&&(chipText.includes(pNiche)||pNiche.includes(chipText.split(' ')[1]||chipText)));
+  });
   if(p.skill)parseSkillForUI(p.skill,false);
   if(p.skillName){
     document.getElementById('skillName').textContent='✓ '+p.skillName;
@@ -1902,10 +1912,14 @@ function togglePublish(jid){const v=S.videos.find(v=>v.jid===jid);if(!v)return;v
 // ── PERSISTENCE ────────────────────────────────────────
 function saveAll(){
   try{
-    const d={videos:S.videos,savedScripts:S.savedScripts,skills:S.skills.map(s=>({...s,text:''})),
-      personas:S.personas.map(p=>({...p,skill:''})),savedPortraits:S.savedPortraits};
+    // Deduplicate videos by jid before saving
+    const seen=new Set();
+    S.videos=S.videos.filter(v=>{if(!v.jid||seen.has(v.jid))return false;seen.add(v.jid);return true;});
+    const d={videos:S.videos,savedScripts:S.savedScripts,
+      skills:S.skills.map(s=>({...s,text:''})),
+      personas:S.personas.map(p=>({...p,skill:''})),
+      savedPortraits:S.savedPortraits};
     localStorage.setItem('persona_v1',JSON.stringify(d));
-    // Store skill texts separately (they can be large)
     S.skills.forEach((s,i)=>{try{localStorage.setItem('persona_skill_'+i,s.text);}catch(e){}});
   }catch(e){}
 }
@@ -1914,14 +1928,28 @@ function loadAll(){
     const saved=localStorage.getItem('persona_v1');
     if(saved){
       const d=JSON.parse(saved);
-      S.videos=d.videos||[];S.savedScripts=d.savedScripts||[];
+      // Deduplicate on load too
+      const seen=new Set();
+      S.videos=(d.videos||[]).filter(v=>{
+        if(!v.jid||seen.has(v.jid))return false;
+        seen.add(v.jid);return true;
+      });
+      S.savedScripts=d.savedScripts||[];
       S.savedPortraits=d.savedPortraits||[];
       S.skills=(d.skills||[]).map((s,i)=>({...s,text:localStorage.getItem('persona_skill_'+i)||''}));
       if(d.personas?.length)S.personas=d.personas;
     }
   }catch(e){}
 }
-function saveSettings(){localStorage.setItem('apiUrl',document.getElementById('apiUrl').value);toast('Saved');}
+function clearAllVideos(){
+  if(!confirm('Delete all videos from this device? This cannot be undone.'))return;
+  S.videos=[];saveAll();updateDashboard();renderHistory();renderPublic('home');
+  toast('All videos cleared');
+}
+function saveSettings(){
+  localStorage.setItem('apiUrl',document.getElementById('apiUrl').value);
+  toast('Saved');
+}
 
 // ── TOAST ──────────────────────────────────────────────
 function toast(msg,type='ok'){
