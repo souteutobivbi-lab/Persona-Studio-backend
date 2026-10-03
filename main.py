@@ -717,40 +717,81 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
                       "message": f"Encoding {ratio} video for streaming..."})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
 
-        # Flashtalk always outputs 768x448 landscape.
-        # Scale and pad to the target ratio requested by the user.
-        # Each ratio needs a different scale+pad strategy.
-        # Build ffmpeg filter — Flashtalk outputs 768x448 landscape
-        # scale2ref and force_original_aspect_ratio ensure no dimension issues
-        if ratio == "9:16":
-            # 1080x1920 portrait
-            vf = "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black"
-        elif ratio == "1:1":
-            # 1080x1080 square
-            vf = "scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2:black"
-        elif ratio == "4:5":
-            # 1080x1350 Instagram
-            vf = "scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2:black"
-        elif ratio == "16:9":
-            # 1920x1080 landscape
-            vf = "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black"
+        # ── FFmpeg compositing strategy per ratio ──────────────────────────
+        # Flashtalk outputs 768x448 landscape talking-head video.
+        # Strategy: scale-to-fill (crop) the persona to the target dimensions.
+        # For 16:9 with a scene: composite persona over scene background at full size.
+        # grain filter appended to all.
+        grain = "noise=alls=12:allf=t+u,unsharp=3:3:1.2:3:3:0.0,eq=contrast=1.05:brightness=-0.01:saturation=0.95"
+
+        # Dimensions per ratio
+        ratio_dims = {
+            "9:16":  (1080, 1920),
+            "1:1":   (1080, 1080),
+            "4:5":   (1080, 1350),
+            "16:9":  (1920, 1080),
+        }
+        W, H = ratio_dims.get(ratio, (1080, 1920))
+
+        # For 16:9 with a scene: overlay persona on full-frame scene background
+        has_scene = scene_path and Path(scene_path).exists()
+
+        if ratio == "16:9" and has_scene:
+            # Two-input ffmpeg: scene as background, persona video scaled to fill
+            # Scene fills 1920x1080; persona video scaled to fill same frame (crop centre)
+            scene_input = str(scene_path)
+            final_path_tmp = str(OUTPUT_DIR / f"{jid}_final.mp4")
+
+            # persona: scale to fill 1920x1080 (crop to fill, keep centre)
+            persona_vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
+            # scene: scale to fill 1920x1080
+            scene_vf   = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
+
+            # Overlay: use persona video over blurred scene
+            # Blur scene heavily so persona pops — feels like broadcast backdrop
+            filter_complex = (
+                f"[0:v]{scene_vf},gblur=sigma=12[bg];"
+                f"[1:v]{persona_vf}[fg];"
+                f"[bg][fg]overlay=0:0,{grain}[out]"
+            )
+
+            ret = subprocess.run([
+                "ffmpeg", "-y",
+                "-loop", "1", "-i", scene_input,   # input 0: scene (image, looped)
+                "-i", raw_path,                      # input 1: persona video
+                "-filter_complex", filter_complex,
+                "-map", "[out]",
+                "-map", "1:a",
+                "-c:v", "libx264", "-crf", "23", "-preset", "fast",
+                "-profile:v", "baseline", "-level", "3.1",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
+                "-movflags", "+faststart",
+                "-maxrate", "4M", "-bufsize", "8M",
+                "-shortest",
+                final_path_tmp
+            ], capture_output=True)
+            final_path = final_path_tmp
+
         else:
-            vf = "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black"
-
-        # Append grain filter
-        vf += ",noise=alls=12:allf=t+u,unsharp=3:3:1.2:3:3:0.0,eq=contrast=1.05:brightness=-0.01:saturation=0.95"
-
-        ret = subprocess.run([
-            "ffmpeg", "-y", "-i", raw_path,
-            "-vf", vf,
-            "-c:v", "libx264", "-crf", "23", "-preset", "fast",
-            "-profile:v", "baseline", "-level", "3.1",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
-            "-movflags", "+faststart",
-            "-maxrate", "2M", "-bufsize", "4M",
-            final_path
-        ], capture_output=True)
+            # All other ratios — scale persona to fill target dimensions (crop to fill)
+            # This ensures no black bars — persona fills the entire frame
+            vf = (
+                f"scale={W}:{H}:force_original_aspect_ratio=increase,"
+                f"crop={W}:{H},"
+                f"{grain}"
+            )
+            ret = subprocess.run([
+                "ffmpeg", "-y", "-i", raw_path,
+                "-vf", vf,
+                "-c:v", "libx264", "-crf", "23", "-preset", "fast",
+                "-profile:v", "baseline", "-level", "3.1",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
+                "-movflags", "+faststart",
+                "-maxrate", "2M", "-bufsize", "4M",
+                final_path
+            ], capture_output=True)
         print(f"[{jid}] ffmpeg return code: {ret.returncode}")
         # Always print full stderr so we can diagnose failures
         stderr_out = ret.stderr.decode(errors='replace')
