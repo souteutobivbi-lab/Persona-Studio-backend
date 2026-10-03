@@ -762,49 +762,76 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         # For 16:9 with a scene: overlay persona on full-frame scene background
         has_scene = scene_path and Path(scene_path).exists()
 
+        # Flashtalk outputs 768x448 landscape — face is centred in frame
+        # Strategy per ratio:
+        # 9:16  → scale to 1080 wide, pad height to 1920 (black bars top/bottom acceptable for portrait)
+        # 1:1   → scale to fit 1080x1080, pad sides
+        # 4:5   → scale to fit 1080x1350, pad
+        # 16:9  → scale persona to fill 1920x1080 height (upscale 768x448 → 1920x1080 keeping AR)
+        #          overlay centred on blurred scene background for broadcast look
+
         if ratio == "16:9" and has_scene:
-            # Two-input ffmpeg: scene as background, persona video scaled to fill
-            # Scene fills 1920x1080; persona video scaled to fill same frame (crop centre)
             scene_input = str(scene_path)
             final_path_tmp = str(OUTPUT_DIR / f"{jid}_final.mp4")
 
-            # persona: scale to fill 1920x1080 (crop to fill, keep centre)
-            persona_vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
-            # scene: scale to fill 1920x1080
-            scene_vf   = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
-
-            # Overlay: use persona video over blurred scene
-            # Blur scene heavily so persona pops — feels like broadcast backdrop
+            # Scale persona to fill 1920 wide while keeping aspect ratio
+            # 768x448 → scale to 1920 wide → height becomes 1920*(448/768) = 1120
+            # Then centre vertically on 1080 canvas (crop 20px top+bottom)
+            # This keeps the face in frame and fills the width entirely
             filter_complex = (
-                f"[0:v]{scene_vf},gblur=sigma=12[bg];"
-                f"[1:v]{persona_vf}[fg];"
-                f"[bg][fg]overlay=0:0,{grain}[out]"
+                # Background: scene image scaled to fill 1920x1080, heavily blurred
+                f"[0:v]scale=1920:1080:force_original_aspect_ratio=increase,"
+                f"crop=1920:1080,gblur=sigma=20[bg];"
+                # Persona: scale to fill width (1920), keeping aspect ratio
+                f"[1:v]scale=1920:-2[fg_scaled];"
+                # Composite: overlay persona centred vertically on background
+                f"[bg][fg_scaled]overlay=0:(H-h)/2,"
+                f"{grain}[out]"
             )
 
             ret = subprocess.run([
                 "ffmpeg", "-y",
-                "-loop", "1", "-i", scene_input,   # input 0: scene (image, looped)
-                "-i", raw_path,                      # input 1: persona video
+                "-loop", "1", "-i", scene_input,
+                "-i", raw_path,
                 "-filter_complex", filter_complex,
                 "-map", "[out]",
                 "-map", "1:a",
-                "-c:v", "libx264", "-crf", "23", "-preset", "fast",
-                "-profile:v", "baseline", "-level", "3.1",
+                "-c:v", "libx264", "-crf", "22", "-preset", "fast",
+                "-profile:v", "baseline", "-level", "4.0",
                 "-pix_fmt", "yuv420p",
-                "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
+                "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
                 "-movflags", "+faststart",
-                "-maxrate", "4M", "-bufsize", "8M",
+                "-maxrate", "6M", "-bufsize", "12M",
                 "-shortest",
                 final_path_tmp
             ], capture_output=True)
             final_path = final_path_tmp
 
-        else:
-            # All other ratios — scale persona to fill target dimensions (crop to fill)
-            # This ensures no black bars — persona fills the entire frame
+        elif ratio == "16:9":
+            # No scene — scale persona to fill 1920x1080, black background
+            # Upscale 768x448 to 1920 wide, centre on 1080 canvas
             vf = (
-                f"scale={W}:{H}:force_original_aspect_ratio=increase,"
-                f"crop={W}:{H},"
+                f"scale=1920:-2,"
+                f"pad=1920:1080:0:(oh-ih)/2:black,"
+                f"{grain}"
+            )
+            ret = subprocess.run([
+                "ffmpeg", "-y", "-i", raw_path,
+                "-vf", vf,
+                "-c:v", "libx264", "-crf", "22", "-preset", "fast",
+                "-profile:v", "baseline", "-level", "4.0",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+                "-movflags", "+faststart",
+                "-maxrate", "6M", "-bufsize", "12M",
+                final_path
+            ], capture_output=True)
+
+        else:
+            # 9:16, 1:1, 4:5 — scale to fit target, pad with black (no cropping = no face cutoff)
+            vf = (
+                f"scale={W}:{H}:force_original_aspect_ratio=decrease,"
+                f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:black,"
                 f"{grain}"
             )
             ret = subprocess.run([
