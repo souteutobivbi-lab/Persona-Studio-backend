@@ -1,10 +1,61 @@
-import asyncio, os, random, subprocess, uuid, json
+import asyncio, os, random, subprocess, uuid, json, mimetypes
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import httpx
+
+def fal_upload(path: str) -> str:
+    """Upload a file to fal.ai storage — handles both old and new client APIs."""
+    import fal_client
+    path = str(path)
+    # Try the standard upload_file first
+    try:
+        return fal_client.upload_file(path)
+    except Exception as e1:
+        if "Invalid storage type" not in str(e1) and "storage" not in str(e1).lower():
+            raise  # Different error — re-raise
+        # Fallback: read bytes and use fal_client.upload with explicit content type
+        try:
+            content_type, _ = mimetypes.guess_type(path)
+            if not content_type:
+                ext = Path(path).suffix.lower()
+                content_type = {
+                    '.mp4': 'video/mp4', '.mp3': 'audio/mpeg',
+                    '.png': 'image/png', '.jpg': 'image/jpeg',
+                    '.zip': 'application/zip', '.webp': 'image/webp'
+                }.get(ext, 'application/octet-stream')
+            data = Path(path).read_bytes()
+            return fal_client.upload(data, content_type)
+        except Exception as e2:
+            # Final fallback: upload via httpx directly to fal storage
+            try:
+                import httpx as _httpx
+                content_type2, _ = mimetypes.guess_type(path)
+                if not content_type2:
+                    content_type2 = 'application/octet-stream'
+                data2 = Path(path).read_bytes()
+                headers = {
+                    "Authorization": f"Key {os.environ.get('FAL_KEY','')}",
+                    "Content-Type": content_type2,
+                    "Accept": "application/json"
+                }
+                r = _httpx.post(
+                    "https://rest.alpha.fal.ai/storage/upload/initiate",
+                    headers={"Authorization": headers["Authorization"], "Accept": "application/json"},
+                    json={"content_type": content_type2, "file_name": Path(path).name}
+                )
+                if r.status_code == 200:
+                    rd = r.json()
+                    upload_url = rd.get("upload_url")
+                    file_url = rd.get("file_url")
+                    if upload_url:
+                        _httpx.put(upload_url, content=data2, headers={"Content-Type": content_type2})
+                        return file_url
+            except Exception as e3:
+                print(f"All upload methods failed: {e1} | {e2} | {e3}")
+            raise e2
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -313,7 +364,7 @@ async def train_lora(
         zip_path.write_bytes(zip_buffer.read())
 
         # Upload zip to fal.ai storage
-        zip_url = fal_client.upload_file(str(zip_path))
+        zip_url = fal_upload(str(zip_path))
 
         # Submit LoRA training job
         set_job(jid, {"status": "running", "progress": 0,
@@ -580,10 +631,10 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
 
         set_job(jid, {"status": "running", "stage": "uploading", "progress": 30,
                       "message": "Uploading portrait and audio to fal.ai..."})
-        print(f"[{jid}] Uploading...")
-        portrait_url = fal_client.upload_file(final_portrait_path)
-        audio_url = fal_client.upload_file(audio_path)
-        print(f"[{jid}] Uploaded.")
+        print(f"[{jid}] Uploading portrait and audio...")
+        portrait_url = fal_client.upload(Path(final_portrait_path).read_bytes(), "image/png")
+        audio_url = fal_client.upload(Path(audio_path).read_bytes(), "audio/mpeg")
+        print(f"[{jid}] Uploaded. Portrait: {portrait_url[:50]}...")
 
         set_job(jid, {"status": "running", "stage": "generating_video", "progress": 45,
                       "message": "Flashtalk generating lip-sync video... (~30-60 seconds)"})
@@ -611,53 +662,60 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         # Flashtalk always outputs 768x448 landscape.
         # Scale and pad to the target ratio requested by the user.
         # Each ratio needs a different scale+pad strategy.
+        # Build ffmpeg filter — Flashtalk outputs 768x448 landscape
+        # scale2ref and force_original_aspect_ratio ensure no dimension issues
         if ratio == "9:16":
-            # Portrait — scale width to 1080, pad height to 1920
-            vf = ("scale=1080:-2,"
-                  "pad=1080:1920:0:(oh-ih)/2:black")
+            # 1080x1920 portrait
+            vf = "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black"
         elif ratio == "1:1":
-            # Square — scale to fit 1080x1080, pad sides
-            vf = ("scale=-2:1080,"
-                  "pad=1080:1080:(ow-iw)/2:0:black")
+            # 1080x1080 square
+            vf = "scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2:black"
         elif ratio == "4:5":
-            # Instagram portrait — 1080x1350
-            vf = ("scale=1080:-2,"
-                  "pad=1080:1350:0:(oh-ih)/2:black")
+            # 1080x1350 Instagram
+            vf = "scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2:black"
         elif ratio == "16:9":
-            # Landscape — scale to 1920 wide, pad height to 1080
-            vf = ("scale=1920:-2,"
-                  "pad=1920:1080:0:(oh-ih)/2:black")
+            # 1920x1080 landscape
+            vf = "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black"
         else:
-            # Default 9:16
-            vf = ("scale=1080:-2,"
-                  "pad=1080:1920:0:(oh-ih)/2:black")
+            vf = "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black"
 
-        # Append grain + colour grade to all ratios
-        vf += (",noise=alls=12:allf=t+u,"
-               "unsharp=3:3:1.2:3:3:0.0,"
-               "eq=contrast=1.05:brightness=-0.01:saturation=0.95")
+        # Append grain filter
+        vf += ",noise=alls=12:allf=t+u,unsharp=3:3:1.2:3:3:0.0,eq=contrast=1.05:brightness=-0.01:saturation=0.95"
 
         ret = subprocess.run([
-            "ffmpeg", "-i", raw_path,
+            "ffmpeg", "-y", "-i", raw_path,
             "-vf", vf,
             "-c:v", "libx264", "-crf", "23", "-preset", "fast",
             "-profile:v", "baseline", "-level", "3.1",
+            "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
             "-movflags", "+faststart",
             "-maxrate", "2M", "-bufsize", "4M",
-            final_path, "-y"
+            final_path
         ], capture_output=True)
-        print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
+        print(f"[{jid}] ffmpeg return code: {ret.returncode}")
+        # Always print full stderr so we can diagnose failures
+        stderr_out = ret.stderr.decode(errors='replace')
         if ret.returncode != 0:
-            print(f"[{jid}] ffmpeg stderr: {ret.stderr.decode()[:500]}")
+            print(f"[{jid}] ffmpeg FAILED:\n{stderr_out[-2000:]}")
+        else:
+            # Print last few lines even on success
+            print(f"[{jid}] ffmpeg ok: {stderr_out.splitlines()[-1] if stderr_out else 'done'}")
 
-        if not Path(final_path).exists():
+        # Validate ffmpeg output — fall back to raw if empty or missing
+        final_size = Path(final_path).stat().st_size if Path(final_path).exists() else 0
+        if final_size < 10000:
+            print(f"[{jid}] ffmpeg output too small ({final_size} bytes) — using raw video instead")
             final_path = raw_path
 
+        upload_size = Path(final_path).stat().st_size
+        print(f"[{jid}] Uploading {upload_size} bytes to fal.ai CDN...")
         set_job(jid, {"status": "running", "stage": "uploading_cdn", "progress": 95,
                       "message": "Uploading to CDN for permanent storage..."})
-        print(f"[{jid}] Uploading final video to fal.ai storage...")
-        final_url = fal_client.upload_file(final_path)
+
+        # Upload bytes directly to avoid storage_type=gcs 400 error
+        video_bytes = Path(final_path).read_bytes()
+        final_url = fal_client.upload(video_bytes, "video/mp4")
         print(f"[{jid}] Final URL: {final_url}")
 
         set_job(jid, {"status": "complete", "progress": 100, "stage": "done",
