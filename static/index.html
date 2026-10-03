@@ -1117,18 +1117,66 @@ function renderVideoGrid(){
     grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">No videos published yet</div><div class="empty-state-sub">Published videos appear here.</div></div>`;
     return;
   }
-  grid.innerHTML=published.map(v=>`
-    <div class="vc" onclick="openVideoModal('${v.url}','${v.title}','${v.time}')">
-      <div class="vc-thumb">
-        <video src="${v.url}" muted preload="metadata" playsinline></video>
-        <div class="vc-overlay"><div class="vc-play">▶</div></div>
+  grid.innerHTML=published.map((v,i)=>{
+    const ratio=v.ratio||'9:16';
+    // Determine aspect ratio style for the thumb container
+    const aspectStyle=ratio==='1:1'?'aspect-ratio:1/1':ratio==='16:9'?'aspect-ratio:16/9':ratio==='4:5'?'aspect-ratio:4/5':'aspect-ratio:9/16';
+    return `
+    <div class="vc" id="vc-${i}">
+      <div class="vc-thumb" style="${aspectStyle};" onclick="toggleVideoPlay(${i})">
+        <video id="vcv-${i}" src="${v.url}" preload="metadata" playsinline loop
+          style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+        <div class="vc-overlay" id="vco-${i}">
+          <div class="vc-play" id="vcp-${i}">▶</div>
+        </div>
+        <button onclick="event.stopPropagation();openVideoModal('${v.url}','${v.title}','${v.time}')"
+          style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;transition:opacity .2s;"
+          class="vc-fs-btn">⛶</button>
       </div>
       <div class="vc-info">
         <div class="vc-title">${v.title}</div>
         <div class="vc-meta">${v.time}</div>
         <div class="vc-persona" style="background:${v.color}18;color:${v.color};border:1px solid ${v.color}35;">${v.persona}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  // Show fullscreen button on hover
+  grid.querySelectorAll('.vc').forEach(card=>{
+    const fsBtn=card.querySelector('.vc-fs-btn');
+    card.addEventListener('mouseenter',()=>{if(fsBtn)fsBtn.style.opacity='1';});
+    card.addEventListener('mouseleave',()=>{if(fsBtn)fsBtn.style.opacity='0';});
+  });
+}
+
+function toggleVideoPlay(i){
+  const video=document.getElementById('vcv-'+i);
+  const overlay=document.getElementById('vco-'+i);
+  const playBtn=document.getElementById('vcp-'+i);
+  if(!video) return;
+  if(video.paused){
+    // Pause all other videos first
+    document.querySelectorAll('.vc-thumb video').forEach(v=>{
+      if(v!==video){v.pause();v.currentTime=0;}
+    });
+    document.querySelectorAll('.vc-overlay').forEach(o=>o.style.opacity='0');
+    document.querySelectorAll('.vc-play').forEach(p=>p.textContent='▶');
+    // Play this one
+    video.play().catch(()=>{});
+    overlay.style.opacity='0';
+    playBtn.textContent='⏸';
+    // Show overlay with pause on hover
+    video.parentElement.addEventListener('mouseenter',()=>{
+      if(!video.paused){overlay.style.opacity='1';playBtn.textContent='⏸';}
+    });
+    video.parentElement.addEventListener('mouseleave',()=>{
+      if(!video.paused){overlay.style.opacity='0';}
+    });
+  } else {
+    video.pause();
+    overlay.style.opacity='1';
+    playBtn.textContent='▶';
+  }
 }
 
 function renderPublicPersonas(){
@@ -2142,6 +2190,9 @@ async function startGen(){
   try{
     const fd=new FormData();fd.append('portrait',S.portraitFile,'portrait.png');fd.append('audio',S.audioFile,'voice.mp3');
     const jid='vid_'+Date.now();S.jobId=jid;fd.append('job_id',jid);
+    fd.append('ratio',S.ratio.label||'9:16');
+    fd.append('out_width',String(S.ratio.w||512));
+    fd.append('out_height',String(S.ratio.h||768));
     if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
     const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
     if(d.error)throw new Error(d.error);
@@ -2188,7 +2239,7 @@ async function startGen(){
           document.getElementById('vprev').innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;border-radius:11px;" playsinline></video>`;
           document.getElementById('postGenBtns').style.display='flex';
           btn.textContent='✦ Generate another';btn.disabled=false;
-          const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false};
+          const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
           S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
         }
         if(sd.status==='error'){

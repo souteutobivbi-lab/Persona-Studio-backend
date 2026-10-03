@@ -515,7 +515,10 @@ async def generate_video(
     portrait: UploadFile = File(...),
     audio: UploadFile = File(...),
     scene: Optional[UploadFile] = File(None),
-    job_id: str = Form(None)
+    job_id: str = Form(None),
+    ratio: str = Form("9:16"),
+    out_width: int = Form(512),
+    out_height: int = Form(768)
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
@@ -527,10 +530,10 @@ async def generate_video(
     if scene and scene.filename:
         scene_path = UPLOAD_DIR / f"{jid}_scene.png"
         scene_path.write_bytes(await scene.read())
-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path))
+    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, ratio, out_width, out_height))
     return {"job_id": jid, "status": "running"}
 
-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ratio="9:16", out_width=512, out_height=768):
     try:
         import fal_client
         from PIL import Image
@@ -602,21 +605,41 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
         print(f"[{jid}] Downloaded.")
 
         set_job(jid, {"status": "running", "stage": "processing", "progress": 88,
-                      "message": "Applying grain filter and encoding for mobile..."})
+                      "message": f"Encoding {ratio} video for streaming..."})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
 
-        # Flashtalk outputs 768x448 (landscape).
-        # Scale to fill 9:16 (1080x1920) — video fills width, padded top/bottom.
-        # CRF 23 + preset fast = good quality, smaller file, faster streaming.
+        # Flashtalk always outputs 768x448 landscape.
+        # Scale and pad to the target ratio requested by the user.
+        # Each ratio needs a different scale+pad strategy.
+        if ratio == "9:16":
+            # Portrait — scale width to 1080, pad height to 1920
+            vf = ("scale=1080:-2,"
+                  "pad=1080:1920:0:(oh-ih)/2:black")
+        elif ratio == "1:1":
+            # Square — scale to fit 1080x1080, pad sides
+            vf = ("scale=-2:1080,"
+                  "pad=1080:1080:(ow-iw)/2:0:black")
+        elif ratio == "4:5":
+            # Instagram portrait — 1080x1350
+            vf = ("scale=1080:-2,"
+                  "pad=1080:1350:0:(oh-ih)/2:black")
+        elif ratio == "16:9":
+            # Landscape — scale to 1920 wide, pad height to 1080
+            vf = ("scale=1920:-2,"
+                  "pad=1920:1080:0:(oh-ih)/2:black")
+        else:
+            # Default 9:16
+            vf = ("scale=1080:-2,"
+                  "pad=1080:1920:0:(oh-ih)/2:black")
+
+        # Append grain + colour grade to all ratios
+        vf += (",noise=alls=12:allf=t+u,"
+               "unsharp=3:3:1.2:3:3:0.0,"
+               "eq=contrast=1.05:brightness=-0.01:saturation=0.95")
+
         ret = subprocess.run([
             "ffmpeg", "-i", raw_path,
-            "-vf", (
-                "scale=1080:-2,"
-                "pad=1080:1920:0:(oh-ih)/2:black,"
-                "noise=alls=12:allf=t+u,"
-                "unsharp=3:3:1.2:3:3:0.0,"
-                "eq=contrast=1.05:brightness=-0.01:saturation=0.95"
-            ),
+            "-vf", vf,
             "-c:v", "libx264", "-crf", "23", "-preset", "fast",
             "-profile:v", "baseline", "-level", "3.1",
             "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
