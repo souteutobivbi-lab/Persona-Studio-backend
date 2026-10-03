@@ -581,7 +581,8 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- Step 3 -->
           <div id="sp3" class="step-panel">
             <div class="card">
-              <div class="card-hd">Select voice</div>
+              <div class="card-hd">Select voice <span class="badge">Lock to save for this persona</span></div>
+              <div id="voiceLockedBanner" style="display:none;align-items:center;padding:8px 10px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;margin-bottom:10px;"></div>
               <div class="voice-list" id="voiceList"><div style="color:var(--muted);font-size:12px;padding:8px;">Loading voices...</div></div>
               <div id="voicePreviewArea" style="display:none;margin-top:10px;">
                 <audio id="voicePreviewPlayer" controls style="width:100%;"></audio>
@@ -846,6 +847,10 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <div class="divider"></div>
         <div class="slbl">Skill file</div>
         <div id="rpSkill" style="font-size:12px;color:var(--dim);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;line-height:1.6;">No skill loaded.</div>
+
+        <div class="divider"></div>
+        <div class="slbl">Locked voice</div>
+        <div id="rpVoice" style="font-size:12px;color:var(--dim);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">No voice locked.</div>
       </div>
     </div>
   </div>
@@ -1031,6 +1036,9 @@ function activatePersona(p,pillEl){
   document.getElementById('rpSkill').innerHTML=p.skillName
     ?`<span style="color:var(--green);">✓</span> <span style="color:var(--text);font-weight:500;">${p.skillName}</span>`
     :'No skill loaded.';
+  // Load locked voice for this persona
+  if(p.voiceId){ S.voiceId=p.voiceId; }
+  updateRpVoice();
   if(document.getElementById('portraitPrompt'))document.getElementById('portraitPrompt').value=p.appearance||'';
   showPersonaDetail(p);
 }
@@ -1226,38 +1234,56 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // ── Scene suggestions — pull from SCENE SUGGESTIONS section only ──
+  // ── Scene suggestions — BACKGROUND SCENE SUGGESTIONS section ──
   const sceneEl=document.getElementById('sceneSuggestions');
   if(sceneEl){
-    let inSceneSection=false;
     const scenePrompts=[];
+    let inScene=false;
     for(const line of lines){
-      if(line.toUpperCase().includes('SCENE SUGGESTION')||line.toUpperCase().includes('BACKGROUND SCENE')) inSceneSection=true;
-      if(inSceneSection&&line.toUpperCase().includes('TARGET AUDIENCE')) inSceneSection=false;
-      if(!inSceneSection) continue;
-      // Match: "warm library, amber lighting..." style prompts
-      const m=line.match(/[""]([^""]{20,120})[""]/) || line.match(/"([^"]{20,120})"/);
-      if(m&&!m[1].includes('photorealistic')&&!m[1].includes('portrait')) scenePrompts.push(m[1]);
-      // Also match bare description lines like: "- Raw brick workshop or converted industrial space"
-      const m2=line.trim().match(/^[-•]\s+(.{20,80}(?:space|room|office|library|kitchen|studio|setting|property|scene).*)/i);
-      if(m2) scenePrompts.push(m2[1].trim());
-      if(scenePrompts.length>=4) break;
+      const upper=line.toUpperCase();
+      if(/^[-=]{4,}$/.test(line.trim())) continue;
+      if(upper.includes('SCENE SUGGESTION')||upper.includes('BACKGROUND SCENE')) { inScene=true; continue; }
+      // Stop at next major section
+      if(inScene && /^[A-Z][A-Z\s&]{5,}$/.test(line.trim()) && !line.trim().startsWith('-')) { inScene=false; continue; }
+      if(!inScene) continue;
+      const trimmed=line.trim();
+      if(!trimmed) continue;
+      // Bullet scene descriptions: "- Raw brick workshop or converted industrial space"
+      const m1=trimmed.match(/^[-•]\s+(.{20,100})/);
+      // Quoted prompt strings
+      const m2=trimmed.match(/[""]([^""]{20,120})[""]/) || trimmed.match(/"([^"]{20,120})"/);
+      if(m1 && !m1[1].toLowerCase().includes('prompt')) scenePrompts.push(m1[1].trim());
+      else if(m2 && !m2[1].toLowerCase().includes('portrait') && !m2[1].toLowerCase().includes('photorealistic')) scenePrompts.push(m2[1].trim());
+      if(scenePrompts.length>=5) break;
     }
-    sceneEl.innerHTML=scenePrompts.slice(0,3).map(s=>`
-      <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;" data-val="${s.replace(/"/g,'&quot;')}">${s.substring(0,42)}…</button>`).join('');
+    if(scenePrompts.length){
+      sceneEl.innerHTML=scenePrompts.slice(0,4).map(s=>`
+        <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;this.style.background='var(--p3)';this.style.color='var(--p2)';" data-val="${s.replace(/"/g,'&quot;')}">${s.length>45?s.substring(0,45)+'…':s}</button>`).join('');
+    }
   }
 
-  // ── Portrait prompt — pull from APPEARANCE section ──────────
-  let inAppearance=false;
+  // ── Portrait prompt — APPEARANCE / PORTRAIT GENERATION section ──
+  // Find the section, skip the heading and underline, grab the first real content line
+  let inAp=false;
   for(const line of lines){
-    if(line.toUpperCase().includes('APPEARANCE') && line.toUpperCase().includes('PORTRAIT')) inAppearance=true;
-    if(inAppearance&&line.trim().length>0&&!line.toUpperCase().includes('APPEARANCE')){
-      const prompt=line.replace(/^[^:]*:/,'').trim().replace(/^["'-]/,'').trim();
-      if(prompt.length>30&&document.getElementById('portraitPrompt')){
+    const upper=line.trim().toUpperCase();
+    if(/^[-=]{4,}$/.test(line.trim())) continue; // skip underlines
+    if(upper.includes('APPEARANCE') && (upper.includes('PORTRAIT')||upper.includes('GENERATION'))) { inAp=true; continue; }
+    if(!inAp) continue;
+    const trimmed=line.trim();
+    if(!trimmed) continue;
+    // Skip section label lines like "British woman aged 41..." only if they look like headings
+    // Grab the first substantive line — should be the actual prompt
+    const prompt=trimmed.replace(/^["'\-•]/,'').trim();
+    if(prompt.length>30 && document.getElementById('portraitPrompt')){
+      // Only set if it looks like a real portrait prompt (contains descriptive words)
+      if(prompt.toLowerCase().includes('british')||prompt.toLowerCase().includes('studio')||
+         prompt.toLowerCase().includes('woman')||prompt.toLowerCase().includes('man')||
+         prompt.toLowerCase().includes('aged')||prompt.toLowerCase().includes('skin')){
         document.getElementById('portraitPrompt').value=prompt;
       }
-      break;
     }
+    break;
   }
 }
 
@@ -1396,17 +1422,88 @@ function saveScriptQS(){const t=document.getElementById('qsScript').textContent;
 
 // ── VOICE ──────────────────────────────────────────────
 async function loadVoices(){
+  // Use persona's locked voice if set
+  if(S.persona?.voiceId) S.voiceId=S.persona.voiceId;
   try{
     const r=await fetch(`${API()}/voices`);const voices=await r.json();
-    document.getElementById('voiceList').innerHTML=voices.map(v=>`
-      <div class="v-item ${v.id===S.voiceId?'on':''}" onclick="pickVoice(this,'${v.id}')">
-        <div class="v-ico">🎙</div>
-        <div style="flex:1;"><div style="font-size:12px;font-weight:500;">${v.name}</div><div style="font-size:10px;color:var(--dim);">${v.description||''}</div></div>
-        <button onclick="event.stopPropagation();previewVoice('${v.id}','${v.name}')" style="background:var(--border2);border:none;color:var(--text);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;">▶</button>
-      </div>`).join('');
+    window._voices=voices;
+    renderVoiceList(voices);
   }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px;">Backend not connected — check Settings.</div>';}
 }
-function pickVoice(el,id){document.querySelectorAll('.v-item').forEach(v=>v.classList.remove('on'));el.classList.add('on');S.voiceId=id;}
+
+function renderVoiceList(voices){
+  const lockedId=S.persona?.voiceId||null;
+  document.getElementById('voiceList').innerHTML=voices.map(v=>{
+    const isActive=v.id===S.voiceId;
+    const isLocked=v.id===lockedId;
+    return `<div class="v-item ${isActive?'on':''}" id="vi-${v.id}" onclick="pickVoice(this,'${v.id}','${v.name.replace(/'/g,'\\\'')}')" >
+      <div class="v-ico">${isLocked?'🔒':'🎙'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;">
+          ${v.name}
+          ${isLocked?`<span style="font-size:10px;background:var(--p3);color:var(--p2);padding:1px 7px;border-radius:10px;border:1px solid rgba(124,58,237,.3);">Locked</span>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--dim);">${v.description||''}</div>
+      </div>
+      <button onclick="event.stopPropagation();previewVoice('${v.id}','${v.name}')" style="background:var(--border2);border:none;color:var(--text);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;">▶</button>
+      <button onclick="event.stopPropagation();lockVoice('${v.id}','${v.name.replace(/'/g,'\\\'')}')" 
+        style="background:${isLocked?'var(--purple)':'var(--border2)'};border:none;color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;margin-left:4px;"
+        title="${isLocked?'Unlock voice':'Lock this voice to '+S.persona?.name}">
+        ${isLocked?'🔓 Unlock':'🔒 Lock'}
+      </button>
+    </div>`;
+  }).join('');
+  // Show locked voice banner if set
+  const banner=document.getElementById('voiceLockedBanner');
+  if(banner){
+    if(lockedId){
+      const lv=voices.find(v=>v.id===lockedId);
+      banner.style.display='flex';
+      banner.innerHTML=`<span style="color:var(--green);">🔒 ${lv?.name||'Voice'} locked to ${S.persona?.name||'this persona'}</span>
+        <button onclick="lockVoice(null,null)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:auto;">Unlock</button>`;
+    } else {
+      banner.style.display='none';
+    }
+  }
+}
+
+function pickVoice(el,id,name){
+  document.querySelectorAll('.v-item').forEach(v=>v.classList.remove('on'));
+  el.classList.add('on');
+  S.voiceId=id;
+}
+
+function lockVoice(id,name){
+  if(!S.persona) return toast('Select a persona first','err');
+  const pp=S.personas.find(p=>p.name===S.persona.name);
+  if(pp){
+    if(id===null){
+      // Unlock
+      pp.voiceId=null; pp.voiceName=null;
+      S.voiceId='EXAVITQu4vr4xnSDxMaL';
+      toast('Voice unlocked from '+S.persona.name);
+    } else {
+      pp.voiceId=id; pp.voiceName=name;
+      S.voiceId=id;
+      toast('🔒 '+name+' locked to '+S.persona.name);
+    }
+    S.persona=pp;
+    saveAll();
+    // Re-render voice list with updated lock state
+    if(window._voices) renderVoiceList(window._voices);
+    // Update right panel
+    updateRpVoice();
+  }
+}
+
+function updateRpVoice(){
+  const rpv=document.getElementById('rpVoice');
+  if(!rpv) return;
+  const p=S.persona;
+  rpv.innerHTML=p?.voiceName
+    ? `<span style="color:var(--green);">🔒</span> <span style="color:var(--text);font-weight:500;">${p.voiceName}</span>`
+    : '<span style="color:var(--dim);">No voice locked</span>';
+}
 async function previewVoice(id,name){
   const area=document.getElementById('voicePreviewArea'),player=document.getElementById('voicePreviewPlayer'),label=document.getElementById('voicePreviewLabel');
   area.style.display='block';label.textContent='Generating preview...';player.src='';
