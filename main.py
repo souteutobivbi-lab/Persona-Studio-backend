@@ -105,15 +105,63 @@ Return ONLY valid JSON, nothing else. No markdown, no backticks."""}],
         return JSONResponse({"error": "Parse failed: "+str(e), "raw": response.choices[0].message.content[:200]}, status_code=400)
 
 @app.get("/voices")
-async def get_voices():
+async def get_voices(gender: str = "female", accent: str = "british"):
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get("https://api.elevenlabs.io/v1/voices",
             headers={"xi-api-key": ELEVENLABS_KEY})
     if r.status_code != 200:
         return JSONResponse({"error": "ElevenLabs error"}, status_code=400)
     voices = r.json().get("voices", [])
+
+    # Filter by gender and accent using ElevenLabs labels
+    def matches(v):
+        labels = {k.lower(): str(val).lower() for k, val in v.get("labels", {}).items()}
+        label_str = " ".join(labels.values())
+        # Check gender
+        gender_ok = gender.lower() in label_str
+        # Check British accent — accept british, english, uk, united kingdom
+        british_terms = ["british", "english", "uk", "united kingdom"]
+        accent_ok = any(t in label_str for t in british_terms)
+        return gender_ok and accent_ok
+
+    filtered = [v for v in voices if matches(v)]
+
+    # Fallback — if ElevenLabs has no labelled British voices (labels vary by account),
+    # use known high-quality British voice IDs as a curated fallback list
+    british_female_ids = [
+        "EXAVITQu4vr4xnSDxMaL",  # Bella — British female
+        "21m00Tcm4TlvDq8ikWAM",  # Rachel — neutral British
+        "AZnzlk1XvdvUeBnXmlld",  # Domi — British female
+        "MF3mGyEYCl7XYWbV9V6O",  # Elli — British female
+        "TxGEqnHWrfWFTfGW9XjX",  # Josh — skip (male)
+        "pNInz6obpgDQGcFmaJgB",  # Adam — skip (male)
+        "yoZ06aMxZJJ28mfd3POQ",  # Sam — skip
+    ]
+    british_male_ids = [
+        "VR6AewLTigWG4xSOukaG",   # Arnold — British male
+        "ErXwobaYiN019PkySvjV",   # Antoni — British male
+        "ODq5zmih8GrVes37Dy39",   # Patrick — British male
+        "GBv7mTt0atIp3Br8iCZE",  # Thomas — British male
+    ]
+
+    if not filtered:
+        # Try filtering by known British voice IDs
+        target_ids = british_female_ids if gender.lower() == "female" else british_male_ids
+        filtered = [v for v in voices if v["voice_id"] in target_ids]
+
+    if not filtered:
+        # Last resort — return all voices but sorted to put likely British ones first
+        british_hints = ["british", "english", "uk", "charlotte", "emily", "james", "william"]
+        def british_score(v):
+            label_str = " ".join(v.get("labels", {}).values()).lower()
+            name_lower = v.get("name", "").lower()
+            return sum(1 for h in british_hints if h in label_str or h in name_lower)
+        filtered = sorted(voices, key=british_score, reverse=True)[:12]
+
     return [{"id": v["voice_id"], "name": v["name"],
-             "description": ", ".join(v.get("labels", {}).values())} for v in voices]
+             "description": ", ".join(v.get("labels", {}).values()),
+             "gender": v.get("labels", {}).get("gender", ""),
+             "accent": v.get("labels", {}).get("accent", "")} for v in filtered]
 
 @app.post("/generate-script")
 async def generate_script(

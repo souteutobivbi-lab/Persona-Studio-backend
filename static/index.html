@@ -581,7 +581,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- Step 3 -->
           <div id="sp3" class="step-panel">
             <div class="card">
-              <div class="card-hd">Select voice <span class="badge">Lock to save for this persona</span></div>
+              <div class="card-hd">Select voice <span class="badge" id="voiceFilterBadge">British · Female</span></div>
               <div id="voiceLockedBanner" style="display:none;align-items:center;padding:8px 10px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;margin-bottom:10px;"></div>
               <div class="voice-list" id="voiceList"><div style="color:var(--muted);font-size:12px;padding:8px;">Loading voices...</div></div>
               <div id="voicePreviewArea" style="display:none;margin-top:10px;">
@@ -1421,17 +1421,37 @@ function saveScript(){const t=document.getElementById('scriptBox').textContent;i
 function saveScriptQS(){const t=document.getElementById('qsScript').textContent;if(!t)return;S.savedScripts.push({text:t,persona:document.getElementById('qsPersona').value,niche:document.getElementById('qsNiche').value,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
 
 // ── VOICE ──────────────────────────────────────────────
+function detectPersonaGender(p){
+  if(!p) return 'female';
+  const text=(p.appearance||''+p.role||''+p.name||'').toLowerCase();
+  if(text.includes(' man ')||text.includes(' male ')||text.includes(' boy ')||
+     text.includes('british man')||text.includes(' he ')||text.includes(' his ')) return 'male';
+  if(text.includes(' woman ')||text.includes(' female ')||text.includes(' girl ')||
+     text.includes('british woman')||text.includes(' she ')||text.includes(' her ')) return 'female';
+  // Fallback: check skill text if loaded
+  const skill=(p.skill||'').toLowerCase();
+  if(skill.includes('british man')||skill.includes('male')) return 'male';
+  return 'female'; // default
+}
+
 async function loadVoices(){
   // Use persona's locked voice if set
   if(S.persona?.voiceId) S.voiceId=S.persona.voiceId;
+  const gender=detectPersonaGender(S.persona);
   try{
-    const r=await fetch(`${API()}/voices`);const voices=await r.json();
+    const r=await fetch(`${API()}/voices?gender=${gender}&accent=british`);
+    const voices=await r.json();
     window._voices=voices;
+    window._voiceGender=gender;
     renderVoiceList(voices);
   }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px;">Backend not connected — check Settings.</div>';}
 }
 
 function renderVoiceList(voices){
+  // Update filter badge
+  const gender=window._voiceGender||detectPersonaGender(S.persona);
+  const badge=document.getElementById('voiceFilterBadge');
+  if(badge) badge.textContent=`British · ${gender==='male'?'Male':'Female'} · ${voices.length} voices`;
   const lockedId=S.persona?.voiceId||null;
   document.getElementById('voiceList').innerHTML=voices.map(v=>{
     const isActive=v.id===S.voiceId;
