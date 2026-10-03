@@ -3,401 +3,479 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Persona Studio</title>
+<title>Persona — AI Content Studio</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#08080c;--surface:#0f0f15;--card:#13131a;--border:#1e1e2c;--border2:#2a2a3a;
-  --text:#f0f0f6;--muted:#7a7a90;--dim:#3a3a50;
-  --purple:#7c3aed;--purple2:#a78bfa;--purple3:#1e1030;
-  --green:#22c55e;--green2:#0f2a14;--amber:#f59e0b;--red:#ef4444;--teal:#14b8a6;
-  --radius:10px;
+  --bg:#07070a;--surface:#0e0e14;--card:#121219;--card2:#17171f;--border:#1e1e2a;--border2:#28283a;
+  --text:#eeeef5;--muted:#65658a;--dim:#2a2a3c;
+  --purple:#7c3aed;--pb:#9d5ff5;--p2:#a78bfa;--p3:#0f0920;
+  --green:#22c55e;--g2:#091a0e;--amber:#f59e0b;--red:#ef4444;--teal:#14b8a6;--pink:#ec4899;
+  --r:12px;--rl:16px;--rs:8px;
+  --sh:0 4px 24px rgba(0,0,0,.5);--shp:0 4px 32px rgba(124,58,237,.28);
 }
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
-h1{font-size:22px;font-weight:500;}h2{font-size:18px;font-weight:500;}h3{font-size:15px;font-weight:500;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
 ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+input,textarea,select,button{font-family:inherit;}
+img{display:block;}
 
 /* ── VIEWS ── */
-.view{display:none;min-height:100vh;}
+.view{display:none;}
 .view.active{display:block;}
+#studio.active{display:grid;grid-template-columns:224px 1fr;min-height:100vh;}
 
-/* ══════════════════════════════════════════
-   SHOWCASE (Public homepage)
-══════════════════════════════════════════ */
-#showcase{background:linear-gradient(180deg,#0d0010 0%,#08080c 60%);}
-.showcase-nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid #1a0030;}
-.showcase-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#fff;}
-.showcase-logo-icon{width:36px;height:36px;border-radius:10px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px;}
-.showcase-hero{text-align:center;padding:60px 20px 40px;}
-.showcase-hero h1{font-size:42px;font-weight:700;background:linear-gradient(135deg,#fff 0%,var(--purple2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;}
-.showcase-hero p{font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 28px;}
-.showcase-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.btn-hero{padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
-.btn-hero.primary{background:var(--purple);color:#fff;}
-.btn-hero.primary:hover{background:var(--purple2);}
-.btn-hero.secondary{background:transparent;color:var(--muted);border:1px solid var(--border2);}
-.btn-hero.secondary:hover{color:var(--text);border-color:var(--purple);}
-.showcase-section{padding:0 32px 60px;}
-.showcase-section-title{font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;padding-left:4px;}
-.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
-.video-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .2s;}
-.video-card:hover{border-color:var(--purple);transform:translateY(-2px);}
-.video-thumb{aspect-ratio:9/16;background:var(--surface);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-.video-thumb video,.video-thumb img{width:100%;height:100%;object-fit:cover;}
-.video-thumb-placeholder{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--dim);}
-.video-thumb-placeholder .icon{font-size:28px;}
-.video-play-overlay{position:absolute;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
-.video-card:hover .video-play-overlay{opacity:1;}
-.play-btn{width:44px;height:44px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;}
-.video-info{padding:12px;}
-.video-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
-.video-meta{font-size:11px;color:var(--muted);}
-.persona-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;margin-top:6px;}
+/* ════════════════════════════════════
+   PUBLIC SITE
+════════════════════════════════════ */
+#public{min-height:100vh;background:var(--bg);}
 
-.showcase-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:600px;margin:0 auto 60px;}
-.showcase-stat{text-align:center;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;}
-.showcase-stat-val{font-size:28px;font-weight:700;color:var(--text);}
-.showcase-stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
+/* NAV */
+.pub-nav{display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;border-bottom:1px solid var(--border);background:rgba(7,7,10,.92);backdrop-filter:blur(16px);position:sticky;top:0;z-index:200;}
+.pub-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.pub-nav-logo-mark{width:30px;height:30px;border-radius:8px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;box-shadow:var(--shp);}
+.pub-nav-name{font-size:15px;font-weight:700;letter-spacing:-.03em;color:var(--text);}
+.pub-nav-links{display:flex;align-items:center;gap:28px;}
+.pub-nav-link{font-size:13px;color:var(--muted);cursor:pointer;transition:color .12s;text-decoration:none;background:none;border:none;}
+.pub-nav-link:hover{color:var(--text);}
+.pub-nav-link.active{color:var(--text);font-weight:500;}
+.pub-nav-right{display:flex;gap:8px;align-items:center;}
 
-.empty-showcase{text-align:center;padding:80px 20px;color:var(--muted);}
-.empty-showcase .icon{font-size:48px;margin-bottom:16px;display:block;}
+/* PUBLIC PAGES */
+.pub-page{display:none;min-height:calc(100vh - 64px);}
+.pub-page.active{display:block;}
 
-/* ══════════════════════════════════════════
-   STUDIO (Creator workspace)
-══════════════════════════════════════════ */
-#studio{display:none;}
-#studio.active{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+/* HOME PAGE */
+.home-header{padding:72px 48px 48px;border-bottom:1px solid var(--border);}
+.home-header-inner{max-width:1200px;margin:0 auto;}
+.home-eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;}
+.home-title{font-size:42px;font-weight:800;letter-spacing:-.04em;line-height:1.1;max-width:640px;margin-bottom:16px;}
+.home-subtitle{font-size:16px;color:var(--muted);max-width:500px;line-height:1.7;}
 
-.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 12px;}
-.logo{display:flex;align-items:center;gap:9px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:14px;}
-.logo-mark{width:32px;height:32px;border-radius:9px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:16px;}
-.logo-text{font-size:14px;font-weight:600;}
-.logo-sub{font-size:10px;color:var(--dim);}
+/* PERSONA FILTER BAR */
+.filter-bar{padding:0 48px;border-bottom:1px solid var(--border);background:var(--surface);}
+.filter-bar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:4px;height:52px;overflow-x:auto;}
+.filter-tab{padding:6px 16px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .12s;white-space:nowrap;display:flex;align-items:center;gap:7px;}
+.filter-tab:hover{color:var(--text);}
+.filter-tab.on{background:var(--card);color:var(--text);border:1px solid var(--border2);}
+.filter-tab-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;}
+.filter-tab-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 
-.nav-label{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 5px 8px;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);margin-bottom:2px;transition:all .12s;}
-.nav-item:hover{background:var(--card);color:var(--text);}
-.nav-item.on{background:var(--purple3);color:var(--purple2);}
-.nav-item .ico{width:18px;text-align:center;font-size:15px;}
+/* VIDEO GRID */
+.video-section{padding:36px 48px 72px;}
+.video-section-inner{max-width:1200px;margin:0 auto;}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;}
+.vc{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:all .2s;}
+.vc:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--sh);}
+.vc-thumb{aspect-ratio:9/16;background:var(--surface);position:relative;overflow:hidden;}
+.vc-thumb video{width:100%;height:100%;object-fit:cover;display:block;}
+.vc-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.75));opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center;}
+.vc:hover .vc-overlay{opacity:1;}
+.vc-play{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;}
+.vc-info{padding:12px 14px;}
+.vc-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
+.vc-meta{font-size:10px;color:var(--muted);}
+.vc-persona{display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;}
 
-.persona-stack{display:flex;flex-direction:column;gap:5px;}
-.p-pill{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);cursor:pointer;background:var(--card);transition:all .12s;}
-.p-pill:hover{border-color:var(--border2);}
-.p-pill.on{border-color:var(--purple);background:var(--purple3);}
-.p-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;}
-.p-nm{font-size:12px;font-weight:500;}
-.p-ro{font-size:10px;color:var(--dim);}
-.add-p{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;border:1px dashed var(--border2);cursor:pointer;color:var(--dim);font-size:12px;transition:all .12s;margin-top:4px;}
-.add-p:hover{border-color:var(--purple);color:var(--purple2);}
-.side-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--border);}
+/* PERSONAS PAGE */
+.personas-section{padding:48px;}
+.personas-section-inner{max-width:1200px;margin:0 auto;}
+.personas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-top:32px;}
+.persona-card-pub{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;transition:all .2s;}
+.persona-card-pub:hover{border-color:var(--border2);}
+.pcp-header{padding:28px;display:flex;gap:18px;align-items:flex-start;border-bottom:1px solid var(--border);}
+.pcp-av{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;}
+.pcp-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.pcp-name{font-size:18px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px;}
+.pcp-role{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.pcp-catchphrase{font-size:13px;color:var(--p2);font-style:italic;line-height:1.5;}
+.pcp-videos{padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.pcp-vid-thumb{aspect-ratio:9/16;border-radius:8px;background:var(--surface);overflow:hidden;cursor:pointer;border:1px solid var(--border);}
+.pcp-vid-thumb video{width:100%;height:100%;object-fit:cover;}
+.pcp-vid-empty{background:var(--surface);border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px;}
+.pcp-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.pcp-count{font-size:11px;color:var(--muted);}
 
-/* Main area */
-.main-area{display:flex;flex-direction:column;overflow:hidden;}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 22px;border-bottom:1px solid var(--border);background:var(--surface);}
-.tb-title{font-size:15px;font-weight:500;}
-.tb-right{display:flex;gap:7px;}
-.btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .12s;}
+/* VIDEO MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+.modal-bg.hidden{display:none;}
+.modal-wrap{position:relative;width:min(380px,92vw);}
+.modal-video{width:100%;border-radius:var(--rl);display:block;}
+.modal-close{position:absolute;top:-48px;right:0;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all .12s;}
+.modal-close:hover{background:rgba(255,255,255,.15);}
+.modal-info{padding:16px 0 0;}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:4px;}
+.modal-meta{font-size:12px;color:var(--muted);}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:80px 20px;color:var(--muted);grid-column:1/-1;}
+.empty-state-icon{font-size:40px;margin-bottom:16px;}
+.empty-state-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;}
+.empty-state-sub{font-size:13px;line-height:1.6;}
+
+/* FOOTER */
+.pub-footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;}
+.pub-footer-logo{font-size:14px;font-weight:700;color:var(--muted);}
+.pub-footer-links{display:flex;gap:20px;}
+.pub-footer-link{font-size:12px;color:var(--dim);cursor:pointer;}
+.pub-footer-link:hover{color:var(--muted);}
+
+/* ════════════════════════════════════
+   SHARED BUTTONS
+════════════════════════════════════ */
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .12s;letter-spacing:-.01em;}
 .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border2);}
 .btn.ghost:hover{background:var(--card);color:var(--text);}
-.btn.primary{background:var(--purple);color:#fff;}
-.btn.primary:hover{opacity:.9;}
-.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.primary{background:var(--purple);color:#fff;box-shadow:0 2px 12px rgba(124,58,237,.3);}
+.btn.primary:hover{background:var(--pb);}
+.btn.sm{padding:5px 11px;font-size:11px;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.gen-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--purple),var(--pb));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .12s;box-shadow:var(--shp);}
+.gen-btn:hover{opacity:.92;transform:translateY(-1px);}
+.gen-btn:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ════════════════════════════════════
+   STUDIO SIDEBAR
+════════════════════════════════════ */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 10px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.logo{display:flex;align-items:center;gap:9px;padding:4px 6px 16px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:var(--shp);}
+.logo-text{font-size:13px;font-weight:700;letter-spacing:-.03em;}
+.logo-sub{font-size:9px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;}
+.nav-lbl{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin:14px 0 5px 8px;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);margin-bottom:1px;transition:all .1s;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.on{background:var(--p3);color:var(--p2);font-weight:500;}
+.nav-item .ico{width:16px;text-align:center;font-size:13px;flex-shrink:0;}
+.p-pill{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;border:1px solid transparent;cursor:pointer;transition:all .12s;}
+.p-pill:hover{background:var(--card);border-color:var(--border);}
+.p-pill.on{background:var(--p3);border-color:var(--purple);}
+.p-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;}
+.p-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.p-nm{font-size:12px;font-weight:500;line-height:1.2;}
+.p-ro{font-size:10px;color:var(--dim);}
+.add-p{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;border:1px dashed var(--border2);cursor:pointer;color:var(--dim);font-size:11px;transition:all .12s;margin-top:4px;}
+.add-p:hover{border-color:var(--purple);color:var(--p2);}
+
+/* Folder items */
+.folder-section{display:flex;flex-direction:column;gap:2px;}
+.folder-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .1s;}
+.folder-row:hover{background:var(--card);color:var(--text);}
+.folder-row.on{background:var(--p3);color:var(--p2);}
+.folder-count{margin-left:auto;font-size:10px;background:var(--border2);color:var(--muted);padding:1px 6px;border-radius:10px;}
+.side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);}
+
+/* ════════════════════════════════════
+   STUDIO MAIN
+════════════════════════════════════ */
+.main-area{display:flex;flex-direction:column;min-height:100vh;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:50;}
+.tb-title{font-size:14px;font-weight:600;letter-spacing:-.02em;}
+.tb-right{display:flex;gap:8px;}
+.workspace{display:grid;grid-template-columns:1fr 284px;flex:1;overflow:hidden;}
+.canvas{padding:22px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;background:var(--bg);}
+.rp{background:var(--surface);border-left:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
 
 /* Panels */
-.workspace{display:grid;grid-template-columns:1fr 300px;flex:1;overflow:hidden;}
-.canvas{padding:22px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
-.right-panel{background:var(--surface);border-left:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
-
-/* Tab panels */
-.tab-panel{display:none;flex-direction:column;gap:18px;}
+.tab-panel{display:none;flex-direction:column;gap:16px;}
 .tab-panel.on{display:flex;}
 
 /* Cards */
-.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px 18px;}
-.card-hd{font-size:13px;font-weight:500;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;}
-.badge{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--purple3);color:var(--purple2);border:1px solid #3b1d6e;font-weight:500;}
-.badge.green{background:var(--green2);color:var(--green);border-color:#166534;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;}
+.card-hd{font-size:12px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;letter-spacing:-.01em;}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--p3);color:var(--p2);border:1px solid rgba(124,58,237,.2);font-weight:500;}
+.badge.green{background:var(--g2);color:var(--green);border-color:rgba(34,197,94,.2);}
+.badge.amber{background:rgba(245,158,11,.08);color:var(--amber);border-color:rgba(245,158,11,.2);}
 
 /* Steps */
 .step-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;}
-.step-t{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--dim);transition:all .12s;}
-.step-t.on{border-color:var(--purple);color:var(--purple2);}
+.step-t{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--dim);transition:all .12s;}
+.step-t.on{border-color:var(--purple);color:var(--p2);}
 .step-t.done{border-color:var(--green);color:var(--green);}
-.step-panel{display:none;flex-direction:column;gap:14px;}
+.step-panel{display:none;flex-direction:column;gap:13px;}
 .step-panel.on{display:flex;}
 
 /* Form */
 .field{display:flex;flex-direction:column;gap:5px;}
-.lbl{font-size:11px;color:var(--muted);font-weight:500;}
-.inp{background:#0a0a12;border:1px solid var(--border2);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;width:100%;outline:none;transition:border .12s;font-family:inherit;}
+.lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;}
+.inp{background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;width:100%;outline:none;transition:border .12s;}
 .inp:focus{border-color:var(--purple);}
 .inp::placeholder{color:var(--dim);}
 select.inp{cursor:pointer;}
-textarea.inp{resize:vertical;min-height:72px;}
+textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 
-/* Aspect ratio */
-.ratio-grid{display:flex;gap:8px;flex-wrap:wrap;}
-.ratio-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border2);font-size:12px;color:var(--muted);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.ratio-btn:hover{border-color:var(--border2);color:var(--text);}
-.ratio-btn.on{border-color:var(--purple);background:var(--purple3);color:var(--purple2);}
-.ratio-icon{display:flex;align-items:center;justify-content:center;}
-.ratio-icon svg{fill:currentColor;}
+/* Persona detail */
+.pd-header{background:linear-gradient(135deg,var(--p3),var(--card));border:1px solid var(--border);border-radius:var(--rl);padding:22px;display:flex;gap:16px;}
+.pd-av{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;border:2px solid rgba(255,255,255,.08);}
+.pd-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.pd-name{font-size:19px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px;}
+.pd-role{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.pd-catch{font-size:12px;color:var(--p2);font-style:italic;}
+.pd-portrait-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.pd-slot{aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:border .15s;position:relative;}
+.pd-slot:hover{border-color:var(--purple);}
+.pd-slot img{width:100%;height:100%;object-fit:cover;}
+.pd-slot.empty{display:flex;align-items:center;justify-content:center;border-style:dashed;color:var(--dim);font-size:18px;}
+.pd-use{position:absolute;inset:0;background:rgba(124,58,237,.7);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;opacity:0;transition:.15s;}
+.pd-slot:hover .pd-use{opacity:1;}
 
 /* Niches */
 .niche-grid{display:flex;flex-wrap:wrap;gap:6px;}
-.niche-chip{padding:5px 11px;border-radius:20px;border:1px solid var(--border2);font-size:12px;color:var(--muted);cursor:pointer;transition:all .12s;}
-.niche-chip:hover{border-color:var(--border2);color:var(--text);}
-.niche-chip.on{background:var(--purple3);border-color:var(--purple);color:var(--purple2);}
+.niche-chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:12px;color:var(--muted);cursor:pointer;transition:all .12s;}
+.niche-chip.on{background:var(--p3);border-color:var(--purple);color:var(--p2);font-weight:500;}
+
+/* Topic suggestions */
+.topic-chip{padding:4px 11px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);cursor:pointer;transition:all .12s;background:none;}
+.topic-chip:hover{border-color:var(--purple);color:var(--p2);background:var(--p3);}
+
+/* Script */
+.script-opt{padding:12px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .12s;margin-bottom:6px;}
+.script-opt.on{border-color:var(--purple);background:var(--p3);}
+.script-opt-lbl{font-size:9px;font-weight:700;color:var(--dim);margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase;}
+.script-opt.on .script-opt-lbl{color:var(--p2);}
+.script-opt-txt{font-size:13px;line-height:1.6;color:var(--text);}
+.script-opt-wc{font-size:10px;color:var(--dim);margin-top:4px;}
+.script-box{background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:9px;padding:13px;font-size:14px;line-height:1.8;color:var(--text);min-height:80px;outline:none;}
+.script-box:focus{border-color:var(--purple);}
+
+/* Voice */
+.voice-list{display:flex;flex-direction:column;gap:4px;max-height:230px;overflow-y:auto;}
+.v-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:1px solid var(--border);cursor:pointer;background:var(--surface);transition:all .12s;}
+.v-item.on{border-color:var(--purple);background:var(--p3);}
+.v-ico{width:28px;height:28px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
 
 /* Portrait grid */
 .p-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
 .p-slot{aspect-ratio:3/4;border-radius:9px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--surface);transition:all .12s;position:relative;}
 .p-slot:hover{border-color:var(--purple);}
 .p-slot img{width:100%;height:100%;object-fit:cover;}
-.p-slot.generating{border-color:var(--amber);}
+.p-slot.generating{border-color:var(--amber);animation:pulse 1.5s infinite;}
 .p-slot.done{border-color:var(--green);}
 .p-slot.selected{border:2px solid var(--purple);}
-.p-slot .sel-check{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--purple);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;}
+.p-slot .sel-check{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;background:var(--purple);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;}
+@keyframes pulse{0%,100%{opacity:.65;}50%{opacity:1;}}
 
-/* Script box */
-.script-box{background:#0a0a12;border:1px solid var(--border2);border-radius:9px;padding:13px;font-size:14px;line-height:1.7;color:var(--text);min-height:80px;position:relative;outline:none;}
-.script-box[contenteditable]:focus{border-color:var(--purple);}
-.wc{position:absolute;bottom:8px;right:10px;font-size:11px;color:var(--dim);}
-
-/* Voice */
-.voice-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
-.v-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface);transition:all .12s;}
-.v-item:hover{border-color:var(--border2);}
-.v-item.on{border-color:var(--purple);background:var(--purple3);}
-.v-ico{width:30px;height:30px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+/* Ratio */
+.ratio-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.ratio-btn{padding:10px 16px;border-radius:9px;border:1px solid var(--border2);font-size:12px;color:var(--muted);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.ratio-btn.on{border-color:var(--purple);background:var(--p3);color:var(--p2);}
 
 /* Pipeline */
 .pipeline{display:flex;flex-direction:column;gap:3px;}
-.pipe{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;}
+.pipe{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;transition:all .2s;}
 .pipe.wait{background:var(--card);}
-.pipe.run{background:var(--purple3);border:1px solid #3b1d6e;}
-.pipe.done{background:var(--green2);border:1px solid #166534;}
-.pipe.err{background:#1f0a0a;border:1px solid #7f1d1d;}
-.pipe-n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.pipe.run{background:var(--p3);border:1px solid rgba(124,58,237,.25);}
+.pipe.done{background:var(--g2);border:1px solid rgba(34,197,94,.18);}
+.pipe.err{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);}
+.pipe-n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
 .pipe.wait .pipe-n{background:var(--dim);color:var(--bg);}
 .pipe.run .pipe-n{background:var(--purple);color:#fff;}
 .pipe.done .pipe-n{background:var(--green);color:var(--bg);}
 .pipe.err .pipe-n{background:var(--red);color:#fff;}
-.pipe-label{font-size:12px;font-weight:500;}
-.pipe.wait .pipe-label{color:var(--dim);}
-.pipe.run .pipe-label{color:var(--purple2);}
-.pipe.done .pipe-label{color:var(--green);}
-.pipe.err .pipe-label{color:var(--red);}
+.pipe-lbl{font-size:12px;font-weight:500;}
+.pipe.wait .pipe-lbl{color:var(--dim);}
+.pipe.run .pipe-lbl{color:var(--p2);}
+.pipe.done .pipe-lbl{color:var(--green);}
+.pipe.err .pipe-lbl{color:var(--red);}
 .pipe-sub{font-size:10px;color:var(--dim);margin-top:1px;}
-.pipe-right{margin-left:auto;font-size:10px;}
 
 /* Progress */
 .pbar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
-.pbar-fill{height:100%;border-radius:2px;background:var(--purple);transition:width .3s;}
+.pbar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--purple),var(--p2));transition:width .3s;}
 
 /* Video preview */
-.vprev{aspect-ratio:9/16;border-radius:11px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;max-height:280px;align-self:center;}
+.vprev-wrap{display:flex;justify-content:center;}
+.vprev{aspect-ratio:9/16;border-radius:var(--r);background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;width:min(200px,100%);}
 .vprev video{width:100%;height:100%;object-fit:cover;}
-.vprev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--dim);}
-.vprev-empty .ico{font-size:28px;}
+.vprev-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--dim);}
 
-/* Gen button */
-.gen-btn{width:100%;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .12s;margin-top:3px;}
-.gen-btn:hover{opacity:.9;}
-.gen-btn:disabled{background:var(--border2);color:var(--dim);cursor:not-allowed;}
+/* Skill zone */
+.skill-zone{border:1px dashed var(--border2);border-radius:9px;padding:14px;cursor:pointer;transition:all .12s;}
+.skill-zone:hover,.skill-zone:focus-within{border-color:var(--purple);}
+.skill-loaded{background:var(--p3)!important;border-color:var(--purple)!important;border-style:solid!important;}
 
-/* Upload zone */
-.upload-zone{border:1px dashed var(--border2);border-radius:9px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;background:var(--surface);transition:all .12s;text-align:center;}
-.upload-zone:hover{border-color:var(--purple);background:var(--purple3);}
-.upload-zone .ico{font-size:22px;color:var(--dim);}
-.upload-zone span{font-size:12px;color:var(--muted);}
-.upload-zone small{font-size:10px;color:var(--dim);}
-
-/* Skill uploader */
-.skill-zone{border:1px dashed var(--border2);border-radius:9px;padding:14px;background:var(--surface);transition:all .12s;cursor:pointer;}
-.skill-zone:hover{border-color:var(--purple);}
-.skill-loaded{background:var(--purple3);border-color:var(--purple);}
-.skill-name{font-size:12px;color:var(--purple2);font-weight:500;margin-top:4px;}
+/* Doc folder */
+.doc-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:6px;transition:all .12s;}
+.doc-item:hover{border-color:var(--border2);}
+.doc-item-icon{font-size:20px;flex-shrink:0;}
+.doc-item-name{font-size:12px;font-weight:500;}
+.doc-item-meta{font-size:10px;color:var(--dim);margin-top:2px;}
+.doc-item-actions{margin-left:auto;display:flex;gap:6px;}
 
 /* Stats */
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px;}
-.stat-v{font-size:20px;font-weight:600;}
-.stat-l{font-size:11px;color:var(--dim);margin-top:2px;}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--p2));opacity:.5;}
+.stat-v{font-size:24px;font-weight:800;letter-spacing:-.04em;}
+.stat-l{font-size:10px;color:var(--dim);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
 
 /* Toggle */
-.tog-row{display:flex;align-items:center;justify-content:space-between;}
-.tog{width:34px;height:19px;border-radius:9px;background:var(--purple);position:relative;cursor:pointer;flex-shrink:0;}
-.tog::after{content:'';position:absolute;width:15px;height:15px;border-radius:50%;background:#fff;top:2px;right:2px;transition:right .15s;}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+.tog{width:34px;height:20px;border-radius:10px;background:var(--purple);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+.tog::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;right:2px;transition:right .15s;}
 .tog.off{background:var(--border2);}
-.tog.off::after{right:17px;}
+.tog.off::after{right:16px;}
 
-/* Section label */
-.slbl{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;}
-.divider{height:1px;background:var(--border);margin:2px 0;}
+.slbl{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;}
+.divider{height:1px;background:var(--border);margin:4px 0;}
+
+/* Vid row */
+.vid-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:5px;transition:all .1s;}
+.vid-row:hover{border-color:var(--border2);}
+.pub-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;cursor:pointer;font-weight:500;transition:all .12s;}
+.pub-badge.pub{background:var(--g2);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+.pub-badge.unpub{background:var(--card);color:var(--dim);border:1px solid var(--border2);}
+.pub-badge.unpub:hover{border-color:var(--purple);color:var(--p2);}
+
+/* Color picker */
+.color-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;transition:transform .12s;border:2px solid transparent;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.on{border-color:#fff;}
 
 /* Toast */
-.toast{position:fixed;bottom:22px;right:22px;background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:11px 15px;font-size:13px;color:var(--text);z-index:9999;transform:translateY(80px);opacity:0;transition:all .25s;max-width:300px;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card2,#17171f);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);z-index:9999;transform:translateY(80px);opacity:0;transition:all .25s;max-width:320px;box-shadow:var(--sh);}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.ok{border-color:var(--green);}
 .toast.err{border-color:var(--red);}
-
-/* Publish badge */
-.pub-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .12s;}
-.pub-badge.pub{background:#0f2a14;color:var(--green);border:1px solid #166534;}
-.pub-badge.unpub{background:var(--card);color:var(--dim);border:1px solid var(--border2);}
-.pub-badge.unpub:hover{border-color:var(--purple);color:var(--purple2);}
 
 @media(max-width:768px){
   #studio.active{grid-template-columns:1fr;}
   .sidebar{display:none;}
   .workspace{grid-template-columns:1fr;}
-  .right-panel{display:none;}
+  .rp{display:none;}
+  .pub-nav{padding:0 20px;}
+  .home-header,.video-section,.personas-section,.filter-bar,.pub-footer{padding-left:20px;padding-right:20px;}
   .video-grid{grid-template-columns:repeat(2,1fr);}
+  .personas-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════
-     SHOWCASE VIEW
-═══════════════════════════════════════════ -->
-<div id="showcase" class="view active">
-  <nav class="showcase-nav">
-    <div class="showcase-logo">
-      <div class="showcase-logo-icon">✦</div>
-      <div>
-        <div>Persona Studio</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:400;">AI Influencer Platform</div>
-      </div>
+<!-- ════════════════════════════════════
+     PUBLIC SITE
+════════════════════════════════════ -->
+<div id="public" class="view active">
+  <nav class="pub-nav">
+    <a class="pub-nav-logo" onclick="showPubPage('home')" style="cursor:pointer;">
+      <div class="pub-nav-logo-mark">P</div>
+      <div class="pub-nav-name">Persona</div>
+    </a>
+    <div class="pub-nav-links">
+      <button class="pub-nav-link active" id="pnl-home" onclick="showPubPage('home')">Videos</button>
+      <button class="pub-nav-link" id="pnl-personas" onclick="showPubPage('personas')">Personas</button>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <button class="btn ghost" onclick="openStudio()">Creator login</button>
-      <button class="btn primary" onclick="openStudio()">Open Studio →</button>
+    <div class="pub-nav-right">
+      <button class="btn ghost sm" onclick="openStudio()">Studio →</button>
     </div>
   </nav>
 
-  <div class="showcase-hero">
-    <h1>AI Influencers.<br>Real Results.</h1>
-    <p>Three compelling AI personas. Thirty powerful scripts. One automated content pipeline.</p>
-    <div class="showcase-cta">
-      <button class="btn-hero primary" onclick="openStudio()">Start creating</button>
-      <button class="btn-hero secondary" onclick="scrollToVideos()">Watch the videos ↓</button>
-    </div>
-  </div>
-
-  <div style="padding:0 32px;margin-bottom:40px;">
-    <div class="showcase-stats">
-      <div class="showcase-stat">
-        <div class="showcase-stat-val" id="showcaseVideoCount">0</div>
-        <div class="showcase-stat-label">Videos published</div>
-      </div>
-      <div class="showcase-stat">
-        <div class="showcase-stat-val">3</div>
-        <div class="showcase-stat-label">AI personas</div>
-      </div>
-      <div class="showcase-stat">
-        <div class="showcase-stat-val">~$1.25</div>
-        <div class="showcase-stat-label">Per video</div>
+  <!-- HOME PAGE -->
+  <div id="pub-home" class="pub-page active">
+    <div class="home-header">
+      <div class="home-header-inner">
+        <div class="home-eyebrow">Persona</div>
+        <h1 class="home-title" id="homeTitle">Latest videos</h1>
+        <p class="home-subtitle" id="homeSubtitle" style="display:none;"></p>
       </div>
     </div>
-  </div>
 
-  <!-- Persona sections -->
-  <div class="showcase-section" id="showcaseVideos">
-    <div class="showcase-section-title">Featured videos</div>
-    <div class="video-grid" id="showcaseGrid">
-      <div class="empty-showcase">
-        <span class="icon">🎬</span>
-        <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px;">No videos published yet</div>
-        <div style="margin-bottom:20px;">Create your first AI influencer video in the studio</div>
-        <button class="btn primary" onclick="openStudio()">Open Studio →</button>
+    <div class="filter-bar">
+      <div class="filter-bar-inner" id="filterBar">
+        <button class="filter-tab on" onclick="filterVideos('all',this)">All</button>
       </div>
     </div>
-  </div>
 
-  <!-- Personas section -->
-  <div class="showcase-section">
-    <div class="showcase-section-title">Meet the personas</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:700px;">
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
-        <div style="width:56px;height:56px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;margin:0 auto 12px;">VS</div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Victoria Sterling</div>
-        <div style="font-size:11px;color:var(--muted);">Transformation Authority · 52</div>
-        <div style="font-size:11px;color:var(--purple2);margin-top:8px;font-style:italic;">"I want that"</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
-        <div style="width:56px;height:56px;border-radius:50%;background:#0f6e56;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;margin:0 auto 12px;">MS</div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Marcus Stone</div>
-        <div style="font-size:11px;color:var(--muted);">Master Builder · 58</div>
-        <div style="font-size:11px;color:var(--teal);margin-top:8px;font-style:italic;">"I trust that"</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
-        <div style="width:56px;height:56px;border-radius:50%;background:#993556;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;margin:0 auto 12px;">SH</div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Sophia Hart</div>
-        <div style="font-size:11px;color:var(--muted);">Authority of Taste · 41</div>
-        <div style="font-size:11px;color:#f9a8d4;margin-top:8px;font-style:italic;">"I love that"</div>
+    <div class="video-section">
+      <div class="video-section-inner">
+        <div class="video-grid" id="pubVideoGrid">
+          <div class="empty-state">
+            <div class="empty-state-icon">🎬</div>
+            <div class="empty-state-title">No videos yet</div>
+            <div class="empty-state-sub">Published videos will appear here.</div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <footer class="pub-footer">
+      <div class="pub-footer-logo">Persona</div>
+      <div class="pub-footer-links">
+        <span class="pub-footer-link" onclick="openStudio()">Studio</span>
+      </div>
+    </footer>
   </div>
 
-  <div style="text-align:center;padding:40px 20px;border-top:1px solid var(--border);color:var(--dim);font-size:12px;">
-    Built with FLUX · ElevenLabs · fal.ai · Groq · ffmpeg
+  <!-- PERSONAS PAGE -->
+  <div id="pub-personas" class="pub-page">
+    <div class="personas-section">
+      <div class="personas-section-inner">
+        <div class="home-eyebrow" style="margin-bottom:12px;">Personas</div>
+        <h1 class="home-title">Meet the creators</h1>
+        <div class="personas-grid" id="pubPersonasGrid">
+          <div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">No personas yet</div></div>
+        </div>
+      </div>
+    </div>
+    <footer class="pub-footer">
+      <div class="pub-footer-logo">Persona</div>
+      <div class="pub-footer-links"><span class="pub-footer-link" onclick="openStudio()">Studio</span></div>
+    </footer>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     STUDIO VIEW
-═══════════════════════════════════════════ -->
+<!-- VIDEO MODAL -->
+<div class="modal-bg hidden" id="videoModal" onclick="closeModal(event)">
+  <div class="modal-wrap">
+    <div class="modal-close" onclick="closeVideoModal()">✕</div>
+    <video id="modalVideo" class="modal-video" controls playsinline></video>
+    <div class="modal-info">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-meta" id="modalMeta"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     STUDIO
+════════════════════════════════════ -->
 <div id="studio" class="view">
-  <!-- Sidebar -->
   <div class="sidebar">
     <div class="logo">
-      <div class="logo-mark">✦</div>
-      <div>
-        <div class="logo-text">Persona Studio</div>
-        <div class="logo-sub">Creator workspace</div>
-      </div>
+      <div class="logo-mark">P</div>
+      <div><div class="logo-text">Persona</div><div class="logo-sub">Creator Studio</div></div>
     </div>
 
-    <div class="nav-label">Navigation</div>
+    <div class="nav-lbl">Workspace</div>
     <div class="nav-item on" onclick="showPanel('dashboard',this)"><span class="ico">⊞</span> Dashboard</div>
     <div class="nav-item" onclick="showPanel('create',this)"><span class="ico">◈</span> Create video</div>
     <div class="nav-item" onclick="showPanel('scripts',this)"><span class="ico">≡</span> Scripts</div>
     <div class="nav-item" onclick="showPanel('portraits',this)"><span class="ico">◉</span> Portraits</div>
     <div class="nav-item" onclick="showPanel('history',this)"><span class="ico">◷</span> All videos</div>
 
-    <div class="nav-label">Personas</div>
-    <div class="persona-stack" id="sidePersonas">
-      <div class="p-pill on" onclick="activatePersona(this,'Victoria Sterling','#7c3aed','VS','Transformation Authority','52','British woman, warm brown skin, dark hair slicked back, diamond necklace','wealth')">
-        <div class="p-av" style="background:#7c3aed">VS</div>
-        <div><div class="p-nm">Victoria Sterling</div><div class="p-ro">Wealth · 52</div></div>
-      </div>
-      <div class="p-pill" onclick="activatePersona(this,'Marcus Stone','#0f6e56','MS','Master Builder','58','British man, salt-pepper stubble, steel-grey hair, strong build','property')">
-        <div class="p-av" style="background:#0f6e56">MS</div>
-        <div><div class="p-nm">Marcus Stone</div><div class="p-ro">Property · 58</div></div>
-      </div>
-      <div class="p-pill" onclick="activatePersona(this,'Sophia Hart','#993556','SH','Authority of Taste','41','British woman, hazel eyes, chestnut hair, tortoiseshell glasses','interior design')">
-        <div class="p-av" style="background:#993556">SH</div>
-        <div><div class="p-nm">Sophia Hart</div><div class="p-ro">Design · 41</div></div>
-      </div>
-      <div class="add-p" onclick="showPanel('newpersona',null)"><span>＋</span> New persona</div>
+    <div class="nav-lbl">Personas</div>
+    <div id="sidePersonas" style="display:flex;flex-direction:column;gap:4px;">
+      <div class="add-p" onclick="showPanel('newpersona',null)">＋ New persona</div>
+    </div>
+
+    <div class="nav-lbl">Documents</div>
+    <div class="folder-section">
+      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('skills')"><span class="ico">📋</span> Skill files <span class="folder-count" id="fcSkills">0</span></div>
+      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('scripts')"><span class="ico">📄</span> Saved scripts <span class="folder-count" id="fcScripts">0</span></div>
+      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('portraits')"><span class="ico">🖼</span> Portraits <span class="folder-count" id="fcPortraits">0</span></div>
     </div>
 
     <div class="side-foot">
-      <div class="nav-item" onclick="showView('showcase')"><span class="ico">🌐</span> View showcase</div>
+      <div class="nav-item" onclick="showView('public')"><span class="ico">🌐</span> Public site</div>
       <div class="nav-item" onclick="showPanel('settings',this)"><span class="ico">⚙</span> Settings</div>
     </div>
   </div>
 
-  <!-- Main -->
   <div class="main-area">
     <div class="topbar">
       <div class="tb-title" id="tbTitle">Dashboard</div>
       <div class="tb-right">
-        <button class="btn ghost" onclick="showView('showcase')">🌐 Showcase</button>
+        <button class="btn ghost" onclick="showView('public')">🌐 Public site</button>
         <button class="btn primary" onclick="showPanel('create',null);goStep(1)">＋ New video</button>
       </div>
     </div>
@@ -408,43 +486,34 @@ textarea.inp{resize:vertical;min-height:72px;}
         <!-- DASHBOARD -->
         <div id="panel-dashboard" class="tab-panel on">
           <div class="stat-row">
-            <div class="stat"><div class="stat-v" id="dashVideos">0</div><div class="stat-l">Videos created</div></div>
+            <div class="stat"><div class="stat-v" id="dashVideos">0</div><div class="stat-l">Videos</div></div>
             <div class="stat"><div class="stat-v" id="dashPublished">0</div><div class="stat-l">Published</div></div>
-            <div class="stat"><div class="stat-v">~$1.25</div><div class="stat-l">Per video</div></div>
+            <div class="stat"><div class="stat-v">~£0.65</div><div class="stat-l">Per video</div></div>
           </div>
-
           <div class="card">
-            <div class="card-hd">Recent videos <span class="badge" id="dashBadge">0 total</span></div>
-            <div id="dashVideoList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
-              No videos yet. Create your first one above.
-            </div>
+            <div class="card-hd">Recent videos <span class="badge" id="dashBadge">0</span></div>
+            <div id="dashVideoList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No videos yet.</div>
           </div>
-
           <div class="card">
-            <div class="card-hd">Pipeline status <span class="badge green">All systems ready</span></div>
+            <div class="card-hd">Pipeline <span class="badge green">Ready</span></div>
             <div style="display:flex;flex-direction:column;gap:7px;">
-              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
-                <span style="color:var(--green)">✓</span> FLUX (local) — portrait + scene — free
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
-                <span style="color:var(--green)">✓</span> Groq — script generation — free
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
-                <span style="color:var(--green)">✓</span> ElevenLabs — voiceover — ~£0.01/video
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
-                <span style="color:var(--green)">✓</span> fal.ai sync-lipsync/v3 — video — ~$1.20/video
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
-                <span style="color:var(--green)">✓</span> ffmpeg grain filter — skin texture — free
-              </div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> FLUX (fal.ai) — portrait + scene — ~$0.02</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Groq — script generation — free</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> ElevenLabs — voiceover — ~£0.01</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> fal.ai Flashtalk 14B — video — ~$0.60</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> ffmpeg grain filter — skin texture — free</div>
             </div>
           </div>
         </div>
 
+        <!-- PERSONA DETAIL -->
+        <div id="panel-persona" class="tab-panel">
+          <div id="pdContent"></div>
+        </div>
+
         <!-- CREATE VIDEO -->
         <div id="panel-create" class="tab-panel">
-          <div class="step-tabs" id="stepTabs">
+          <div class="step-tabs">
             <div class="step-t on" onclick="goStep(1)">1 · Persona</div>
             <div class="step-t" onclick="goStep(2)">2 · Script</div>
             <div class="step-t" onclick="goStep(3)">3 · Voice</div>
@@ -452,44 +521,30 @@ textarea.inp{resize:vertical;min-height:72px;}
             <div class="step-t" onclick="goStep(5)">5 · Generate</div>
           </div>
 
-          <!-- Step 1: Persona -->
+          <!-- Step 1 -->
           <div id="sp1" class="step-panel on">
             <div class="card">
               <div class="card-hd">Active persona</div>
-              <div class="persona-stack" id="createPersonas">
-                <div class="p-pill on" onclick="pickCreatePersona(this,'Victoria Sterling','#7c3aed','52','British woman, warm brown skin, dark hair slicked back','wealth')">
-                  <div class="p-av" style="background:#7c3aed">VS</div>
-                  <div><div class="p-nm">Victoria Sterling</div><div class="p-ro">Transformation Authority · 52</div></div>
-                </div>
-                <div class="p-pill" onclick="pickCreatePersona(this,'Marcus Stone','#0f6e56','58','British man, salt-pepper stubble, grey hair','property')">
-                  <div class="p-av" style="background:#0f6e56">MS</div>
-                  <div><div class="p-nm">Marcus Stone</div><div class="p-ro">Master Builder · 58</div></div>
-                </div>
-                <div class="p-pill" onclick="pickCreatePersona(this,'Sophia Hart','#993556','41','British woman, hazel eyes, chestnut hair, tortoiseshell glasses','interior design')">
-                  <div class="p-av" style="background:#993556">SH</div>
-                  <div><div class="p-nm">Sophia Hart</div><div class="p-ro">Authority of Taste · 41</div></div>
-                </div>
-              </div>
+              <div id="createPersonas" style="display:flex;flex-direction:column;gap:4px;"></div>
             </div>
-
-            <!-- Persona skill upload -->
             <div class="card">
-              <div class="card-hd">Persona skill <span class="badge">Optional — shapes script tone</span></div>
+              <div class="card-hd">Persona skill <span class="badge">Auto-fills niche, topic &amp; scene</span></div>
               <div class="skill-zone" id="skillZone" onclick="document.getElementById('skillFile').click()">
                 <div style="display:flex;align-items:center;gap:10px;">
                   <span style="font-size:20px;">📋</span>
                   <div>
-                    <div style="font-size:13px;color:var(--text);" id="skillName">Upload persona skill</div>
-                    <div style="font-size:11px;color:var(--dim);">PDF or TXT — defines voice, tone, catchphrases, content pillars</div>
+                    <div style="font-size:13px;color:var(--text);" id="skillName">Upload persona skill file</div>
+                    <div style="font-size:11px;color:var(--dim);margin-top:2px;">TXT or PDF — AI extracts niche, hooks, topics, scenes automatically</div>
                   </div>
                 </div>
               </div>
-              <input type="file" id="skillFile" accept=".pdf,.txt,.md" style="display:none" onchange="loadSkill(this)">
+              <input type="file" id="skillFile" accept=".pdf,.txt,.md" style="display:none;" onchange="loadSkill(this)">
+              <div id="skillPreview" style="display:none;margin-top:10px;padding:10px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;color:var(--green);"></div>
             </div>
             <button class="gen-btn" onclick="goStep(2)">Next — Script →</button>
           </div>
 
-          <!-- Step 2: Script -->
+          <!-- Step 2 -->
           <div id="sp2" class="step-panel">
             <div class="card">
               <div class="card-hd">Niche</div>
@@ -500,130 +555,105 @@ textarea.inp{resize:vertical;min-height:72px;}
                 <div class="niche-chip" onclick="pickNiche(this,'property')">🏠 Property</div>
                 <div class="niche-chip" onclick="pickNiche(this,'interior design')">🎨 Interior Design</div>
                 <div class="niche-chip" onclick="pickNiche(this,'finance')">📈 Finance</div>
-                <div class="niche-chip" onclick="pickNiche(this,'music')">🎵 Music</div>
-                <div class="niche-chip" onclick="pickNiche(this,'fashion')">👗 Fashion</div>
                 <div class="niche-chip" onclick="pickNiche(this,'mindset')">🧠 Mindset</div>
                 <div class="niche-chip" onclick="pickNiche(this,'luxury lifestyle')">✨ Luxury</div>
               </div>
             </div>
-
             <div class="card">
-              <div class="card-hd">Topic</div>
-              <input class="inp" id="topicInp" placeholder="e.g. How to spot a property with hidden potential" />
+              <div class="card-hd">Topic <span class="badge" id="topicBadge" style="display:none;">From skill file</span></div>
+              <input class="inp" id="topicInp" placeholder="e.g. How to spot a property with hidden potential"/>
+              <div id="topicSuggestions" style="display:none;margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
             </div>
-
-            <button class="gen-btn" id="genScriptBtn" onclick="generateScript()">✦ Generate script with AI</button>
-
-            <div class="card" id="scriptCard" style="display:none">
-              <div class="card-hd">Script <span class="badge" id="wcBadge">0 words</span></div>
+            <button class="gen-btn" id="genScriptBtn" onclick="generateScript()">✦ Generate scripts with AI</button>
+            <div id="scriptCard" style="display:none;" class="card">
+              <div class="card-hd">Choose a script <span class="badge" id="wcBadge">5 options</span></div>
+              <div id="scriptOptions"></div>
+              <div class="card-hd" style="margin-top:12px;">Edit</div>
               <div class="script-box" id="scriptBox" contenteditable="true"></div>
               <div style="display:flex;gap:7px;margin-top:10px;">
-                <button class="btn ghost" style="flex:1;font-size:12px" onclick="generateScript()">↺ Regenerate</button>
-                <button class="btn primary" style="flex:1;font-size:12px" onclick="goStep(3)">Next — Voice →</button>
+                <button class="btn ghost" style="flex:1;" onclick="generateScript()">↺ Regenerate</button>
+                <button class="btn ghost" style="flex:1;" onclick="saveScript()">💾 Save</button>
+                <button class="btn primary" style="flex:1;" onclick="goStep(3)">Voice →</button>
               </div>
             </div>
           </div>
 
-          <!-- Step 3: Voice -->
+          <!-- Step 3 -->
           <div id="sp3" class="step-panel">
             <div class="card">
               <div class="card-hd">Select voice</div>
-              <div class="voice-list" id="voiceList">
-                <div style="color:var(--muted);font-size:12px;padding:8px">Loading voices...</div>
+              <div class="voice-list" id="voiceList"><div style="color:var(--muted);font-size:12px;padding:8px;">Loading voices...</div></div>
+              <div id="voicePreviewArea" style="display:none;margin-top:10px;">
+                <audio id="voicePreviewPlayer" controls style="width:100%;"></audio>
+                <div id="voicePreviewLabel" style="font-size:11px;color:var(--dim);margin-top:4px;text-align:center;"></div>
               </div>
             </div>
             <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
-            <div id="voiceResult" style="display:none">
-              <div class="card">
-                <div class="card-hd">Preview</div>
-                <audio controls style="width:100%" id="audioEl"></audio>
-              </div>
-              <button class="gen-btn" style="background:var(--card);color:var(--text);border:1px solid var(--border2)" onclick="goStep(4)">Next — Scene →</button>
+            <div id="voiceResult" style="display:none;">
+              <div class="card"><div class="card-hd">Preview</div><audio controls style="width:100%;" id="audioEl"></audio></div>
+              <button class="gen-btn" style="margin-top:8px;background:var(--card);color:var(--text);border:1px solid var(--border2);box-shadow:none;" onclick="goStep(4)">Scene →</button>
             </div>
           </div>
 
-          <!-- Step 4: Scene -->
+          <!-- Step 4 -->
           <div id="sp4" class="step-panel">
-            <!-- Aspect ratio -->
             <div class="card">
               <div class="card-hd">Aspect ratio</div>
-              <div class="ratio-grid" id="ratioGrid">
-                <div class="ratio-btn on" onclick="pickRatio(this,'9:16',512,768)">
-                  <svg width="18" height="28" viewBox="0 0 18 28"><rect x="1" y="1" width="16" height="26" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-                  <span>9:16</span><small style="font-size:10px;color:var(--dim)">TikTok</small>
-                </div>
-                <div class="ratio-btn" onclick="pickRatio(this,'1:1',512,512)">
-                  <svg width="24" height="24" viewBox="0 0 24 24"><rect x="1" y="1" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-                  <span>1:1</span><small style="font-size:10px;color:var(--dim)">Instagram</small>
-                </div>
-                <div class="ratio-btn" onclick="pickRatio(this,'4:5',512,640)">
-                  <svg width="20" height="25" viewBox="0 0 20 25"><rect x="1" y="1" width="18" height="23" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-                  <span>4:5</span><small style="font-size:10px;color:var(--dim)">Reels</small>
-                </div>
-                <div class="ratio-btn" onclick="pickRatio(this,'16:9',768,432)">
-                  <svg width="28" height="18" viewBox="0 0 28 18"><rect x="1" y="1" width="26" height="16" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-                  <span>16:9</span><small style="font-size:10px;color:var(--dim)">YouTube</small>
-                </div>
+              <div class="ratio-grid">
+                <div class="ratio-btn on" onclick="pickRatio(this,'9:16',512,768)"><svg width="14" height="24" viewBox="0 0 14 24"><rect x="1" y="1" width="12" height="22" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span>9:16</span><small style="font-size:10px;color:var(--dim);">TikTok</small></div>
+                <div class="ratio-btn" onclick="pickRatio(this,'1:1',512,512)"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="1" y="1" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span>1:1</span><small style="font-size:10px;color:var(--dim);">Square</small></div>
+                <div class="ratio-btn" onclick="pickRatio(this,'4:5',512,640)"><svg width="16" height="20" viewBox="0 0 16 20"><rect x="1" y="1" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span>4:5</span><small style="font-size:10px;color:var(--dim);">Reels</small></div>
+                <div class="ratio-btn" onclick="pickRatio(this,'16:9',768,432)"><svg width="24" height="14" viewBox="0 0 24 14"><rect x="1" y="1" width="22" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span>16:9</span><small style="font-size:10px;color:var(--dim);">YouTube</small></div>
               </div>
             </div>
-
-            <!-- Portrait -->
             <div class="card">
-              <div class="card-hd">Portrait <span class="badge" id="portraitBadge">None selected</span></div>
+              <div class="card-hd">Portrait <span class="badge" id="portraitBadge">None</span></div>
               <div class="p-grid" id="portraitGrid">
-                <div class="p-slot" onclick="document.getElementById('portUpload').click()" title="Upload">
-                  <span style="font-size:18px;color:var(--dim)">＋</span>
-                </div>
+                <div class="p-slot" onclick="document.getElementById('portUpload').click()"><span style="font-size:18px;color:var(--dim);">＋</span></div>
               </div>
-              <input type="file" id="portUpload" accept="image/*" style="display:none" onchange="uploadPortrait(this)">
-              <div style="font-size:11px;color:var(--dim);margin:8px 0 4px">Or generate with FLUX — describe your persona:</div>
-              <textarea class="inp" id="portraitPrompt" style="min-height:60px;font-size:12px" placeholder="e.g. British woman aged 36, blonde hair, blue eyes, pearl earrings, cream blazer, white background, upper body, natural skin, professional photography"></textarea>
-              <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="genPortrait()">✦ Generate portrait with FLUX</button>
-              <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:6px;display:none">Generating portrait... this takes ~30 seconds</div>
+              <input type="file" id="portUpload" accept="image/*" style="display:none;" onchange="uploadPortrait(this)">
+              <div style="font-size:11px;color:var(--dim);margin:10px 0 5px;">Or generate with FLUX:</div>
+              <textarea class="inp" id="portraitPrompt" style="min-height:56px;font-size:12px;" placeholder="Paste appearance prompt from skill file..."></textarea>
+              <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px;" onclick="genPortrait()">✦ Generate with FLUX</button>
+              <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:6px;display:none;">Generating... ~10 seconds</div>
             </div>
-
-            <!-- Scene -->
             <div class="card">
-              <div class="card-hd">Background scene <span style="font-size:11px;color:var(--dim);font-weight:400">(optional)</span></div>
-              <input class="inp" id="sceneInp" placeholder="e.g. luxury library, warm amber lighting, bookshelves, city view" />
+              <div class="card-hd">Background scene <span style="font-size:11px;color:var(--dim);font-weight:400;">(optional)</span></div>
+              <div id="sceneSuggestions" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div>
+              <input class="inp" id="sceneInp" placeholder="e.g. luxury library, warm amber lighting, bookshelves"/>
               <div style="display:flex;gap:8px;margin-top:8px;">
-                <button class="btn ghost" style="flex:1;font-size:12px" onclick="genScene()">✦ Generate with FLUX</button>
-                <button class="btn ghost" style="flex:1;font-size:12px" onclick="document.getElementById('sceneUpload').click()">↑ Upload image</button>
+                <button class="btn ghost" style="flex:1;font-size:12px;" onclick="genScene()">✦ Generate</button>
+                <button class="btn ghost" style="flex:1;font-size:12px;" onclick="document.getElementById('sceneUpload').click()">↑ Upload</button>
               </div>
-              <input type="file" id="sceneUpload" accept="image/*" style="display:none" onchange="uploadScene(this)">
+              <input type="file" id="sceneUpload" accept="image/*" style="display:none;" onchange="uploadScene(this)">
               <div id="scenePreview" style="display:none;margin-top:10px;">
                 <div style="font-size:11px;color:var(--green);margin-bottom:6px;">✓ Scene ready</div>
-                <img id="sceneImg" style="width:100%;border-radius:8px;border:1px solid var(--border);" />
+                <img id="sceneImg" style="width:100%;border-radius:8px;border:1px solid var(--border);"/>
               </div>
             </div>
-
             <button class="gen-btn" onclick="goStep(5)">Next — Generate →</button>
           </div>
 
-          <!-- Step 5: Generate -->
+          <!-- Step 5 -->
           <div id="sp5" class="step-panel">
             <div class="card">
               <div class="card-hd">Pipeline</div>
               <div class="pipeline" id="pipelineEl">
-                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-label">Remove background</div><div class="pipe-sub">rembg · bria model</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-label">Composite portrait + scene</div><div class="pipe-sub">PIL</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-label">Generate talking video</div><div class="pipe-sub">fal.ai · flashtalk 14B</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-label">Process + grain filter</div><div class="pipe-sub">ffmpeg</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-label">Export MP4</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Remove background</div><div class="pipe-sub">rembg · bria</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Composite portrait + scene</div><div class="pipe-sub">PIL</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generate talking video</div><div class="pipe-sub">fal.ai Flashtalk 14B</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Grain filter + export</div><div class="pipe-sub">ffmpeg</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-lbl">Upload to CDN</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
               </div>
-              <div class="pbar" style="margin-top:10px"><div class="pbar-fill" id="genPbar" style="width:0%"></div></div>
-              <div style="font-size:11px;color:var(--dim);margin-top:5px" id="genStage">Ready</div>
+              <div class="pbar" style="margin-top:12px;"><div class="pbar-fill" id="genPbar" style="width:0%;"></div></div>
+              <div style="font-size:11px;color:var(--dim);margin-top:5px;" id="genStage">Ready</div>
             </div>
-
-            <div class="vprev" id="vprev">
-              <div class="vprev-empty"><div class="ico">▶</div><span style="font-size:12px">Video will appear here</span></div>
-            </div>
-
+            <div class="vprev-wrap"><div class="vprev" id="vprev"><div class="vprev-empty"><div style="font-size:28px;">▶</div><span style="font-size:11px;">Video appears here</span></div></div></div>
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
-            <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;font-size:12px" onclick="cancelGen()">✕ Cancel</button>
-            <div style="display:flex;gap:8px;margin-top:4px;display:none" id="postGenBtns">
-              <button class="btn ghost" style="flex:1;font-size:12px" onclick="downloadVideo()">↓ Download</button>
-              <button class="btn primary" style="flex:1;font-size:12px" onclick="publishVideo()">🌐 Publish to showcase</button>
+            <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
+            <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
+              <button class="btn ghost" style="flex:1;" onclick="downloadVideo()">↓ Download</button>
+              <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
             </div>
           </div>
         </div>
@@ -636,24 +666,20 @@ textarea.inp{resize:vertical;min-height:72px;}
               <div class="field"><div class="lbl">Persona</div><input class="inp" id="qsPersona" value="Victoria Sterling"/></div>
               <div class="field"><div class="lbl">Age</div><input class="inp" id="qsAge" value="52"/></div>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Niche</div>
-              <select class="inp" id="qsNiche">
-                <option>Wealth</option><option>Property</option><option>Relationships</option>
-                <option>Health</option><option>Interior Design</option><option>Finance</option>
-                <option>Music</option><option>Fashion</option><option>Mindset</option><option>Luxury Lifestyle</option>
-              </select>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Niche</div>
+              <select class="inp" id="qsNiche"><option>Wealth</option><option>Property</option><option>Relationships</option><option>Health</option><option>Interior Design</option><option>Finance</option><option>Mindset</option><option>Luxury Lifestyle</option></select>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Topic</div>
-              <input class="inp" id="qsTopic" placeholder="What to speak about..."/>
-            </div>
-            <button class="gen-btn" style="margin-top:12px" onclick="qsGenerate()">✦ Generate script</button>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Topic</div><input class="inp" id="qsTopic" placeholder="What to speak about..."/></div>
+            <button class="gen-btn" style="margin-top:12px;" onclick="qsGenerate()">✦ Generate</button>
           </div>
-          <div class="card" id="qsResult" style="display:none">
-            <div class="card-hd">Script <span class="badge" id="qsWc">0 words</span></div>
-            <div class="script-box" id="qsScript" contenteditable="true"></div>
-            <div style="display:flex;gap:8px;margin-top:10px">
-              <button class="btn ghost" style="flex:1;font-size:12px" onclick="navigator.clipboard.writeText(document.getElementById('qsScript').textContent);toast('Copied','ok')">Copy</button>
-              <button class="btn primary" style="flex:1;font-size:12px" onclick="useScript()">Use in video →</button>
+          <div class="card" id="qsResult" style="display:none;">
+            <div class="card-hd">Scripts</div>
+            <div id="qsOptions"></div>
+            <div class="script-box" id="qsScript" contenteditable="true" style="margin-top:10px;"></div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn ghost" style="flex:1;" onclick="navigator.clipboard.writeText(document.getElementById('qsScript').textContent);toast('Copied')">Copy</button>
+              <button class="btn ghost" style="flex:1;" onclick="saveScriptQS()">💾 Save</button>
+              <button class="btn primary" style="flex:1;" onclick="useScript()">Use in video →</button>
             </div>
           </div>
         </div>
@@ -661,157 +687,165 @@ textarea.inp{resize:vertical;min-height:72px;}
         <!-- PORTRAITS -->
         <div id="panel-portraits" class="tab-panel">
           <div class="card">
-            <div class="card-hd">Generate persona portraits <span class="badge">10 max per session</span></div>
+            <div class="card-hd">Generate 10 portraits</div>
             <div class="g2">
-              <div class="field"><div class="lbl">Persona name</div><input class="inp" id="ppName" value="Victoria Sterling"/></div>
+              <div class="field"><div class="lbl">Persona</div><input class="inp" id="ppName" value="Victoria Sterling"/></div>
               <div class="field"><div class="lbl">Age</div><input class="inp" id="ppAge" value="52"/></div>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Appearance</div>
-              <textarea class="inp" id="ppAppearance" placeholder="British woman, warm brown skin, dark hair slicked back, diamond necklace..."></textarea>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Appearance prompt</div>
+              <textarea class="inp" id="ppAppearance" placeholder="Studio portrait photograph of a 52-year-old British woman..."></textarea>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Outfit variation (changes per image)</div>
-              <input class="inp" id="ppOutfit" value="professional cream blazer" placeholder="Will vary across 10 images"/>
-            </div>
-            <button class="gen-btn" style="margin-top:12px" onclick="genPortraits10()">✦ Generate 10 portraits</button>
+            <button class="gen-btn" style="margin-top:12px;" onclick="genPortraits10()">✦ Generate 10 portraits</button>
           </div>
-          <div class="p-grid" style="grid-template-columns:repeat(5,1fr)" id="portraitGallery">
-            <!-- Filled by JS -->
-          </div>
+          <div class="p-grid" id="portraitGallery" style="grid-template-columns:repeat(5,1fr);"></div>
         </div>
 
         <!-- ALL VIDEOS -->
         <div id="panel-history" class="tab-panel">
-          <div class="card">
-            <div class="card-hd">All videos</div>
-            <div id="historyList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">
-              No videos yet.
+          <div class="card"><div class="card-hd">All videos</div><div id="historyList" style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No videos yet.</div></div>
+        </div>
+
+        <!-- DOCUMENTS -->
+        <div id="panel-docs" class="tab-panel">
+          <!-- Doc tab bar -->
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+            <button class="btn ghost sm doc-tab on" id="dtab-skills" onclick="setDocTab('skills')">📋 Skill files</button>
+            <button class="btn ghost sm doc-tab" id="dtab-scripts" onclick="setDocTab('scripts')">📄 Scripts</button>
+            <button class="btn ghost sm doc-tab" id="dtab-portraits" onclick="setDocTab('portraits')">🖼 Portraits</button>
+          </div>
+
+          <!-- Skills tab -->
+          <div id="docpanel-skills">
+            <div class="card">
+              <div class="card-hd">Skill files <span class="badge" id="docSkillCount">0</span>
+                <button class="btn ghost sm" onclick="document.getElementById('docSkillUpload').click()">+ Upload</button>
+              </div>
+              <input type="file" id="docSkillUpload" accept=".txt,.pdf,.md" multiple style="display:none;" onchange="uploadDocSkill(this)">
+              <div id="docSkillList"><div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No skill files uploaded yet. Click Upload to add.</div></div>
+            </div>
+          </div>
+
+          <!-- Scripts tab -->
+          <div id="docpanel-scripts" style="display:none;">
+            <div class="card">
+              <div class="card-hd">Saved scripts <span class="badge" id="docScriptCount">0</span></div>
+              <div id="docScriptList"><div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No saved scripts yet.</div></div>
+            </div>
+          </div>
+
+          <!-- Portraits tab -->
+          <div id="docpanel-portraits" style="display:none;">
+            <div class="card">
+              <div class="card-hd">Saved portraits <span class="badge" id="docPortraitCount">0</span>
+                <button class="btn ghost sm" onclick="document.getElementById('docPortraitUpload').click()">+ Upload</button>
+              </div>
+              <input type="file" id="docPortraitUpload" accept="image/*" multiple style="display:none;" onchange="uploadDocPortrait(this)">
+              <div class="p-grid" id="docPortraitGrid" style="grid-template-columns:repeat(5,1fr);margin-top:8px;"></div>
             </div>
           </div>
         </div>
 
         <!-- NEW PERSONA -->
         <div id="panel-newpersona" class="tab-panel">
-
-          <!-- STEP 1: Skill upload FIRST -->
           <div class="card">
-            <div class="card-hd">① Upload persona skill <span class="badge green">Start here — auto-fills everything</span></div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
-              Upload a skill file and the AI will automatically detect and fill in all persona details below. You can edit any field afterwards.
-            </div>
+            <div class="card-hd">① Upload skill file <span class="badge green">Auto-fills all fields</span></div>
             <div class="skill-zone" id="npSkillZone" onclick="document.getElementById('npSkillFile').click()">
               <div style="display:flex;align-items:center;gap:10px;">
-                <span style="font-size:22px;">📋</span>
+                <span style="font-size:20px;">📋</span>
                 <div>
-                  <div style="font-size:13px;color:var(--text)" id="npSkillName">Upload skill file (PDF or TXT)</div>
-                  <div style="font-size:11px;color:var(--dim)">AI will read it and fill all fields automatically</div>
+                  <div style="font-size:13px;color:var(--text);" id="npSkillName">Upload skill file (TXT or PDF)</div>
+                  <div style="font-size:11px;color:var(--dim);">AI reads and fills all fields below automatically</div>
                 </div>
               </div>
             </div>
-            <input type="file" id="npSkillFile" accept=".pdf,.txt,.md" style="display:none" onchange="loadNpSkill(this)">
-            <div id="npSkillParsed" style="display:none;margin-top:10px;padding:10px;background:var(--green2);border:1px solid #166534;border-radius:8px;font-size:12px;color:var(--green);"></div>
+            <input type="file" id="npSkillFile" accept=".pdf,.txt,.md" style="display:none;" onchange="loadNpSkill(this)">
+            <div id="npSkillParsed" style="display:none;margin-top:10px;padding:10px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;color:var(--green);"></div>
           </div>
-
-          <!-- STEP 2: Persona details (auto-filled or manual) -->
           <div class="card">
-            <div class="card-hd">② Persona details <span style="font-size:11px;color:var(--dim);font-weight:400">Auto-filled from skill · edit as needed</span></div>
+            <div class="card-hd">② Persona details</div>
             <div class="g2">
               <div class="field"><div class="lbl">Name</div><input class="inp" id="npName" placeholder="e.g. Emma Clarke"/></div>
-              <div class="field"><div class="lbl">Age</div><input class="inp" id="npAge" placeholder="e.g. 34"/></div>
+              <div class="field"><div class="lbl">Age</div><input class="inp" id="npAge" placeholder="34"/></div>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Role & niche</div><input class="inp" id="npRole" placeholder="e.g. Financial Coach · Wealth"/></div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Appearance (used for portrait generation)</div>
-              <textarea class="inp" id="npAppearance" placeholder="e.g. British woman, auburn hair, green eyes, freckles, natural makeup..." style="min-height:60px;"></textarea>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Role &amp; niche</div><input class="inp" id="npRole" placeholder="e.g. Financial Coach · Wealth"/></div>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Catchphrase</div><input class="inp" id="npCatch" placeholder="e.g. Potential hides in plain sight."/></div>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Appearance prompt</div>
+              <textarea class="inp" id="npAppearance" placeholder="Studio portrait photograph of a [age]-year-old British [woman/man]..." style="min-height:72px;"></textarea>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Signature anchors (fixed visual details)</div>
-              <input class="inp" id="npAnchors" placeholder="e.g. pearl earrings, warm smile, mole above left eyebrow"/>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Signature anchors</div><input class="inp" id="npAnchors" placeholder="e.g. tortoiseshell glasses, chestnut hair always styled..."/></div>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Accent colour</div>
+              <div style="display:flex;gap:8px;margin-top:6px;" id="colorPicker">
+                <div class="color-swatch on" style="background:#7c3aed;" onclick="pickColor(this,'#7c3aed')"></div>
+                <div class="color-swatch" style="background:#0f6e56;" onclick="pickColor(this,'#0f6e56')"></div>
+                <div class="color-swatch" style="background:#993556;" onclick="pickColor(this,'#993556')"></div>
+                <div class="color-swatch" style="background:#185fa5;" onclick="pickColor(this,'#185fa5')"></div>
+                <div class="color-swatch" style="background:#854f0b;" onclick="pickColor(this,'#854f0b')"></div>
+                <div class="color-swatch" style="background:#1e7a6a;" onclick="pickColor(this,'#1e7a6a')"></div>
+              </div>
             </div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Catchphrase</div>
-              <input class="inp" id="npCatch" placeholder="e.g. Potential hides in plain sight."/>
-            </div>
-            <button class="gen-btn" style="margin-top:12px" onclick="createPersona()">✦ Create persona</button>
           </div>
-
-          <!-- STEP 3: Portrait -->
           <div class="card">
-            <div class="card-hd">③ Persona portrait <span class="badge">Used for video generation</span></div>
-            <div id="npPortraitPreview" style="display:none;margin-bottom:10px;">
-              <img id="npPortraitImg" style="width:120px;height:160px;object-fit:cover;border-radius:9px;border:2px solid var(--green);" />
-              <div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Portrait ready</div>
+            <div class="card-hd">③ Portrait</div>
+            <div id="npPortraitPreview" style="display:none;margin-bottom:12px;align-items:center;gap:12px;">
+              <img id="npPortraitImg" style="width:80px;height:107px;object-fit:cover;border-radius:8px;border:2px solid var(--green);"/>
+              <div style="font-size:11px;color:var(--green);">✓ Portrait ready</div>
             </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn ghost" style="flex:1;font-size:12px" onclick="document.getElementById('npPortraitFile').click()">↑ Upload photo</button>
-              <button class="btn ghost" style="flex:1;font-size:12px" onclick="npGenPortrait()">✦ Generate with FLUX</button>
+              <button class="btn ghost" style="flex:1;font-size:12px;" onclick="document.getElementById('npPortraitFile').click()">↑ Upload photo</button>
+              <button class="btn ghost" style="flex:1;font-size:12px;" onclick="npGenPortrait()">✦ Generate with FLUX</button>
             </div>
-            <input type="file" id="npPortraitFile" accept="image/*" style="display:none" onchange="npUploadPortrait(this)">
-            <div id="npPortraitStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;">Generating portrait with FLUX...</div>
+            <input type="file" id="npPortraitFile" accept="image/*" style="display:none;" onchange="npUploadPortrait(this)">
+            <div id="npPortraitStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;">Generating...</div>
           </div>
+          <button class="gen-btn" onclick="createPersona()">✦ Create persona</button>
         </div>
 
         <!-- SETTINGS -->
         <div id="panel-settings" class="tab-panel">
           <div class="card">
-            <div class="card-hd">API keys</div>
+            <div class="card-hd">API configuration</div>
             <div class="field"><div class="lbl">Backend URL</div><input class="inp" id="apiUrl" value="https://persona-studio.homivis.com"/></div>
-            <div class="field" style="margin-top:10px"><div class="lbl">ElevenLabs API key</div><input class="inp" type="password" id="elKey" placeholder="sk_..."/></div>
-            <div class="field" style="margin-top:10px"><div class="lbl">fal.ai API key</div><input class="inp" type="password" id="falKey" placeholder="xxx:xxx"/></div>
-            <div class="field" style="margin-top:10px"><div class="lbl">Groq API key</div><input class="inp" type="password" id="groqKey" placeholder="gsk_..."/></div>
-            <button class="gen-btn" style="margin-top:12px" onclick="saveSettings()">Save</button>
+            <div class="field" style="margin-top:10px;"><div class="lbl">ElevenLabs API key</div><input class="inp" type="password" id="elKey" placeholder="sk_..."/></div>
+            <div class="field" style="margin-top:10px;"><div class="lbl">fal.ai API key</div><input class="inp" type="password" id="falKey" placeholder="xxx:xxx"/></div>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Groq API key</div><input class="inp" type="password" id="groqKey" placeholder="gsk_..."/></div>
+            <button class="gen-btn" style="margin-top:14px;" onclick="saveSettings()">Save</button>
           </div>
         </div>
 
       </div><!-- /canvas -->
 
       <!-- Right panel -->
-      <div class="right-panel">
+      <div class="rp">
         <div class="slbl">Current persona</div>
-        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;">
-          <div class="p-av" id="rpAv" style="background:var(--purple);width:44px;height:44px;font-size:16px">VS</div>
-          <div>
-            <div style="font-size:14px;font-weight:500" id="rpName">Victoria Sterling</div>
-            <div style="font-size:11px;color:var(--dim)" id="rpRole">Transformation Authority · 52</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);">
+          <div class="p-av" id="rpAv" style="background:var(--purple);width:42px;height:42px;font-size:15px;border:2px solid rgba(255,255,255,.08);">VS</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;" id="rpName">Victoria Sterling</div>
+            <div style="font-size:10px;color:var(--dim);" id="rpRole">Transformation Authority · 52</div>
           </div>
+          <button class="btn ghost sm" onclick="viewPersonaDetail()">View</button>
         </div>
 
         <div class="divider"></div>
-        <div class="slbl">Output settings</div>
-        <div style="display:flex;flex-direction:column;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;">
-          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Lip sync (fal.ai)</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
-          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Grain filter</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
-          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Background scene</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
-          <div class="tog-row"><span style="font-size:12px;color:var(--muted)">Auto-publish</span><div class="tog off" onclick="this.classList.toggle('off')"></div></div>
+        <div class="slbl">Output</div>
+        <div style="display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px;">
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted);">Lip sync</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted);">Grain filter</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted);">Background scene</span><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+          <div class="tog-row"><span style="font-size:12px;color:var(--muted);">Auto-publish</span><div class="tog off" onclick="this.classList.toggle('off')"></div></div>
         </div>
 
         <div class="divider"></div>
         <div class="slbl">Format</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;justify-content:space-between;font-size:12px;">
-            <span style="color:var(--muted)">Ratio</span>
-            <span style="color:var(--purple2)" id="rpRatio">9:16 (TikTok)</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;">
-            <span style="color:var(--muted)">Duration</span>
-            <span style="color:var(--purple2)">15 seconds</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;">
-            <span style="color:var(--muted)">Est. cost</span>
-            <span style="color:var(--green)">~$1.25</span>
-          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Ratio</span><span style="color:var(--p2);font-weight:500;" id="rpRatio">9:16 (TikTok)</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Duration</span><span style="color:var(--p2);">15 seconds</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Est. cost</span><span style="color:var(--green);font-weight:600;">~£0.65</span></div>
         </div>
 
         <div class="divider"></div>
-        <div class="slbl">Platforms</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">TikTok</div>
-          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">Instagram</div>
-          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">Shorts</div>
-          <div style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">Facebook</div>
-        </div>
-
-        <div class="divider"></div>
-        <div class="slbl">Persona skill</div>
-        <div id="rpSkill" style="font-size:12px;color:var(--dim);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
-          No skill loaded. Upload in Step 1 to shape AI scripting.
-        </div>
+        <div class="slbl">Skill file</div>
+        <div id="rpSkill" style="font-size:12px;color:var(--dim);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;line-height:1.6;">No skill loaded.</div>
       </div>
     </div>
   </div>
@@ -820,875 +854,867 @@ textarea.inp{resize:vertical;min-height:72px;}
 <div class="toast" id="toast"></div>
 
 <script>
-const API = localStorage.getItem('apiUrl') || 'https://persona-studio.homivis.com';
-let S = {
-  persona:{name:'Victoria Sterling',color:'#7c3aed',age:'52',appearance:'British woman, warm brown skin, dark hair slicked back',niche:'wealth',role:'Transformation Authority'},
-  niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL',
-  audioPath:'', audioJobId:'',
-  portraitFile:null, portraitPreview:'',
-  sceneFile:null,
-  ratio:{label:'9:16',w:512,h:768},
-  jobId:'', skill:'', skillName:'', videos:[]
+const API=()=>localStorage.getItem('apiUrl')||'https://persona-studio.homivis.com';
+let S={
+  persona:null, niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL',
+  audioFile:null, portraitFile:null, sceneFile:null,
+  ratio:{label:'9:16',w:512,h:768}, jobId:'', lastVideoUrl:'',
+  videos:[], personas:[], savedScripts:[], skills:[], savedPortraits:[],
+  npColor:'#7c3aed'
 };
-let db = null;
 
-// ── Views ──────────────────────────────────────────────────────────
+const DEFAULTS=[
+  {name:'Victoria Sterling',initials:'VS',color:'#7c3aed',role:'Transformation Authority',age:'52',
+   appearance:'Studio portrait photograph of a 52-year-old British woman, warm brown skin, dark hair slicked back elegantly, diamond tennis necklace, black tailored blazer, seamless white studio backdrop, sharp focus on eyes, no retouching, in the middle',
+   niche:'wealth',catchphrase:'Potential hides in plain sight.',portrait:null,skill:'',skillName:'',savedPortraits:[]},
+  {name:'Marcus Stone',initials:'MS',color:'#0f6e56',role:'Master Builder',age:'58',
+   appearance:'Studio portrait photograph of a 58-year-old British man, salt-and-pepper stubble, steel grey short hair, weathered face with character lines, dark navy open-collar jacket, seamless white studio backdrop, sharp focus on eyes, no retouching, in the middle',
+   niche:'property',catchphrase:'Built right. Built once.',portrait:null,skill:'',skillName:'',savedPortraits:[]},
+  {name:'Sophia Hart',initials:'SH',color:'#993556',role:'Authority of Taste',age:'41',
+   appearance:'Studio portrait photograph of a 41-year-old British woman, chestnut brown hair styled elegantly, hazel-green eyes, tortoiseshell glasses, fair skin with light freckles, cream silk blouse, seamless white studio backdrop, sharp focus on eyes, no retouching, in the middle',
+   niche:'interior design',catchphrase:'A room should feel like a decision.',portrait:null,skill:'',skillName:'',savedPortraits:[]}
+];
+
+// ── VIEWS ──────────────────────────────────────────────
 function showView(v){
-  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-  if(v==='showcase'){
-    document.getElementById('showcase').classList.add('active');
-    renderShowcase();
-  } else {
-    document.getElementById('studio').classList.add('active');
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.getElementById(v).classList.add('active');
+  if(v==='public'){renderPublic();}
+}
+function openStudio(){showView('studio');}
+
+// ── PUBLIC SITE ────────────────────────────────────────
+function showPubPage(pg){
+  document.querySelectorAll('.pub-page').forEach(e=>e.classList.remove('active'));
+  document.getElementById('pub-'+pg).classList.add('active');
+  document.querySelectorAll('.pub-nav-link').forEach(e=>e.classList.remove('active'));
+  document.getElementById('pnl-'+pg)?.classList.add('active');
+  renderPublic(pg);
+}
+
+let currentFilter='all';
+function renderPublic(pg){
+  pg=pg||'home';
+  if(pg==='home') renderPublicHome();
+  if(pg==='personas') renderPublicPersonas();
+}
+
+function renderPublicHome(){
+  // Build filter bar
+  const bar=document.getElementById('filterBar');
+  const published=S.videos.filter(v=>v.published);
+  const personaNames=[...new Set(published.map(v=>v.persona))];
+  bar.innerHTML=`<button class="filter-tab ${currentFilter==='all'?'on':''}" onclick="filterVideos('all',this)">All</button>`
+    +personaNames.map(name=>{
+      const p=S.personas.find(p=>p.name===name);
+      const col=p?.color||'#7c3aed';
+      const img=p?.portrait?`<img src="${p.portrait}"/>`:name[0];
+      return `<button class="filter-tab ${currentFilter===name?'on':''}" onclick="filterVideos('${name}',this)">
+        <div class="filter-tab-av" style="background:${col};">${img}</div>${name.split(' ')[0]}
+      </button>`;
+    }).join('');
+
+  renderVideoGrid();
+}
+
+function filterVideos(name,el){
+  currentFilter=name;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderVideoGrid();
+}
+
+function renderVideoGrid(){
+  const grid=document.getElementById('pubVideoGrid');
+  const published=S.videos.filter(v=>v.published&&(currentFilter==='all'||v.persona===currentFilter));
+  if(!published.length){
+    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🎬</div><div class="empty-state-title">No videos published yet</div><div class="empty-state-sub">Published videos appear here.</div></div>`;
+    return;
+  }
+  grid.innerHTML=published.map(v=>`
+    <div class="vc" onclick="openVideoModal('${v.url}','${v.title}','${v.time}')">
+      <div class="vc-thumb">
+        <video src="${v.url}" muted preload="metadata" playsinline></video>
+        <div class="vc-overlay"><div class="vc-play">▶</div></div>
+      </div>
+      <div class="vc-info">
+        <div class="vc-title">${v.title}</div>
+        <div class="vc-meta">${v.time}</div>
+        <div class="vc-persona" style="background:${v.color}18;color:${v.color};border:1px solid ${v.color}35;">${v.persona}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderPublicPersonas(){
+  const grid=document.getElementById('pubPersonasGrid');
+  if(!S.personas.length){
+    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">No personas yet</div></div>`;
+    return;
+  }
+  grid.innerHTML=S.personas.map(p=>{
+    const pVids=S.videos.filter(v=>v.published&&v.persona===p.name).slice(0,3);
+    const thumbs=Array(3).fill(null).map((_,i)=>
+      pVids[i]
+        ?`<div class="pcp-vid-thumb" onclick="event.stopPropagation();openVideoModal('${pVids[i].url}','${pVids[i].title}','${pVids[i].time}')"><video src="${pVids[i].url}" muted preload="metadata" playsinline></video></div>`
+        :`<div class="pcp-vid-thumb pcp-vid-empty">+</div>`
+    ).join('');
+    const avHtml=p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`;
+    return `<div class="persona-card-pub">
+      <div class="pcp-header">
+        <div class="pcp-av" style="background:${p.color};">${avHtml}</div>
+        <div>
+          <div class="pcp-name">${p.name}</div>
+          <div class="pcp-role">${p.role} · Age ${p.age}</div>
+          <div class="pcp-catchphrase">"${p.catchphrase||''}"</div>
+        </div>
+      </div>
+      <div class="pcp-videos">${thumbs}</div>
+      <div class="pcp-footer">
+        <span class="pcp-count">${S.videos.filter(v=>v.published&&v.persona===p.name).length} videos published</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── VIDEO MODAL ────────────────────────────────────────
+function openVideoModal(url,title,time){
+  document.getElementById('modalVideo').src=url;
+  document.getElementById('modalVideo').play().catch(()=>{});
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalMeta').textContent=time;
+  document.getElementById('videoModal').classList.remove('hidden');
+}
+function closeVideoModal(){
+  document.getElementById('videoModal').classList.add('hidden');
+  const v=document.getElementById('modalVideo');
+  v.pause(); v.src='';
+}
+function closeModal(e){if(e.target.id==='videoModal')closeVideoModal();}
+
+// ── STUDIO PANELS ──────────────────────────────────────
+function showPanel(id,navEl){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('panel-'+id)?.classList.add('on');
+  document.querySelectorAll('.nav-item,.folder-row').forEach(n=>n.classList.remove('on'));
+  if(navEl) navEl.classList.add('on');
+  const titles={dashboard:'Dashboard',create:'Create video',scripts:'Scripts',portraits:'Portraits',
+    history:'All videos',newpersona:'New persona',settings:'Settings',persona:'Persona',docs:'Documents'};
+  document.getElementById('tbTitle').textContent=titles[id]||id;
+  if(id==='create'){loadVoices();renderCreatePersonas();}
+  if(id==='history')renderHistory();
+  if(id==='docs')renderDocs();
+}
+
+// ── PERSONA SIDEBAR ────────────────────────────────────
+function renderSidePersonas(){
+  const stack=document.getElementById('sidePersonas');
+  const addBtn=stack.querySelector('.add-p');
+  stack.querySelectorAll('.p-pill').forEach(p=>p.remove());
+  S.personas.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='p-pill'+(S.persona?.name===p.name?' on':'');
+    div.innerHTML=`<div class="p-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div><div><div class="p-nm">${p.name}</div><div class="p-ro">${p.role.split('·')[0].trim()} · ${p.age}</div></div>`;
+    div.onclick=()=>activatePersona(p,div);
+    stack.insertBefore(div,addBtn);
+  });
+}
+
+function activatePersona(p,pillEl){
+  S.persona=p;
+  document.querySelectorAll('#sidePersonas .p-pill').forEach(e=>e.classList.remove('on'));
+  if(pillEl)pillEl.classList.add('on');
+  const av=document.getElementById('rpAv');
+  av.style.background=p.color;
+  av.innerHTML=p.portrait?`<img src="${p.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:`${p.initials}`;
+  document.getElementById('rpName').textContent=p.name;
+  document.getElementById('rpRole').textContent=p.role+' · '+p.age;
+  document.getElementById('rpSkill').innerHTML=p.skillName
+    ?`<span style="color:var(--green);">✓</span> <span style="color:var(--text);font-weight:500;">${p.skillName}</span>`
+    :'No skill loaded.';
+  if(document.getElementById('portraitPrompt'))document.getElementById('portraitPrompt').value=p.appearance||'';
+  showPersonaDetail(p);
+}
+
+function renderCreatePersonas(){
+  const el=document.getElementById('createPersonas');
+  if(!el)return;
+  el.innerHTML=S.personas.map(p=>`
+    <div class="p-pill ${S.persona?.name===p.name?'on':''}" onclick="pickCreatePersona(this,'${p.name}')">
+      <div class="p-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div>
+      <div><div class="p-nm">${p.name}</div><div class="p-ro">${p.role} · ${p.age}</div></div>
+    </div>`).join('');
+}
+
+function pickCreatePersona(el,name){
+  document.querySelectorAll('#createPersonas .p-pill').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  const p=S.personas.find(p=>p.name===name);
+  if(!p)return;
+  S.persona=p;
+  document.getElementById('rpAv').style.background=p.color;
+  document.getElementById('rpAv').innerHTML=p.portrait?`<img src="${p.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:`${p.initials}`;
+  document.getElementById('rpName').textContent=p.name;
+  document.getElementById('rpRole').textContent=p.role+' · '+p.age;
+  if(p.appearance)document.getElementById('portraitPrompt').value=p.appearance;
+  S.niche=p.niche;
+  document.querySelectorAll('.niche-chip').forEach(c=>c.classList.toggle('on',c.textContent.toLowerCase().includes(p.niche?.toLowerCase()||'')));
+  if(p.skill)parseSkillForUI(p.skill,false);
+  if(p.skillName){
+    document.getElementById('skillName').textContent='✓ '+p.skillName;
+    document.getElementById('skillZone').classList.add('skill-loaded');
+    document.getElementById('rpSkill').innerHTML=`<span style="color:var(--green);">✓</span> <span style="color:var(--text);font-weight:500;">${p.skillName}</span>`;
   }
 }
 
-function openStudio(){showView('studio');}
-function scrollToVideos(){document.getElementById('showcaseVideos').scrollIntoView({behavior:'smooth'});}
-
-// ── Studio panels ──────────────────────────────────────────────────
-function showPanel(id, navEl){
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
-  const el=document.getElementById('panel-'+id);
-  if(el) el.classList.add('on');
+// ── PERSONA DETAIL ─────────────────────────────────────
+function showPersonaDetail(p){
+  showPanel('persona',null);
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
-  if(navEl) navEl.classList.add('on');
-  document.getElementById('tbTitle').textContent = {
-    dashboard:'Dashboard',create:'Create video',scripts:'Script generator',
-    portraits:'Portraits',history:'All videos',newpersona:'New persona',settings:'Settings'
-  }[id]||id;
-  if(id==='create') loadVoices();
-  if(id==='history') renderHistory();
+  document.getElementById('tbTitle').textContent=p.name;
+  const portraits=p.savedPortraits||[];
+  const slots=Array(4).fill(null).map((_,i)=>
+    portraits[i]
+      ?`<div class="pd-slot"><img src="${portraits[i]}"/><div class="pd-use" onclick="usePortrait('${portraits[i]}')">Use →</div></div>`
+      :`<div class="pd-slot empty">＋</div>`
+  ).join('');
+  const vids=S.videos.filter(v=>v.persona===p.name);
+  document.getElementById('pdContent').innerHTML=`
+    <div class="pd-header">
+      <div class="pd-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div>
+      <div style="flex:1;">
+        <div class="pd-name">${p.name}</div>
+        <div class="pd-role">${p.role} · Age ${p.age}</div>
+        <div class="pd-catch">"${p.catchphrase||''}"</div>
+        <div style="display:flex;gap:7px;margin-top:14px;">
+          <button class="btn primary sm" onclick="startFor('${p.name}')">＋ Create video</button>
+          <button class="btn ghost sm" onclick="editPersona('${p.name}')">Edit</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">Portraits <span class="badge">${portraits.length} saved</span></div>
+      <div class="pd-portrait-grid">${slots}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn ghost" style="flex:1;font-size:12px;" onclick="showPanel('portraits',null)">✦ Generate portraits</button>
+      </div>
+    </div>
+    ${p.skillName?`<div class="card"><div class="card-hd">Skill <span class="badge green">✓ Loaded</span></div><div style="font-size:13px;font-weight:500;">${p.skillName}</div></div>`:''}
+    <div class="card">
+      <div class="card-hd">Videos <span class="badge">${vids.length}</span></div>
+      ${vids.length?vids.slice(0,5).map(v=>`
+        <div class="vid-row">
+          <div style="font-size:18px;color:${v.color};">▶</div>
+          <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time}</div></div>
+          <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">${v.published?'✓ Live':'Publish'}</div>
+        </div>`).join(''):`<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center;">No videos yet.</div>`}
+    </div>`;
 }
 
-// ── Persona ────────────────────────────────────────────────────────
-function activatePersona(el,name,color,initials,role,age,appearance,niche){
-  document.querySelectorAll('#sidePersonas .p-pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');
-  S.persona={name,color,age,appearance,niche,role};
-  document.getElementById('rpAv').textContent=initials;
-  document.getElementById('rpAv').style.background=color;
-  document.getElementById('rpName').textContent=name;
-  document.getElementById('rpRole').textContent=role+' · '+age;
+function startFor(name){
+  const p=S.personas.find(p=>p.name===name);
+  if(p){S.persona=p;renderCreatePersonas();}
+  showPanel('create',null);goStep(1);
+}
+function viewPersonaDetail(){if(S.persona)showPersonaDetail(S.persona);}
+function usePortrait(src){
+  fetch(src).then(r=>r.blob()).then(b=>{S.portraitFile=new File([b],'portrait.png',{type:'image/png'});toast('Portrait selected');});
+}
+function editPersona(name){
+  const p=S.personas.find(p=>p.name===name);if(!p)return;
+  document.getElementById('npName').value=p.name;
+  document.getElementById('npAge').value=p.age;
+  document.getElementById('npRole').value=p.role;
+  document.getElementById('npCatch').value=p.catchphrase||'';
+  document.getElementById('npAppearance').value=p.appearance||'';
+  document.getElementById('npAnchors').value=p.anchors||'';
+  S.npColor=p.color;
+  showPanel('newpersona',null);
 }
 
-function pickCreatePersona(el,name,color,age,appearance,niche){
-  document.querySelectorAll('#createPersonas .p-pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');
-  S.persona={...S.persona,name,color,age,appearance,niche};
-}
-
-// ── Steps ──────────────────────────────────────────────────────────
+// ── STEPS ──────────────────────────────────────────────
 function goStep(n){
   document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('on'));
   document.getElementById('sp'+n)?.classList.add('on');
   document.querySelectorAll('.step-t').forEach((t,i)=>{
     t.classList.remove('on','done');
-    if(i===n-1) t.classList.add('on');
-    else if(i<n-1) t.classList.add('done');
+    if(i===n-1)t.classList.add('on');
+    else if(i<n-1)t.classList.add('done');
   });
-  if(n===3) loadVoices();
+  if(n===3)loadVoices();
 }
 
-// ── Skill loading ──────────────────────────────────────────────────
+// ── SKILL PARSING ──────────────────────────────────────
+function parseSkillForUI(text, updateTopic=true){
+  // Extract niche
+  const nicheMap={wealth:['wealth','finance','money','invest'],property:['property','real estate','builder','build'],
+    'interior design':['interior','design','luxury','taste'],'health':['health','wellness','nutrition','fitness'],
+    relationships:['relationship','love','dating'],mindset:['mindset','personal development','self'],
+    'luxury lifestyle':['luxury lifestyle']};
+  for(const [niche,kws] of Object.entries(nicheMap)){
+    if(kws.some(kw=>text.toLowerCase().includes(kw))){
+      S.niche=niche;
+      document.querySelectorAll('.niche-chip').forEach(c=>c.classList.toggle('on',c.textContent.toLowerCase().includes(niche)));
+      break;
+    }
+  }
+
+  // Extract hooks / example topics → fill topic suggestions
+  const suggestions=[];
+  const lines=text.split('\n');
+  for(const line of lines){
+    // Hook lines
+    const m1=line.match(/^[-•]\s*[""](.{15,80})[""]/);
+    const m2=line.match(/^[-•]\s*(.{20,80}\.{3}|.{20,80}\?)/);
+    const m3=line.match(/"([^"]{15,80})"/);
+    if(m1)suggestions.push(m1[1]);
+    else if(m2&&!line.toLowerCase().includes('avoid')&&!line.toLowerCase().includes('never'))suggestions.push(m2[1].trim());
+    else if(m3)suggestions.push(m3[1]);
+    if(suggestions.length>=8)break;
+  }
+
+  const sugEl=document.getElementById('topicSuggestions');
+  if(sugEl&&suggestions.length){
+    sugEl.style.display='flex';
+    document.getElementById('topicBadge').style.display='inline-flex';
+    sugEl.innerHTML=suggestions.slice(0,6).map(s=>`
+      <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.style.background='var(--p3)';this.style.color='var(--p2)';" data-val="${s.replace(/"/g,'&quot;')}">${s.length>50?s.substring(0,50)+'…':s}</button>`).join('');
+    if(updateTopic&&suggestions[0]&&!document.getElementById('topicInp').value){
+      document.getElementById('topicInp').value=suggestions[0];
+    }
+  }
+
+  // Scene suggestions
+  const sceneEl=document.getElementById('sceneSuggestions');
+  if(sceneEl){
+    const sceneLines=lines.filter(l=>l.includes('Prompt')||l.includes('SCENE')||l.includes('scene_description'));
+    const scenes=sceneLines.map(l=>{const m=l.match(/"([^"]{15,100})"/);return m?m[1]:null;}).filter(Boolean);
+    sceneEl.innerHTML=scenes.slice(0,3).map(s=>`
+      <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;" data-val="${s.replace(/"/g,'&quot;')}">${s.substring(0,38)}…</button>`).join('');
+  }
+
+  // Portrait prompt
+  const apLine=lines.find(l=>l.includes('Studio portrait photograph')||l.includes('portrait photograph'));
+  if(apLine){
+    const prompt=apLine.replace(/^[^:]*:/,'').trim().replace(/^["']/,'').replace(/["']$/,'');
+    if(prompt&&document.getElementById('portraitPrompt'))document.getElementById('portraitPrompt').value=prompt;
+  }
+}
+
 async function loadSkill(input){
-  const file=input.files[0];
-  if(!file) return;
+  const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=async e=>{
-    S.skill=e.target.result;
-    S.skillName=file.name;
-    document.getElementById('skillName').textContent='⏳ Analysing skill file...';
+    const text=e.target.result;
+    document.getElementById('skillName').textContent='⟳ Analysing...';
     document.getElementById('skillZone').classList.add('skill-loaded');
-    
-    // Auto-parse the skill file
-    try{
-      const fd=new FormData();
-      fd.append('skill_text', S.skill);
-      const r=await fetch(`${API}/parse-skill`,{method:'POST',body:fd});
-      const d=await r.json();
-      
-      if(d.status==='ok' && d.data){
-        const p=d.data;
-        // Auto-fill persona fields
-        if(p.name) { S.persona.name=p.name; document.getElementById('rpName').textContent=p.name; document.getElementById('tbTitle').textContent='Create video'; }
-        if(p.age) S.persona.age=p.age;
-        if(p.role) { S.persona.role=p.role; document.getElementById('rpRole').textContent=(p.role||'')+(p.age?' · '+p.age:''); }
-        if(p.niche) { S.niche=p.niche; document.querySelectorAll('.niche-chip').forEach(c=>{ c.classList.toggle('on', c.textContent.toLowerCase().includes(p.niche.toLowerCase())); }); }
-        if(p.appearance) S.persona.appearance=p.appearance;
-        if(p.voice_summary) S.skill_voice=p.voice_summary;
-        
-        // Show what was detected
-        const detected=[];
-        if(p.name) detected.push('Name: '+p.name);
-        if(p.age) detected.push('Age: '+p.age);
-        if(p.niche) detected.push('Niche: '+p.niche);
-        if(p.catchphrase) detected.push('Catchphrase: '+p.catchphrase);
-        
-        document.getElementById('skillName').textContent='✓ '+file.name;
-        document.getElementById('rpSkill').innerHTML=
-          '<span style="color:var(--green)">✓ Skill loaded & analysed</span>'+
-          '<div style="color:var(--text);font-size:12px;margin-top:6px;font-weight:500">'+file.name+'</div>'+
-          '<div style="color:var(--dim);font-size:11px;margin-top:4px;line-height:1.6">'+detected.join(' · ')+'</div>'+
-          (p.voice_summary?'<div style="color:var(--muted);font-size:11px;margin-top:6px;font-style:italic">'+p.voice_summary+'</div>':'');
-        
-        toast('Skill parsed — '+detected.length+' fields detected','ok');
-        
-        // If we're on new persona panel, populate those fields too
-        if(p.name && document.getElementById('npName')) document.getElementById('npName').value=p.name;
-        if(p.age && document.getElementById('npAge')) document.getElementById('npAge').value=p.age;
-        if(p.role && document.getElementById('npRole')) document.getElementById('npRole').value=p.role;
-        if(p.appearance && document.getElementById('npAppearance')) document.getElementById('npAppearance').value=p.appearance;
-        if(p.anchors && document.getElementById('npAnchors')) document.getElementById('npAnchors').value=p.anchors;
-        if(p.catchphrase && document.getElementById('npCatch')) document.getElementById('npCatch').value=p.catchphrase;
-        if(p.appearance && document.getElementById('portraitPrompt')) document.getElementById('portraitPrompt').value=p.appearance;
-      } else {
-        document.getElementById('skillName').textContent='✓ '+file.name+' (manual mode)';
-        toast('Skill loaded — could not auto-parse, AI will use raw text','ok');
-      }
-    } catch(e){
-      document.getElementById('skillName').textContent='✓ '+file.name;
-      toast('Skill loaded','ok');
+    // Store skill
+    if(!S.skills.find(s=>s.name===file.name)){
+      S.skills.push({name:file.name,text,persona:S.persona?.name||'',added:new Date().toLocaleString()});
+      saveAll();updateDocCounts();
     }
-    
-    document.getElementById('rpSkill').innerHTML = document.getElementById('rpSkill').innerHTML ||
-      '<span style="color:var(--green)">✓</span> <span style="color:var(--text)">'+file.name+'</span>';
+    // Parse locally first
+    parseSkillForUI(text,true);
+    // Try server parse
+    try{
+      const fd=new FormData();fd.append('skill_text',text.substring(0,3000));
+      const r=await fetch(`${API()}/parse-skill`,{method:'POST',body:fd});
+      const d=await r.json();
+      if(d.status==='ok'&&d.data){
+        const p=d.data;
+        if(p.niche){S.niche=p.niche;document.querySelectorAll('.niche-chip').forEach(c=>c.classList.toggle('on',c.textContent.toLowerCase().includes(p.niche.toLowerCase())));}
+        const detected=[p.name,p.age?'Age '+p.age:'',p.niche,p.catchphrase?'"'+p.catchphrase+'"':''].filter(Boolean);
+        document.getElementById('skillPreview').style.display='block';
+        document.getElementById('skillPreview').innerHTML='✓ '+detected.join(' · ');
+        toast('Skill parsed — '+detected.filter(Boolean).length+' fields');
+      }
+    }catch(e){}
+    document.getElementById('skillName').textContent='✓ '+file.name;
+    document.getElementById('rpSkill').innerHTML=`<span style="color:var(--green);">✓</span> <span style="color:var(--text);font-weight:500;">${file.name}</span>`;
+    // Save to current persona
+    if(S.persona){const pp=S.personas.find(p=>p.name===S.persona.name);if(pp){pp.skill=text;pp.skillName=file.name;saveAll();}}
   };
   reader.readAsText(file);
 }
 
 async function loadNpSkill(input){
-  const file=input.files[0];
-  if(!file) return;
+  const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=async e=>{
-    const skillText=e.target.result;
-    document.getElementById('npSkillName').textContent='⏳ Analysing...';
+    const text=e.target.result;
+    document.getElementById('npSkillName').textContent='⟳ Analysing...';
     document.getElementById('npSkillZone').classList.add('skill-loaded');
-    
+    window._npSkill=text; window._npSkillName=file.name;
     try{
-      const fd=new FormData();
-      fd.append('skill_text', skillText);
-      const r=await fetch(`${API}/parse-skill`,{method:'POST',body:fd});
+      const fd=new FormData();fd.append('skill_text',text.substring(0,3000));
+      const r=await fetch(`${API()}/parse-skill`,{method:'POST',body:fd});
       const d=await r.json();
-      
-      if(d.status==='ok' && d.data){
+      if(d.status==='ok'&&d.data){
         const p=d.data;
-        if(p.name) document.getElementById('npName').value=p.name;
-        if(p.age) document.getElementById('npAge').value=p.age;
-        if(p.role) document.getElementById('npRole').value=p.role;
-        if(p.appearance) document.getElementById('npAppearance').value=p.appearance;
-        if(p.anchors) document.getElementById('npAnchors').value=p.anchors;
-        if(p.catchphrase) document.getElementById('npCatch').value=p.catchphrase;
-        if(p.appearance) document.getElementById('portraitPrompt') && (document.getElementById('portraitPrompt').value=p.appearance);
-        S.skill=skillText;
-        S.persona.name=p.name||S.persona.name;
-        S.persona.age=p.age||S.persona.age;
-        S.persona.appearance=p.appearance||S.persona.appearance;
-        S.niche=p.niche||S.niche;
-        
-        // Show what was detected
-        const detected=[];
-        if(p.name) detected.push('<b>'+p.name+'</b>');
-        if(p.age) detected.push('Age '+p.age);
-        if(p.role) detected.push(p.role);
-        if(p.niche) detected.push('Niche: '+p.niche);
-        if(p.catchphrase) detected.push('"'+p.catchphrase+'"');
-        
-        document.getElementById('npSkillName').textContent='✓ '+file.name;
-        const parsed=document.getElementById('npSkillParsed');
-        if(parsed){
-          parsed.style.display='block';
-          parsed.innerHTML='✓ Auto-filled from skill: '+detected.join(' · ')
-            +(p.voice_summary?'<div style="margin-top:6px;color:var(--muted);font-style:italic">'+p.voice_summary+'</div>':'');
-        }
-        toast('All fields auto-filled from skill file','ok');
-      } else {
-        document.getElementById('npSkillName').textContent='✓ '+file.name+' (loaded)';
-        S.skill=skillText;
-        toast('Skill loaded — fill fields manually','ok');
+        if(p.name)document.getElementById('npName').value=p.name;
+        if(p.age)document.getElementById('npAge').value=p.age;
+        if(p.role)document.getElementById('npRole').value=p.role;
+        if(p.appearance)document.getElementById('npAppearance').value=p.appearance;
+        if(p.anchors)document.getElementById('npAnchors').value=p.anchors||'';
+        if(p.catchphrase)document.getElementById('npCatch').value=p.catchphrase;
+        const detected=[p.name,p.age?'Age '+p.age:'',p.role,p.niche?'Niche: '+p.niche:'',p.catchphrase?'"'+p.catchphrase+'"':''].filter(Boolean);
+        document.getElementById('npSkillParsed').style.display='block';
+        document.getElementById('npSkillParsed').innerHTML='✓ Auto-filled: '+detected.join(' · ');
+        toast('Fields auto-filled from skill file');
       }
-    }catch(e){
-      document.getElementById('npSkillName').textContent='✓ '+file.name;
-      toast('Skill loaded','ok');
-    }
+    }catch(err){}
+    document.getElementById('npSkillName').textContent='✓ '+file.name;
   };
   reader.readAsText(file);
 }
 
-// ── Niche & ratio ──────────────────────────────────────────────────
-function pickNiche(el,niche){
-  document.querySelectorAll('.niche-chip').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on');
-  S.niche=niche;
-}
+// ── NICHE / RATIO ──────────────────────────────────────
+function pickNiche(el,niche){document.querySelectorAll('.niche-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.niche=niche;}
+function pickRatio(el,label,w,h){document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.ratio={label,w,h};document.getElementById('rpRatio').textContent=label;document.getElementById('ratioLabel').textContent=label;}
 
-function pickRatio(el,label,w,h){
-  document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  S.ratio={label,w,h};
-  document.getElementById('rpRatio').textContent=label;
-  document.getElementById('ratioLabel').textContent=label;
-}
-
-// ── Script generation ──────────────────────────────────────────────
+// ── SCRIPT ─────────────────────────────────────────────
 async function generateScript(){
   const topic=document.getElementById('topicInp').value.trim();
-  if(!topic) return toast('Enter a topic','err');
+  if(!topic)return toast('Enter a topic first','err');
   const btn=document.getElementById('genScriptBtn');
-  btn.disabled=true; btn.textContent='Generating...';
+  btn.disabled=true;btn.textContent='Generating...';
   try{
-    const skillContext=S.skill?`\n\nPERSONA SKILL FILE:\n${S.skill.substring(0,2000)}`:'';
     const fd=new FormData();
-    fd.append('persona_name',S.persona.name);
-    fd.append('persona_age',S.persona.age);
-    fd.append('niche',S.niche);
-    fd.append('topic',topic);
-    if(S.skill) fd.append('skill_context',S.skill.substring(0,2000));
-    const r=await fetch(`${API}/generate-script`,{method:'POST',body:fd});
+    fd.append('persona_name',S.persona?.name||'Victoria Sterling');
+    fd.append('persona_age',S.persona?.age||'52');
+    fd.append('niche',S.niche);fd.append('topic',topic);
+    if(S.persona?.skill)fd.append('skill_context',S.persona.skill.substring(0,2000));
+    const r=await fetch(`${API()}/generate-script`,{method:'POST',body:fd});
     const d=await r.json();
     const scripts=d.scripts||[d.script];
-    S.script=scripts[0];
-    
-    // Show 5 selectable script cards
+    window._scripts=scripts;S.script=scripts[0];
     document.getElementById('scriptCard').style.display='block';
     document.getElementById('scriptBox').textContent=scripts[0];
     document.getElementById('wcBadge').textContent=scripts[0].split(' ').length+' words';
-    
-    // Build script selector
-    let selector=document.getElementById('scriptSelector');
-    if(!selector){
-      selector=document.createElement('div');
-      selector.id='scriptSelector';
-      selector.style='display:flex;flex-direction:column;gap:6px;margin-bottom:12px;';
-      document.getElementById('scriptCard').insertBefore(selector, document.getElementById('scriptCard').children[1]);
-    }
-    selector.innerHTML=scripts.map((s,i)=>`
-      <div onclick="selectScript(this,${i})" style="padding:10px 12px;border-radius:8px;border:1px solid ${i===0?'var(--purple)':'var(--border)'};background:${i===0?'var(--purple3)':'var(--card)'};cursor:pointer;transition:all .12s;">
-        <div style="font-size:10px;color:${i===0?'var(--purple2)':'var(--dim)'};font-weight:600;margin-bottom:4px;">OPTION ${i+1}</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.5">${s}</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;">${s.split(' ').length} words</div>
-      </div>`).join('');
-    window._scripts=scripts;
-    toast('5 scripts generated — pick your favourite','ok');
+    renderScriptOpts('scriptOptions',scripts,idx=>{S.script=scripts[idx];document.getElementById('scriptBox').textContent=scripts[idx];document.getElementById('wcBadge').textContent=scripts[idx].split(' ').length+' words';});
+    toast('5 scripts ready');
   }catch(e){toast('Error: '+e.message,'err');}
-  finally{btn.disabled=false; btn.textContent='✦ Generate script with AI';}
+  finally{btn.disabled=false;btn.textContent='✦ Generate scripts with AI';}
 }
 
-function selectScript(el, idx){
-  document.querySelectorAll('#scriptSelector > div').forEach((d,i)=>{
-    d.style.border='1px solid '+(i===idx?'var(--purple)':'var(--border)');
-    d.style.background=i===idx?'var(--purple3)':'var(--card)';
-    d.querySelector('div:first-child').style.color=i===idx?'var(--purple2)':'var(--dim)';
-  });
-  const scripts=window._scripts||[];
-  S.script=scripts[idx]||'';
-  document.getElementById('scriptBox').textContent=S.script;
-  document.getElementById('wcBadge').textContent=S.script.split(' ').length+' words';
+function renderScriptOpts(id,scripts,cb){
+  const el=document.getElementById(id);
+  el.innerHTML=scripts.map((s,i)=>`
+    <div class="script-opt ${i===0?'on':''}" onclick="selScript(this,'${id}',${i})">
+      <div class="script-opt-lbl">Option ${i+1}</div>
+      <div class="script-opt-txt">${s}</div>
+      <div class="script-opt-wc">${s.split(' ').length} words</div>
+    </div>`).join('');
+  el._cb=cb;
+}
+function selScript(el,id,idx){
+  document.querySelectorAll(`#${id} .script-opt`).forEach(d=>d.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById(id)._cb?.(idx);
 }
 
 async function qsGenerate(){
-  const topic=document.getElementById('qsTopic').value.trim();
-  if(!topic) return toast('Enter a topic','err');
+  const topic=document.getElementById('qsTopic').value.trim();if(!topic)return toast('Enter a topic','err');
   try{
     const fd=new FormData();
     fd.append('persona_name',document.getElementById('qsPersona').value);
     fd.append('persona_age',document.getElementById('qsAge').value);
     fd.append('niche',document.getElementById('qsNiche').value);
     fd.append('topic',topic);
-    const r=await fetch(`${API}/generate-script`,{method:'POST',body:fd});
-    const d=await r.json();
-    const scripts=d.scripts||[d.script];
+    const r=await fetch(`${API()}/generate-script`,{method:'POST',body:fd});
+    const d=await r.json();const scripts=d.scripts||[d.script];
     window._qsScripts=scripts;
-    
     document.getElementById('qsResult').style.display='block';
     document.getElementById('qsScript').textContent=scripts[0];
-    document.getElementById('qsWc').textContent=scripts[0].split(' ').length+' words';
-    
-    // Build selector
-    let sel=document.getElementById('qsSelector');
-    if(!sel){
-      sel=document.createElement('div');
-      sel.id='qsSelector';
-      sel.style='display:flex;flex-direction:column;gap:6px;margin-bottom:10px;';
-      document.getElementById('qsResult').insertBefore(sel, document.getElementById('qsResult').children[1]);
-    }
-    sel.innerHTML=scripts.map((s,i)=>`
-      <div onclick="selectQsScript(this,${i})" style="padding:10px 12px;border-radius:8px;border:1px solid ${i===0?'var(--purple)':'var(--border)'};background:${i===0?'var(--purple3)':'var(--card)'};cursor:pointer;">
-        <div style="font-size:10px;color:${i===0?'var(--purple2)':'var(--dim)'};font-weight:600;margin-bottom:4px;">OPTION ${i+1}</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.5">${s}</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:4px;">${s.split(' ').length} words</div>
-      </div>`).join('');
-    toast('5 scripts ready — pick your favourite','ok');
+    renderScriptOpts('qsOptions',scripts,idx=>document.getElementById('qsScript').textContent=scripts[idx]);
+    toast('Scripts ready');
   }catch(e){toast('Error: '+e.message,'err');}
 }
+function useScript(){S.script=document.getElementById('qsScript').textContent;document.getElementById('scriptBox').textContent=S.script;document.getElementById('scriptCard').style.display='block';showPanel('create',null);goStep(3);}
+function saveScript(){const t=document.getElementById('scriptBox').textContent;if(!t)return;S.savedScripts.push({text:t,persona:S.persona?.name||'',niche:S.niche,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
+function saveScriptQS(){const t=document.getElementById('qsScript').textContent;if(!t)return;S.savedScripts.push({text:t,persona:document.getElementById('qsPersona').value,niche:document.getElementById('qsNiche').value,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
 
-function selectQsScript(el, idx){
-  document.querySelectorAll('#qsSelector > div').forEach((d,i)=>{
-    d.style.border='1px solid '+(i===idx?'var(--purple)':'var(--border)');
-    d.style.background=i===idx?'var(--purple3)':'var(--card)';
-    d.querySelector('div:first-child').style.color=i===idx?'var(--purple2)':'var(--dim)';
-  });
-  const scripts=window._qsScripts||[];
-  document.getElementById('qsScript').textContent=scripts[idx]||'';
-  document.getElementById('qsWc').textContent=(scripts[idx]||'').split(' ').length+' words';
-}
-
-function useScript(){
-  S.script=document.getElementById('qsScript').textContent;
-  document.getElementById('scriptBox').textContent=S.script;
-  document.getElementById('scriptCard').style.display='block';
-  showPanel('create',null);
-  goStep(3);
-}
-
-// ── Voice ──────────────────────────────────────────────────────────
+// ── VOICE ──────────────────────────────────────────────
 async function loadVoices(){
   try{
-    const r=await fetch(`${API}/voices`);
-    const voices=await r.json();
+    const r=await fetch(`${API()}/voices`);const voices=await r.json();
     document.getElementById('voiceList').innerHTML=voices.map(v=>`
       <div class="v-item ${v.id===S.voiceId?'on':''}" onclick="pickVoice(this,'${v.id}')">
         <div class="v-ico">🎙</div>
-        <div style="flex:1"><div style="font-size:12px;font-weight:500">${v.name}</div><div style="font-size:10px;color:var(--dim)">${v.description||''}</div></div>
-        <button onclick="event.stopPropagation();previewVoice('${v.id}','${v.name}')" style="background:var(--border2);border:none;color:var(--text);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">▶ Preview</button>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:500;">${v.name}</div><div style="font-size:10px;color:var(--dim);">${v.description||''}</div></div>
+        <button onclick="event.stopPropagation();previewVoice('${v.id}','${v.name}')" style="background:var(--border2);border:none;color:var(--text);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;">▶</button>
       </div>`).join('');
-  // Add preview audio player
-  if(!document.getElementById('voicePreviewPlayer')){
-    const p=document.createElement('div');
-    p.id='voicePreviewArea';
-    p.style='display:none;margin-top:8px;';
-    p.innerHTML='<audio id="voicePreviewPlayer" controls style="width:100%"></audio><div id="voicePreviewLabel" style="font-size:11px;color:var(--dim);margin-top:4px;text-align:center"></div>';
-    document.getElementById('voiceList').after(p);
-  }
-  }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Backend not connected. Check Settings.</div>';}
+  }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px;">Backend not connected — check Settings.</div>';}
 }
-
-function pickVoice(el,id){
-  document.querySelectorAll('.v-item').forEach(v=>v.classList.remove('on'));
-  el.classList.add('on');
-  S.voiceId=id;
-}
-
-async function previewVoice(voiceId, name){
-  const previewArea=document.getElementById('voicePreviewArea');
-  const player=document.getElementById('voicePreviewPlayer');
-  const label=document.getElementById('voicePreviewLabel');
-  previewArea.style.display='block';
-  label.textContent='Generating preview for '+name+'...';
-  player.src='';
+function pickVoice(el,id){document.querySelectorAll('.v-item').forEach(v=>v.classList.remove('on'));el.classList.add('on');S.voiceId=id;}
+async function previewVoice(id,name){
+  const area=document.getElementById('voicePreviewArea'),player=document.getElementById('voicePreviewPlayer'),label=document.getElementById('voicePreviewLabel');
+  area.style.display='block';label.textContent='Generating preview...';player.src='';
   try{
-    const fd=new FormData();
-    fd.append('script','Welcome to Persona Studio. I help you create powerful AI content that connects and converts.');
-    fd.append('voice_id',voiceId);
-    fd.append('job_id','preview_'+voiceId);
-    const r=await fetch(`${API}/generate-voice`,{method:'POST',body:fd});
-    const d=await r.json();
-    player.src=`${API}/audio/${d.job_id}`;
-    player.play();
-    label.textContent='Previewing: '+name;
-  }catch(e){label.textContent='Preview failed: '+e.message;}
+    const fd=new FormData();fd.append('script','Welcome to Persona. Creating powerful AI content.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
+    const r=await fetch(`${API()}/generate-voice`,{method:'POST',body:fd});const d=await r.json();
+    player.src=`${API()}/audio/${d.job_id}`;player.play();label.textContent='Previewing: '+name;
+  }catch(e){label.textContent='Preview failed';}
 }
-
 async function genVoice(){
   const script=document.getElementById('scriptBox').textContent||S.script;
-  if(!script) return toast('No script yet','err');
-  const btn=document.getElementById('genVoiceBtn');
-  btn.disabled=true; btn.textContent='Generating voiceover...';
+  if(!script)return toast('No script yet','err');
+  const btn=document.getElementById('genVoiceBtn');btn.disabled=true;btn.textContent='Generating...';
   try{
-    const fd=new FormData();
-    fd.append('script',script);
-    fd.append('voice_id',S.voiceId);
-    const jid='vid_'+Date.now();
-    fd.append('job_id',jid);
-    const r=await fetch(`${API}/generate-voice`,{method:'POST',body:fd});
-    const d=await r.json();
-    S.audioJobId=d.job_id;
-    S.jobId=d.job_id;
-    // Fetch audio as blob for video pipeline upload
-    const audioResp=await fetch(`${API}/audio/${d.job_id}`);
-    const audioBlob=await audioResp.blob();
-    S.audioFile=new File([audioBlob],'voice.mp3',{type:'audio/mpeg'});
-    document.getElementById('audioEl').src=`${API}/audio/${d.job_id}`;
-    document.getElementById('voiceResult').style.display='block';
-    toast('Voiceover ready','ok');
+    const fd=new FormData();fd.append('script',script);fd.append('voice_id',S.voiceId);
+    const jid='vid_'+Date.now();fd.append('job_id',jid);
+    const r=await fetch(`${API()}/generate-voice`,{method:'POST',body:fd});const d=await r.json();
+    const ab=await fetch(`${API()}/audio/${d.job_id}`);const blob=await ab.blob();
+    S.audioFile=new File([blob],'voice.mp3',{type:'audio/mpeg'});
+    document.getElementById('audioEl').src=`${API()}/audio/${d.job_id}`;
+    document.getElementById('voiceResult').style.display='block';toast('Voiceover ready');
   }catch(e){toast('Error: '+e.message,'err');}
-  finally{btn.disabled=false; btn.textContent='🎙 Generate voiceover';}
+  finally{btn.disabled=false;btn.textContent='🎙 Generate voiceover';}
 }
 
-// ── Portrait ───────────────────────────────────────────────────────
+// ── PORTRAIT ───────────────────────────────────────────
 function uploadPortrait(input){
-  const file=input.files[0];
-  if(!file) return;
-  S.portraitFile=file; // store actual file for upload
+  const file=input.files[0];if(!file)return;S.portraitFile=file;
   const reader=new FileReader();
   reader.onload=e=>{
     const grid=document.getElementById('portraitGrid');
-    const slot=grid.children[0];
-    slot.innerHTML=`<img src="${e.target.result}"/><div class="sel-check">✓</div>`;
-    slot.classList.add('selected');
-    S.portraitPreview=e.target.result;
-    document.getElementById('portraitBadge').textContent='1 selected';
-    toast('Portrait uploaded','ok');
-  };
-  reader.readAsDataURL(file);
+    grid.children[0].innerHTML=`<img src="${e.target.result}"/><div class="sel-check">✓</div>`;
+    grid.children[0].classList.add('selected');document.getElementById('portraitBadge').textContent='✓';toast('Portrait uploaded');
+  };reader.readAsDataURL(file);
 }
-
 async function genPortrait(){
-  const prompt=document.getElementById('portraitPrompt').value.trim() || S.persona.appearance;
-  if(!prompt) return toast('Describe your persona appearance first','err');
-  
-  const status=document.getElementById('portraitGenStatus');
-  status.style.display='block';
-  status.textContent='Generating portrait with FLUX... ~10 seconds';
-  
+  const prompt=document.getElementById('portraitPrompt').value.trim()||S.persona?.appearance;
+  if(!prompt)return toast('Add appearance prompt first','err');
+  const st=document.getElementById('portraitGenStatus');st.style.display='block';st.textContent='Generating... ~10 seconds';
   try{
-    const fd=new FormData();
-    fd.append('persona_name',S.persona.name);
-    fd.append('persona_age',S.persona.age||'36');
-    fd.append('appearance',prompt);
-    fd.append('count','1');
-    const r=await fetch(`${API}/generate-portrait`,{method:'POST',body:fd});
-    const d=await r.json();
-    
-    if(d.error) throw new Error(d.error);
-    
-    // New backend returns images directly — no polling needed
-    const imgUrl = API + d.images[0];
+    const fd=new FormData();fd.append('persona_name',S.persona?.name||'persona');fd.append('persona_age',S.persona?.age||'36');fd.append('appearance',prompt);fd.append('count','1');
+    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    const imgUrl=API()+d.images[0];
     const grid=document.getElementById('portraitGrid');
-    const slot=grid.children[0];
-    slot.innerHTML=`<img src="${imgUrl}"/><div class="sel-check">✓</div>`;
-    slot.classList.add('done','selected');
-    S.portraitPreview=imgUrl;
-    const resp=await fetch(imgUrl);
-    const blob=await resp.blob();
-    S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
-    document.getElementById('portraitBadge').textContent='Generated ✓';
-    status.style.display='none';
-    toast('Portrait ready','ok');
-  }catch(e){
-    status.style.display='none';
-    toast('Error: '+e.message,'err');
-  }
+    grid.children[0].innerHTML=`<img src="${imgUrl}"/><div class="sel-check">✓</div>`;
+    grid.children[0].classList.add('done','selected');document.getElementById('portraitBadge').textContent='Generated ✓';
+    const resp=await fetch(imgUrl);const blob=await resp.blob();S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
+    st.style.display='none';toast('Portrait ready');
+  }catch(e){st.style.display='none';toast('Error: '+e.message,'err');}
 }
-
 async function genScene(){
-  const prompt=document.getElementById('sceneInp').value.trim();
-  if(!prompt) return toast('Describe the scene','err');
-  toast('Generating scene with FLUX...','ok');
+  const prompt=document.getElementById('sceneInp').value.trim();if(!prompt)return toast('Describe the scene','err');
   try{
-    const fd=new FormData();
-    fd.append('scene_description',prompt);
-    const r=await fetch(`${API}/generate-scene`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
-    const imgUrl=API+d.image_url;
-    const img=document.getElementById('sceneImg');
-    img.src=imgUrl;
-    document.getElementById('scenePreview').style.display='block';
-    const resp=await fetch(imgUrl);
-    const blob=await resp.blob();
-    S.sceneFile=new File([blob],'scene.png',{type:'image/png'});
-    toast('Scene ready','ok');
+    const fd=new FormData();fd.append('scene_description',prompt);
+    const r=await fetch(`${API()}/generate-scene`,{method:'POST',body:fd});const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    const imgUrl=API()+d.image_url;
+    document.getElementById('sceneImg').src=imgUrl;document.getElementById('scenePreview').style.display='block';
+    const resp=await fetch(imgUrl);const blob=await resp.blob();S.sceneFile=new File([blob],'scene.png',{type:'image/png'});
+    toast('Scene ready');
   }catch(e){toast('Error: '+e.message,'err');}
 }
-
 function uploadScene(input){
-  const file=input.files[0];
-  if(!file) return;
-  S.sceneFile=file;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    document.getElementById('sceneImg').src=e.target.result;
-    document.getElementById('scenePreview').style.display='block';
-    toast('Scene uploaded','ok');
-  };
-  reader.readAsDataURL(file);
+  const file=input.files[0];if(!file)return;S.sceneFile=file;
+  const reader=new FileReader();reader.onload=e=>{document.getElementById('sceneImg').src=e.target.result;document.getElementById('scenePreview').style.display='block';};reader.readAsDataURL(file);
 }
-
-async function pollImage(promptId, cb, tries=0){
-  if(tries>30) return;
-  try{
-    const r=await fetch(`${API}/image-status/${promptId}`);
-    const d=await r.json();
-    if(d.status==='complete'&&d.images.length>0) cb(d.images[0]);
-    else setTimeout(()=>pollImage(promptId,cb,tries+1),3000);
-  }catch(e){setTimeout(()=>pollImage(promptId,cb,tries+1),3000);}
-}
-
-// ── Portrait gallery (10) ──────────────────────────────────────────
 async function genPortraits10(){
-  const name=document.getElementById('ppName').value;
-  const appearance=document.getElementById('ppAppearance').value;
-  if(!appearance) return toast('Describe appearance first','err');
-  
-  const outfits=['cream wool blazer','elegant dark suit','luxury knitwear','tailored long coat','silk blouse and blazer','minimalist white shirt','smart casual',
-    'formal evening wear','business casual with scarf','relaxed luxury'];
-  const gallery=document.getElementById('portraitGallery');
-  gallery.innerHTML='';
-  for(let i=0;i<10;i++){
-    const slot=document.createElement('div');
-    slot.className='p-slot generating';
-    slot.innerHTML=`<span style="font-size:10px;color:var(--amber)">${i+1}</span>`;
-    gallery.appendChild(slot);
-  }
-  
+  const name=document.getElementById('ppName').value,appearance=document.getElementById('ppAppearance').value;
+  if(!appearance)return toast('Add appearance prompt first','err');
+  const outfits=['cream wool blazer','black tailored blazer','luxury navy knitwear','ivory structured coat','silk blouse and blazer','crisp white shirt','smart business casual','formal dark suit','cashmere rollneck','relaxed luxury linen'];
+  const gallery=document.getElementById('portraitGallery');gallery.innerHTML='';
+  for(let i=0;i<10;i++){const s=document.createElement('div');s.className='p-slot generating';s.innerHTML=`<span style="font-size:11px;color:var(--amber);">${i+1}</span>`;gallery.appendChild(s);}
+  const saved=[];
   for(let i=0;i<10;i++){
     try{
-      const fd=new FormData();
-      fd.append('persona_name',name);
-      fd.append('persona_age',document.getElementById('ppAge').value);
-      fd.append('appearance',appearance+', '+outfits[i]);
-      fd.append('count','1');
-      const r=await fetch(`${API}/generate-portrait`,{method:'POST',body:fd});
-      const d=await r.json();
-      if(d.error) throw new Error(d.error);
-      const imgUrl=API+d.images[0];
-      gallery.children[i].innerHTML=`<img src="${imgUrl}"/>`;
-      gallery.children[i].classList.remove('generating');
-      gallery.children[i].classList.add('done');
-    }catch(e){
-      gallery.children[i].innerHTML='<span style="font-size:10px;color:var(--red)">Error</span>';
-      gallery.children[i].classList.remove('generating');
-    }
+      const fd=new FormData();fd.append('persona_name',name);fd.append('persona_age',document.getElementById('ppAge').value);fd.append('appearance',appearance+', wearing '+outfits[i]);fd.append('count','1');
+      const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
+      if(d.error)throw new Error(d.error);
+      const url=API()+d.images[0];
+      gallery.children[i].innerHTML=`<img src="${url}"/>`;gallery.children[i].classList.remove('generating');gallery.children[i].classList.add('done');
+      gallery.children[i].onclick=()=>usePortrait(url);
+      saved.push(url);
+    }catch(e){gallery.children[i].innerHTML='<span style="font-size:10px;color:var(--red);">Error</span>';gallery.children[i].classList.remove('generating');}
   }
-  toast('All 10 portraits done','ok');
+  const pp=S.personas.find(p=>p.name===name);if(pp){pp.savedPortraits=saved;saveAll();}
+  // Save to portrait doc store
+  saved.forEach(url=>S.savedPortraits.push({url,persona:name,time:new Date().toLocaleString()}));
+  saveAll();updateDocCounts();
+  toast('10 portraits done');
 }
 
-let genPollInterval = null;
-
+// ── VIDEO GENERATION ───────────────────────────────────
+let pollIv=null;
 function cancelGen(){
-  if(genPollInterval) clearInterval(genPollInterval);
-  genPollInterval = null;
-  const btn=document.getElementById('mainGenBtn');
-  btn.disabled=false; btn.textContent='✦ Generate video';
+  if(pollIv)clearInterval(pollIv);pollIv=null;
+  const btn=document.getElementById('mainGenBtn');btn.disabled=false;btn.textContent='✦ Generate video';
   document.getElementById('cancelGenBtn').style.display='none';
-  document.getElementById('genStage').textContent='Cancelled';
-  document.getElementById('genPbar').style.width='0%';
-  // Reset pipeline
-  document.querySelectorAll('#pipelineEl .pipe').forEach(p=>{
-    p.className='pipe wait';
-    p.querySelector('.pipe-n').textContent=p.getAttribute('data-n')||'?';
-  });
-  toast('Generation cancelled','ok');
+  document.getElementById('genStage').textContent='Cancelled';document.getElementById('genPbar').style.width='0%';
+  toast('Cancelled');
 }
-
-// ── Video generation ───────────────────────────────────────────────
 async function startGen(){
-  if(!S.portraitFile) return toast('Upload or generate a portrait first','err');
-  if(!S.audioFile) return toast('Generate a voiceover first','err');
-  
-  const btn=document.getElementById('mainGenBtn');
-  btn.disabled=true; btn.textContent='Generating...';
+  if(!S.portraitFile)return toast('Upload or generate a portrait first','err');
+  if(!S.audioFile)return toast('Generate a voiceover first','err');
+  const btn=document.getElementById('mainGenBtn');btn.disabled=true;btn.textContent='Generating...';
   document.getElementById('cancelGenBtn').style.display='block';
   document.getElementById('postGenBtns').style.display='none';
-  updatePipe(1,'run','Uploading files...');
-  
+  updatePipe(1,'run');
   try{
-    const fd=new FormData();
-    fd.append('portrait', S.portraitFile, 'portrait.png');
-    fd.append('audio', S.audioFile, 'voice.mp3'); // send as file
-    const newJobId = 'vid_'+Date.now();
-    S.jobId = newJobId;
-    fd.append('job_id', newJobId);
-    if(S.sceneFile) fd.append('scene', S.sceneFile, 'scene.png');
-    
-    const r=await fetch(`${API}/generate-video`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
-    const jid=d.job_id||newJobId; // fallback to our generated ID
-    
-    updatePipe(1,'run','Removing background...');
-    
-    genPollInterval=setInterval(async()=>{
+    const fd=new FormData();fd.append('portrait',S.portraitFile,'portrait.png');fd.append('audio',S.audioFile,'voice.mp3');
+    const jid='vid_'+Date.now();S.jobId=jid;fd.append('job_id',jid);
+    if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
+    const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    const job=d.job_id||jid;
+    pollIv=setInterval(async()=>{
       try{
-        const sr=await fetch(`${API}/video-status/${jid}`);
-        const sd=await sr.json();
-        const prog=sd.progress||0;
-        document.getElementById('genPbar').style.width=prog+'%';
+        const sr=await fetch(`${API()}/video-status/${job}`);const sd=await sr.json();
+        document.getElementById('genPbar').style.width=(sd.progress||0)+'%';
         document.getElementById('genStage').textContent=sd.stage||'Processing...';
-        
-        if(sd.stage==='removing_background') updatePipe(1,'run','Removing background...');
-        if(sd.stage==='compositing'){updatePipe(1,'done');updatePipe(2,'run','Compositing portrait + scene...');}
-        if(sd.stage==='uploading'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Uploading to fal.ai...');}
-        if(sd.stage==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','flashtalk generating...');}
-        if(sd.stage==='downloading'){updatePipe(3,'done');updatePipe(4,'run','Downloading...');}
-        if(sd.stage==='processing'){updatePipe(3,'done');updatePipe(4,'run','Applying grain filter...');}
-        if(sd.stage==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Applying grain filter...');}
-        
+        const st=sd.stage;
+        if(st==='removing_background')updatePipe(1,'run','Removing background...');
+        if(st==='compositing'){updatePipe(1,'done');updatePipe(2,'run');}
+        if(st==='uploading'||st==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Flashtalk generating...');}
+        if(st==='downloading'){updatePipe(3,'done');updatePipe(4,'run');}
+        if(st==='processing'||st==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Grain filter...');}
         if(sd.status==='complete'){
-          clearInterval(genPollInterval);
-          genPollInterval=null;
+          clearInterval(pollIv);pollIv=null;
           document.getElementById('cancelGenBtn').style.display='none';
-          [1,2,3,4].forEach(n=>updatePipe(n,'done'));
-          updatePipe(5,'done');
-          document.getElementById('genPbar').style.width='100%';
-          document.getElementById('genStage').textContent='Done!';
-          
-          // Use permanent fal.ai URL if available, else Railway download endpoint
-          const videoUrl = sd.url || `${API}/download/${jid}`;
-          S.lastVideoUrl = videoUrl;
-          
-          const vprev=document.getElementById('vprev');
-          vprev.innerHTML=`<video src="${videoUrl}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;border-radius:11px;"></video>`;
-          
+          [1,2,3,4,5].forEach(n=>updatePipe(n,'done'));
+          document.getElementById('genPbar').style.width='100%';document.getElementById('genStage').textContent='Done!';
+          const url=sd.url||`${API()}/download/${job}`;S.lastVideoUrl=url;
+          document.getElementById('vprev').innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;border-radius:11px;" playsinline></video>`;
           document.getElementById('postGenBtns').style.display='flex';
-          btn.textContent='✦ Generate another';
-          btn.disabled=false;
-          
-          const vid={jid,title:S.persona.name+' · '+S.niche,persona:S.persona.name,
-            color:S.persona.color,niche:S.niche,time:new Date().toLocaleString(),
-            url:videoUrl,published:false};
-          S.videos.unshift(vid);
-          saveVideos();
-          updateDashboard();
-          toast('Video ready!','ok');
+          btn.textContent='✦ Generate another';btn.disabled=false;
+          const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false};
+          S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready!');
         }
-        if(sd.status==='error'){
-          clearInterval(genPollInterval);
-          genPollInterval=null;
-          document.getElementById('cancelGenBtn').style.display='none';
-          toast('Error: '+sd.error,'err');
-          btn.disabled=false; btn.textContent='✦ Try again';
-        }
+        if(sd.status==='error'){clearInterval(pollIv);pollIv=null;document.getElementById('cancelGenBtn').style.display='none';toast('Error: '+sd.error,'err');btn.disabled=false;btn.textContent='✦ Try again';}
       }catch(e){}
     },3000);
-  }catch(e){
-    toast('Error: '+e.message,'err');
-    btn.disabled=false; btn.textContent='✦ Generate video';
-  }
+  }catch(e){toast('Error: '+e.message,'err');btn.disabled=false;btn.textContent='✦ Generate video';}
 }
-
 function updatePipe(n,status,sub){
   const pipes=document.querySelectorAll('#pipelineEl .pipe');
-  if(pipes[n-1]){
-    pipes[n-1].className='pipe '+status;
-    const num=pipes[n-1].querySelector('.pipe-n');
-    if(status==='done') num.textContent='✓';
-    else num.textContent=n;
-    if(sub) pipes[n-1].querySelector('.pipe-sub').textContent=sub;
-  }
+  if(pipes[n-1]){pipes[n-1].className='pipe '+status;pipes[n-1].querySelector('.pipe-n').textContent=status==='done'?'✓':n;if(sub)pipes[n-1].querySelector('.pipe-sub').textContent=sub;}
 }
+function downloadVideo(){const url=S.lastVideoUrl||(S.jobId?`${API()}/download/${S.jobId}`:null);if(url)window.open(url);}
+function publishVideo(){const v=S.videos[0];if(!v)return;v.published=true;saveAll();updateDashboard();renderPublic('home');toast('Published!');}
 
-function downloadVideo(){
-  const url = S.lastVideoUrl || (S.jobId ? `${API}/download/${S.jobId}` : null);
-  if(!url) return;
-  window.open(url);
-}
-
-function publishVideo(){
-  const vid=S.videos[0];
-  if(!vid) return;
-  vid.published=true;
-  saveVideos();
-  updateDashboard();
-  renderShowcase();
-  toast('Published to showcase!','ok');
-}
-
-// ── New persona portrait ───────────────────────────────────────────
+// ── NEW PERSONA ────────────────────────────────────────
+let _npColor='#7c3aed';
+function pickColor(el,c){document.querySelectorAll('.color-swatch').forEach(d=>d.classList.remove('on'));el.classList.add('on');_npColor=c;}
 function npUploadPortrait(input){
-  const file=input.files[0];
-  if(!file) return;
-  window._npPortraitFile=file;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    document.getElementById('npPortraitImg').src=e.target.result;
-    document.getElementById('npPortraitPreview').style.display='block';
-    toast('Portrait uploaded','ok');
-  };
-  reader.readAsDataURL(file);
+  const file=input.files[0];if(!file)return;window._npFile=file;
+  const reader=new FileReader();reader.onload=e=>{document.getElementById('npPortraitImg').src=e.target.result;document.getElementById('npPortraitPreview').style.display='flex';};reader.readAsDataURL(file);
 }
-
 async function npGenPortrait(){
-  const appearance=document.getElementById('npAppearance').value.trim();
-  const age=document.getElementById('npAge').value||'36';
-  const name=document.getElementById('npName').value||'persona';
-  if(!appearance) return toast('Enter appearance description first','err');
-  
-  const status=document.getElementById('npPortraitStatus');
-  status.style.display='block';
-  status.textContent='Generating portrait... ~30 seconds';
-  
+  const appearance=document.getElementById('npAppearance').value.trim();if(!appearance)return toast('Add appearance first','err');
+  const st=document.getElementById('npPortraitStatus');st.style.display='block';
   try{
-    const fd=new FormData();
-    fd.append('persona_name',name);
-    fd.append('persona_age',age);
-    fd.append('appearance',appearance);
-    fd.append('count','1');
-    const r=await fetch(`${API}/generate-portrait`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
-    const imgUrl=API+d.images[0];
-    document.getElementById('npPortraitImg').src=imgUrl;
-    document.getElementById('npPortraitPreview').style.display='block';
-    status.style.display='none';
-    const resp=await fetch(imgUrl);
-    const blob=await resp.blob();
-    window._npPortraitFile=new File([blob],'portrait.png',{type:'image/png'});
-    toast('Portrait generated','ok');
-  }catch(e){
-    status.textContent='Error: '+e.message+' — upload a photo instead';
-    toast('Error: '+e.message,'err');
-  }
+    const fd=new FormData();fd.append('persona_name',document.getElementById('npName').value||'persona');fd.append('persona_age',document.getElementById('npAge').value||'36');fd.append('appearance',appearance);fd.append('count','1');
+    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    const url=API()+d.images[0];document.getElementById('npPortraitImg').src=url;document.getElementById('npPortraitPreview').style.display='flex';
+    const resp=await fetch(url);const blob=await resp.blob();window._npFile=new File([blob],'portrait.png',{type:'image/png'});
+    st.style.display='none';toast('Portrait generated');
+  }catch(e){st.textContent='Error: '+e.message;toast('Error','err');}
 }
-
-// ── Persona creation ───────────────────────────────────────────────
 function createPersona(){
-  const name=document.getElementById('npName').value.trim();
-  if(!name) return toast('Enter a name','err');
+  const name=document.getElementById('npName').value.trim();if(!name)return toast('Enter a name','err');
   const initials=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  const colors=['#7c3aed','#0f6e56','#993556','#185fa5','#854f0b','#be185d'];
-  const color=colors[Math.floor(Math.random()*colors.length)];
   const role=document.getElementById('npRole').value||'Content Creator';
   const age=document.getElementById('npAge').value||'30';
-  
   const appearance=document.getElementById('npAppearance').value;
-  const portraitSrc=document.getElementById('npPortraitImg').src;
-  
-  const stack=document.getElementById('sidePersonas');
-  const addBtn=stack.querySelector('.add-p');
-  const div=document.createElement('div');
-  div.className='p-pill';
-  div.onclick=()=>{
-    activatePersona(div,name,color,initials,role,age,appearance,'wealth');
-    // Load portrait if available
-    if(window._npPortraitFile){
-      S.portraitFile=window._npPortraitFile;
-      S.portraitPreview=portraitSrc;
-    }
-  };
-  // Show portrait thumbnail in sidebar if available
-  const avatarHtml = portraitSrc && portraitSrc.startsWith('data') 
-    ? `<div class="p-av" style="background:${color};overflow:hidden;"><img src="${portraitSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>`
-    : `<div class="p-av" style="background:${color}">${initials}</div>`;
-  div.innerHTML=`${avatarHtml}<div><div class="p-nm">${name}</div><div class="p-ro">${role}</div></div>`;
-  stack.insertBefore(div,addBtn);
-  toast('Persona created: '+name,'ok');
-  showPanel('dashboard',null);
-}
-
-// ── Dashboard & history ────────────────────────────────────────────
-function updateDashboard(){
-  const total=S.videos.length;
-  const pub=S.videos.filter(v=>v.published).length;
-  document.getElementById('dashVideos').textContent=total;
-  document.getElementById('dashPublished').textContent=pub;
-  document.getElementById('dashBadge').textContent=total+' total';
-  document.getElementById('showcaseVideoCount').textContent=pub;
-  
-  const list=document.getElementById('dashVideoList');
-  if(!total){list.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No videos yet.</div>';return;}
-  list.innerHTML=S.videos.slice(0,5).map(v=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
-      <div style="width:32px;height:42px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:${v.color}">▶</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.title}</div>
-        <div style="font-size:10px;color:var(--dim)">${v.time}</div>
-      </div>
-      <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">
-        ${v.published?'✓ Published':'Publish'}
-      </div>
-    </div>`).join('');
-}
-
-function renderHistory(){
-  const list=document.getElementById('historyList');
-  if(!S.videos.length){list.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No videos yet.</div>';return;}
-  list.innerHTML=S.videos.map(v=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:7px;">
-      <div style="width:36px;height:48px;border-radius:7px;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;color:${v.color}">▶</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:500">${v.title}</div>
-        <div style="font-size:11px;color:var(--dim)">${v.time}</div>
-      </div>
-      <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">
-        ${v.published?'✓ Published':'Publish'}
-      </div>
-      <a href="${v.url}" style="color:var(--purple2);font-size:12px;text-decoration:none" download>↓</a>
-    </div>`).join('');
-}
-
-function togglePublish(jid){
-  const v=S.videos.find(v=>v.jid===jid);
-  if(!v) return;
-  v.published=!v.published;
-  saveVideos();
-  updateDashboard();
-  renderHistory();
-  renderShowcase();
-  toast(v.published?'Published to showcase':'Unpublished','ok');
-}
-
-// ── Showcase rendering ─────────────────────────────────────────────
-function renderShowcase(){
-  const published=S.videos.filter(v=>v.published);
-  document.getElementById('showcaseVideoCount').textContent=published.length;
-  const grid=document.getElementById('showcaseGrid');
-  if(!published.length){
-    grid.innerHTML=`<div class="empty-showcase" style="grid-column:1/-1">
-      <span class="icon" style="display:block">🎬</span>
-      <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px;">No videos published yet</div>
-      <div style="margin-bottom:20px;color:var(--muted)">Create your first AI influencer video in the studio</div>
-      <button class="btn primary" onclick="openStudio()">Open Studio →</button>
-    </div>`;
-    return;
+  const catchphrase=document.getElementById('npCatch').value;
+  const anchors=document.getElementById('npAnchors').value;
+  const pImg=document.getElementById('npPortraitImg');
+  const portrait=(pImg.src&&pImg.src.length>100&&!pImg.src.includes('data:,')?pImg.src:null);
+  const newP={name,initials,color:_npColor,role,age,appearance,anchors,catchphrase,portrait,
+    niche:role.toLowerCase().includes('wealth')||role.toLowerCase().includes('finance')?'wealth':'general',
+    skill:window._npSkill||'',skillName:window._npSkillName||'',savedPortraits:portrait?[portrait]:[]};
+  const idx=S.personas.findIndex(p=>p.name===name);
+  if(idx>=0)S.personas[idx]={...S.personas[idx],...newP};else S.personas.push(newP);
+  saveAll();renderSidePersonas();renderCreatePersonas();
+  // Add to skills store if skill present
+  if(window._npSkill&&!S.skills.find(s=>s.name===window._npSkillName)){
+    S.skills.push({name:window._npSkillName,text:window._npSkill,persona:name,added:new Date().toLocaleString()});
+    updateDocCounts();
   }
-  grid.innerHTML=published.map(v=>`
-    <div class="video-card">
-      <div class="video-thumb">
-        <video src="${v.url}" muted loop preload="none" style="width:100%;height:100%;object-fit:cover;"></video>
-        <div class="video-play-overlay"><div class="play-btn">▶</div></div>
-      </div>
-      <div class="video-info">
-        <div class="video-title">${v.title}</div>
-        <div class="video-meta">${v.time}</div>
-        <div class="persona-tag" style="background:${v.color}20;color:${v.color};border:1px solid ${v.color}40">
-          ${v.persona}
+  activatePersona(newP,null);
+  // Reset form
+  ['npName','npAge','npRole','npCatch','npAppearance','npAnchors'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('npSkillName').textContent='Upload skill file (TXT or PDF)';
+  document.getElementById('npSkillZone').classList.remove('skill-loaded');
+  document.getElementById('npSkillParsed').style.display='none';
+  document.getElementById('npPortraitPreview').style.display='none';
+  window._npSkill=null;window._npSkillName=null;window._npFile=null;
+  toast('Persona created: '+name);
+}
+
+// ── DOCS ───────────────────────────────────────────────
+function setDocTab(tab){
+  ['skills','scripts','portraits'].forEach(t=>{
+    document.getElementById('docpanel-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('dtab-'+t).classList.toggle('on',t===tab);
+  });
+  renderDocs(tab);
+}
+function renderDocs(tab){
+  tab=tab||'skills';
+  updateDocCounts();
+  if(tab==='skills'){
+    const el=document.getElementById('docSkillList');
+    el.innerHTML=S.skills.length?S.skills.map((s,i)=>`
+      <div class="doc-item">
+        <div class="doc-item-icon">📋</div>
+        <div style="flex:1;"><div class="doc-item-name">${s.name}</div><div class="doc-item-meta">${s.persona||''}${s.added?' · '+s.added:''}</div></div>
+        <div class="doc-item-actions">
+          <button class="btn ghost sm" onclick="loadSkillFromStore(${i})">Load</button>
+          <button class="btn ghost sm" onclick="deleteSkill(${i})" style="color:var(--red);">✕</button>
         </div>
-      </div>
-    </div>`).join('');
-  
-  // Play on hover
-  grid.querySelectorAll('.video-card').forEach(card=>{
-    const video=card.querySelector('video');
-    if(!video) return;
-    card.addEventListener('mouseenter',()=>video.play().catch(()=>{}));
-    card.addEventListener('mouseleave',()=>{video.pause();video.currentTime=0;});
+      </div>`).join(''):'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No skill files yet. Upload in Step 1 or via the button above.</div>';
+  }
+  if(tab==='scripts'){
+    const el=document.getElementById('docScriptList');
+    el.innerHTML=S.savedScripts.length?S.savedScripts.map((s,i)=>`
+      <div class="doc-item" style="flex-direction:column;align-items:flex-start;">
+        <div style="display:flex;align-items:center;gap:8px;width:100%;">
+          <div class="doc-item-icon">📄</div>
+          <div style="flex:1;"><div class="doc-item-name">${s.persona} · ${s.niche}</div><div class="doc-item-meta">${s.time}</div></div>
+          <div class="doc-item-actions">
+            <button class="btn ghost sm" onclick="loadSavedScript(${i})">Use</button>
+            <button class="btn ghost sm" onclick="S.savedScripts.splice(${i},1);saveAll();renderDocs('scripts')" style="color:var(--red);">✕</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;margin-left:28px;line-height:1.5;">${s.text.substring(0,120)}...</div>
+      </div>`).join(''):'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No saved scripts yet.</div>';
+  }
+  if(tab==='portraits'){
+    const grid=document.getElementById('docPortraitGrid');
+    const all=S.savedPortraits||[];
+    grid.innerHTML=all.length?all.map((p,i)=>`
+      <div class="p-slot done" style="position:relative;">
+        <img src="${p.url}"/>
+        <div class="pd-use" onclick="usePortrait('${p.url}')">Use →</div>
+      </div>`).join(''):'';
+    if(!all.length)grid.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;">No portraits saved yet.</div>';
+  }
+}
+
+function uploadDocSkill(input){
+  const files=Array.from(input.files);
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      if(!S.skills.find(s=>s.name===file.name)){
+        S.skills.push({name:file.name,text:e.target.result,persona:'',added:new Date().toLocaleString()});
+        saveAll();updateDocCounts();renderDocs('skills');toast('Uploaded: '+file.name);
+      }else toast(file.name+' already exists');
+    };reader.readAsText(file);
   });
 }
 
-// ── Persistence ────────────────────────────────────────────────────
-function saveVideos(){
-  try{localStorage.setItem('homivis_videos',JSON.stringify(S.videos));}catch(e){}
+function uploadDocPortrait(input){
+  const files=Array.from(input.files);
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      S.savedPortraits.push({url:e.target.result,persona:'',time:new Date().toLocaleString()});
+      saveAll();updateDocCounts();renderDocs('portraits');
+    };reader.readAsDataURL(file);
+  });
+  toast(files.length+' portrait(s) uploaded');
 }
 
-function loadVideos(){
+function loadSkillFromStore(i){
+  const s=S.skills[i];if(!s)return;
+  if(S.persona){const pp=S.personas.find(p=>p.name===S.persona.name);if(pp){pp.skill=s.text;pp.skillName=s.name;saveAll();}}
+  parseSkillForUI(s.text,true);
+  document.getElementById('skillName').textContent='✓ '+s.name;
+  document.getElementById('skillZone').classList.add('skill-loaded');
+  document.getElementById('rpSkill').innerHTML=`<span style="color:var(--green);">✓</span> <span style="color:var(--text);font-weight:500;">${s.name}</span>`;
+  showPanel('create',null);goStep(1);toast('Skill loaded — topic suggestions filled');
+}
+function deleteSkill(i){S.skills.splice(i,1);saveAll();updateDocCounts();renderDocs('skills');}
+function loadSavedScript(i){const s=S.savedScripts[i];if(!s)return;document.getElementById('scriptBox').textContent=s.text;document.getElementById('scriptCard').style.display='block';S.script=s.text;showPanel('create',null);goStep(3);toast('Script loaded');}
+
+function updateDocCounts(){
+  document.getElementById('fcSkills').textContent=S.skills.length;
+  document.getElementById('fcScripts').textContent=S.savedScripts.length;
+  document.getElementById('fcPortraits').textContent=(S.savedPortraits||[]).length;
+  document.getElementById('docSkillCount').textContent=S.skills.length;
+  document.getElementById('docScriptCount').textContent=S.savedScripts.length;
+  document.getElementById('docPortraitCount').textContent=(S.savedPortraits||[]).length;
+}
+
+// ── DASHBOARD / HISTORY ────────────────────────────────
+function updateDashboard(){
+  const total=S.videos.length,pub=S.videos.filter(v=>v.published).length;
+  document.getElementById('dashVideos').textContent=total;
+  document.getElementById('dashPublished').textContent=pub;
+  document.getElementById('dashBadge').textContent=total;
+  const list=document.getElementById('dashVideoList');
+  if(!total){list.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No videos yet.</div>';return;}
+  list.innerHTML=S.videos.slice(0,5).map(v=>`
+    <div class="vid-row">
+      <div style="font-size:16px;color:${v.color};">▶</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time}</div></div>
+      <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">${v.published?'✓ Live':'Publish'}</div>
+    </div>`).join('');
+}
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(!S.videos.length){list.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No videos yet.</div>';return;}
+  list.innerHTML=S.videos.map(v=>`
+    <div class="vid-row">
+      <div style="font-size:16px;color:${v.color};">▶</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time}</div></div>
+      <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">${v.published?'✓ Live':'Publish'}</div>
+      <a href="${v.url}" style="color:var(--p2);font-size:12px;text-decoration:none;margin-left:8px;" download>↓</a>
+    </div>`).join('');
+}
+function togglePublish(jid){const v=S.videos.find(v=>v.jid===jid);if(!v)return;v.published=!v.published;saveAll();updateDashboard();renderHistory();renderPublic('home');toast(v.published?'Published':'Unpublished');}
+
+// ── PERSISTENCE ────────────────────────────────────────
+function saveAll(){
   try{
-    const saved=localStorage.getItem('homivis_videos');
-    if(saved) S.videos=JSON.parse(saved);
+    const d={videos:S.videos,savedScripts:S.savedScripts,skills:S.skills.map(s=>({...s,text:''})),
+      personas:S.personas.map(p=>({...p,skill:''})),savedPortraits:S.savedPortraits};
+    localStorage.setItem('persona_v1',JSON.stringify(d));
+    // Store skill texts separately (they can be large)
+    S.skills.forEach((s,i)=>{try{localStorage.setItem('persona_skill_'+i,s.text);}catch(e){}});
   }catch(e){}
 }
-
-function saveSettings(){
-  const url=document.getElementById('apiUrl').value;
-  localStorage.setItem('apiUrl',url);
-  toast('Settings saved','ok');
+function loadAll(){
+  try{
+    const saved=localStorage.getItem('persona_v1');
+    if(saved){
+      const d=JSON.parse(saved);
+      S.videos=d.videos||[];S.savedScripts=d.savedScripts||[];
+      S.savedPortraits=d.savedPortraits||[];
+      S.skills=(d.skills||[]).map((s,i)=>({...s,text:localStorage.getItem('persona_skill_'+i)||''}));
+      if(d.personas?.length)S.personas=d.personas;
+    }
+  }catch(e){}
 }
+function saveSettings(){localStorage.setItem('apiUrl',document.getElementById('apiUrl').value);toast('Saved');}
 
-// ── Toast ──────────────────────────────────────────────────────────
+// ── TOAST ──────────────────────────────────────────────
 function toast(msg,type='ok'){
-  const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.className='toast show '+(type==='ok'?'ok':'err');
-  clearTimeout(el._t);
-  el._t=setTimeout(()=>el.className='toast',3000);
+  const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+(type==='ok'?'ok':'err');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',3200);
 }
 
-// ── Init ───────────────────────────────────────────────────────────
-loadVideos();
+// ── INIT ───────────────────────────────────────────────
+loadAll();
+if(!S.personas.length)S.personas=DEFAULTS.map(p=>({...p}));
+S.persona=S.personas[0];
+renderSidePersonas();
+renderCreatePersonas();
+// Set right panel defaults
+document.getElementById('rpAv').style.background=S.persona.color;
+document.getElementById('rpAv').textContent=S.persona.initials;
+document.getElementById('rpName').textContent=S.persona.name;
+document.getElementById('rpRole').textContent=S.persona.role+' · '+S.persona.age;
 updateDashboard();
-renderShowcase();
+updateDocCounts();
+setDocTab('skills');
 </script>
 </body>
 </html>
