@@ -283,13 +283,110 @@ async def serve_audio(job_id: str):
         return FileResponse(str(path), media_type="audio/mpeg")
     return JSONResponse({"error": "not found"}, status_code=404)
 
+@app.post("/train-lora")
+async def train_lora(
+    persona_name: str = Form(...),
+    trigger_word: str = Form(...),
+    image_urls: str = Form(...)  # JSON array of image URLs
+):
+    import fal_client, json as _json
+    os.environ["FAL_KEY"] = FAL_KEY
+    jid = "lora_" + str(uuid.uuid4())[:8]
+
+    try:
+        urls = _json.loads(image_urls)
+        if len(urls) < 5:
+            return JSONResponse({"error": "Need at least 5 images"}, status_code=400)
+
+        # Download all images and create a zip for training
+        import zipfile, io
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            async with httpx.AsyncClient(timeout=30) as client:
+                for i, url in enumerate(urls):
+                    r = await client.get(url)
+                    if r.status_code == 200:
+                        zf.writestr(f"image_{i:02d}.png", r.content)
+
+        zip_buffer.seek(0)
+        zip_path = UPLOAD_DIR / f"{jid}_training.zip"
+        zip_path.write_bytes(zip_buffer.read())
+
+        # Upload zip to fal.ai storage
+        zip_url = fal_client.upload_file(str(zip_path))
+
+        # Submit LoRA training job
+        set_job(jid, {"status": "running", "progress": 0,
+                      "message": "Submitting training job to fal.ai..."})
+
+        # Run training asynchronously
+        asyncio.create_task(run_lora_training(jid, zip_url, trigger_word, persona_name))
+        return {"job_id": jid, "status": "running",
+                "message": "LoRA training started — takes 15-20 minutes"}
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+async def run_lora_training(jid, zip_url, trigger_word, persona_name):
+    try:
+        import fal_client
+        os.environ["FAL_KEY"] = FAL_KEY
+        print(f"[{jid}] Starting LoRA training for {persona_name}, trigger: {trigger_word}")
+        set_job(jid, {"status": "running", "progress": 5,
+                      "message": "Training job submitted — fal.ai processing..."})
+
+        result = fal_client.subscribe(
+            "fal-ai/flux-lora-fast-training",
+            arguments={
+                "images_data_url": zip_url,
+                "trigger_word": trigger_word,
+                "steps": 1000,
+                "rank": 16,
+                "learning_rate": 0.0004,
+                "batch_size": 1,
+                "resolution": "512,768,1024",
+                "caption_dropout_rate": 0.05,
+                "text_encoder_learning_rate": 0.0001,
+                "create_masks": True
+            },
+            with_logs=True,
+            on_queue_update=lambda u: set_job(jid, {
+                "status": "running",
+                "progress": min(getattr(u, 'progress', 0) or 10, 95),
+                "message": getattr(u, 'message', 'Training in progress...')
+            }) if hasattr(u, 'status') and u.status == 'IN_PROGRESS' else None
+        )
+
+        lora_url = result.get("diffusers_lora_file", {}).get("url") or \
+                   result.get("lora_file", {}).get("url") or \
+                   result.get("url", "")
+
+        print(f"[{jid}] LoRA training complete. URL: {lora_url}")
+        set_job(jid, {
+            "status": "complete", "progress": 100,
+            "message": "LoRA trained successfully",
+            "lora_url": lora_url,
+            "trigger_word": trigger_word
+        })
+
+    except Exception as e:
+        print(f"[{jid}] LoRA training error: {e}")
+        import traceback; traceback.print_exc()
+        set_job(jid, {"status": "error", "error": str(e)})
+
+@app.get("/lora-status/{job_id}")
+async def lora_status(job_id: str):
+    return get_job(job_id)
+
 @app.post("/generate-portrait")
 async def generate_portrait(
     persona_name: str = Form(...),
     persona_age: str = Form(...),
     appearance: str = Form(...),
     outfit: str = Form("professional blazer"),
-    count: int = Form(1)
+    count: int = Form(1),
+    lora_url: Optional[str] = Form(None),
+    trigger_word: Optional[str] = Form(None)
 ):
     import fal_client
     os.environ["FAL_KEY"] = FAL_KEY
@@ -341,18 +438,27 @@ async def generate_portrait(
         f"commercial editorial photography"
     )
 
+    # If LoRA is provided, inject trigger word at start of prompt
+    if lora_url and trigger_word:
+        prompt = f"{trigger_word}, {prompt}"
+        print(f"Using LoRA: {lora_url}, trigger: {trigger_word}")
+
     images = []
     try:
         for i in range(min(count, 4)):
-            result = fal_client.subscribe("fal-ai/flux/dev", arguments={
+            args = {
                 "prompt": prompt,
-                # portrait_4_3 = 768x1024 — tall enough for waist-up
                 "image_size": "portrait_4_3",
-                "num_inference_steps": 35,  # more steps = better prompt following
+                "num_inference_steps": 35,
                 "num_images": 1,
                 "enable_safety_checker": False,
                 "guidance_scale": 3.5
-            })
+            }
+            # Add LoRA weights if provided
+            if lora_url:
+                args["loras"] = [{"path": lora_url, "scale": 1.0}]
+
+            result = fal_client.subscribe("fal-ai/flux/dev", arguments=args)
             img_url = result["images"][0]["url"]
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.get(img_url)

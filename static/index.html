@@ -338,6 +338,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 .toast.ok{border-color:var(--green);}
 .toast.err{border-color:var(--red);}
 
+@keyframes spin{to{transform:rotate(360deg);}}
 @media(max-width:768px){
   #studio.active{grid-template-columns:1fr;}
   .sidebar{display:none;}
@@ -685,20 +686,195 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           </div>
         </div>
 
-        <!-- PORTRAITS -->
+        <!-- PORTRAITS / IDENTITY LOCK -->
         <div id="panel-portraits" class="tab-panel">
-          <div class="card">
-            <div class="card-hd">Generate 10 portraits</div>
-            <div class="g2">
-              <div class="field"><div class="lbl">Persona</div><input class="inp" id="ppName" value="Victoria Sterling"/></div>
-              <div class="field"><div class="lbl">Age</div><input class="inp" id="ppAge" value="52"/></div>
-            </div>
-            <div class="field" style="margin-top:10px;"><div class="lbl">Appearance prompt</div>
-              <textarea class="inp" id="ppAppearance" placeholder="Studio portrait photograph of a 52-year-old British woman..."></textarea>
-            </div>
-            <button class="gen-btn" style="margin-top:12px;" onclick="genPortraits10()">✦ Generate 10 portraits</button>
+
+          <!-- Stage indicator -->
+          <div style="display:flex;gap:0;margin-bottom:4px;">
+            <div class="id-stage on" id="idstage-1" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;border-bottom:2px solid var(--purple);color:var(--p2);cursor:pointer;" onclick="showIdStage(1)">1 · Master</div>
+            <div class="id-stage" id="idstage-2" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(2)">2 · Angles</div>
+            <div class="id-stage" id="idstage-3" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(3)">3 · Train LoRA</div>
+            <div class="id-stage" id="idstage-4" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(4)">4 · Test</div>
+            <div class="id-stage" id="idstage-5" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(5)">5 · Lock</div>
           </div>
-          <div class="p-grid" id="portraitGallery" style="grid-template-columns:repeat(5,1fr);"></div>
+
+          <!-- STAGE 1: Master portrait -->
+          <div id="idpanel-1">
+            <div class="card">
+              <div class="card-hd">① Generate master portrait <span class="badge">Front facing · White background · Waist up</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+                This is the foundation image. Get the face, age and appearance exactly right before proceeding. Everything else is built from this.
+              </div>
+              <div class="g2">
+                <div class="field"><div class="lbl">Persona name</div><input class="inp" id="ppName" value=""/></div>
+                <div class="field"><div class="lbl">Age</div><input class="inp" id="ppAge" value=""/></div>
+              </div>
+              <div class="field" style="margin-top:10px;"><div class="lbl">Appearance prompt</div>
+                <textarea class="inp" id="ppAppearance" style="min-height:80px;" placeholder="Studio portrait photograph of a 52-year-old British woman, warm brown skin, dark hair slicked back..."></textarea>
+              </div>
+              <button class="gen-btn" style="margin-top:12px;" onclick="genMasterPortrait()">✦ Generate master portrait</button>
+            </div>
+
+            <!-- Master portrait result -->
+            <div id="masterPortraitResult" style="display:none;">
+              <div class="card">
+                <div class="card-hd">Master portrait <span class="badge" id="masterPortraitBadge">Generating...</span></div>
+                <div style="display:flex;gap:16px;align-items:flex-start;">
+                  <div style="flex-shrink:0;width:160px;">
+                    <div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:2px solid var(--border);background:var(--surface);">
+                      <img id="masterPortraitImg" style="width:100%;height:100%;object-fit:cover;" src=""/>
+                    </div>
+                    <div id="masterPortraitStatus" style="font-size:11px;color:var(--amber);margin-top:6px;text-align:center;"></div>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Is this the right face?</div>
+                    <div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px;">
+                      Check: correct age appearance · right ethnicity · right bone structure · white background clean · waist up framing<br><br>
+                      If not right, regenerate below. Once you're happy, proceed to generate the 9 angle variations.
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <button class="btn ghost" onclick="genMasterPortrait()" style="font-size:12px;">↺ Regenerate</button>
+                      <button class="btn primary" id="proceedToAnglesBtn" onclick="proceedToAngles()" style="font-size:12px;display:none;">Happy with this → Generate 9 angles</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 2: 9 angle variations -->
+          <div id="idpanel-2" style="display:none;">
+            <div class="card">
+              <div class="card-hd">② Generate 9 angle variations <span class="badge">Same person · Different angles</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+                These 9 images plus your master portrait give the LoRA 10 views of the same face. Each angle is specified precisely so the model learns the full facial structure.
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:14px;">
+                <img id="masterThumb" style="width:56px;height:75px;object-fit:cover;border-radius:7px;border:2px solid var(--purple);" src=""/>
+                <div>
+                  <div style="font-size:12px;font-weight:600;">Master portrait locked</div>
+                  <div style="font-size:11px;color:var(--dim);margin-top:2px;" id="masterThumbName"></div>
+                </div>
+              </div>
+              <button class="gen-btn" onclick="genAngleVariations()">✦ Generate 9 angle variations</button>
+            </div>
+
+            <div class="card" id="anglesCard" style="display:none;">
+              <div class="card-hd">Angle variations <span class="badge" id="anglesBadge">0 / 9</span></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;" id="anglesGrid"></div>
+              <div id="anglesStatus" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center;"></div>
+              <button class="gen-btn" id="proceedToLoraBtn" style="margin-top:12px;display:none;" onclick="showIdStage(3)">All 9 ready → Train LoRA →</button>
+            </div>
+          </div>
+
+          <!-- STAGE 3: Train LoRA -->
+          <div id="idpanel-3" style="display:none;">
+            <div class="card">
+              <div class="card-hd">③ Train identity LoRA <span class="badge amber">One time · ~15-20 minutes · ~$2</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+                The LoRA learns this persona's face from all 10 images. After training, every future portrait generation will use the trigger word to reproduce the same face exactly — regardless of outfit, hair, jewellery or scene.
+              </div>
+
+              <!-- 10 image review -->
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Training images (10)</div>
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;" id="loraTrainingGrid"></div>
+
+              <div class="field" style="margin-bottom:12px;">
+                <div class="lbl">Trigger word</div>
+                <input class="inp" id="loraTriggerWord" placeholder="e.g. victoria_sterling_v1" style="font-family:monospace;"/>
+                <div style="font-size:10px;color:var(--dim);margin-top:4px;">This word in any prompt will reproduce this exact face. Use lowercase, underscores, no spaces.</div>
+              </div>
+
+              <button class="gen-btn" id="trainLoraBtn" onclick="trainLora()">✦ Train LoRA — lock this identity</button>
+
+              <div id="loraTrainingStatus" style="display:none;margin-top:14px;">
+                <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--p3);border:1px solid rgba(124,58,237,.3);border-radius:9px;">
+                  <div style="width:20px;height:20px;border:2px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
+                  <div>
+                    <div style="font-size:12px;font-weight:500;color:var(--p2);" id="loraStatusMsg">Training in progress...</div>
+                    <div style="font-size:10px;color:var(--dim);margin-top:2px;" id="loraStatusSub">This takes 15–20 minutes. You can leave this page — progress is saved.</div>
+                  </div>
+                </div>
+                <div class="pbar" style="margin-top:10px;"><div class="pbar-fill" id="loraProgressBar" style="width:0%;"></div></div>
+                <div style="font-size:11px;color:var(--dim);margin-top:5px;" id="loraProgressLabel">0%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 4: Test -->
+          <div id="idpanel-4" style="display:none;">
+            <div class="card">
+              <div class="card-hd">④ Test the locked identity <span class="badge green">LoRA trained</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+                Generate a test image using the trained LoRA. Change the outfit and scene — the face must stay identical to your master portrait.
+              </div>
+
+              <div id="loraSuccessBanner" style="padding:12px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px;display:none;">
+                <div style="font-size:12px;font-weight:600;color:var(--green);">✓ LoRA trained successfully</div>
+                <div style="font-size:11px;color:var(--dim);margin-top:3px;" id="loraUrlDisplay"></div>
+              </div>
+
+              <div class="field" style="margin-bottom:10px;">
+                <div class="lbl">Test outfit/scene</div>
+                <input class="inp" id="loraTestOutfit" placeholder="e.g. cream cashmere blazer, luxury home library background"/>
+              </div>
+              <button class="gen-btn" onclick="testLoraGeneration()">✦ Generate test image with LoRA</button>
+
+              <div id="loraTestResult" style="display:none;margin-top:14px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+                  <div>
+                    <div style="font-size:11px;color:var(--dim);margin-bottom:6px;text-align:center;">Master portrait</div>
+                    <div style="aspect-ratio:3/4;border-radius:9px;overflow:hidden;border:2px solid var(--purple);">
+                      <img id="loraTestMaster" style="width:100%;height:100%;object-fit:cover;" src=""/>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--dim);margin-bottom:6px;text-align:center;">LoRA generation</div>
+                    <div style="aspect-ratio:3/4;border-radius:9px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+                      <img id="loraTestImg" style="width:100%;height:100%;object-fit:cover;" src=""/>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                  <button class="btn ghost" style="flex:1;" onclick="testLoraGeneration()">↺ Test again</button>
+                  <button class="btn primary" style="flex:1;" onclick="showIdStage(5)">Face matches → Lock to persona →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 5: Lock -->
+          <div id="idpanel-5" style="display:none;">
+            <div class="card">
+              <div class="card-hd">⑤ Lock identity to persona <span class="badge green">Final step</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+                This saves the LoRA URL and trigger word permanently to the persona. All future portrait and video generations will automatically use this identity.
+              </div>
+
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;">
+                <div style="display:flex;gap:12px;align-items:center;">
+                  <img id="lockPersonaThumb" style="width:56px;height:75px;object-fit:cover;border-radius:8px;border:2px solid var(--green);" src=""/>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;" id="lockPersonaName"></div>
+                    <div style="font-size:11px;color:var(--dim);margin-top:3px;" id="lockTriggerDisplay"></div>
+                    <div style="font-size:11px;color:var(--dim);margin-top:2px;" id="lockLoraDisplay"></div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="gen-btn" id="lockIdentityBtn" onclick="lockIdentityToPersona()" style="background:linear-gradient(135deg,var(--green),#16a34a);">
+                🔒 Lock identity — this face is permanent
+              </button>
+
+              <div id="lockSuccessMsg" style="display:none;margin-top:14px;padding:16px;background:var(--g2);border:1px solid rgba(34,197,94,.3);border-radius:10px;text-align:center;">
+                <div style="font-size:20px;margin-bottom:8px;">🔒</div>
+                <div style="font-size:14px;font-weight:600;color:var(--green);" id="lockSuccessPersona"></div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">Identity locked. Every portrait and video will use this face from now on.</div>
+                <button class="btn primary" style="margin-top:12px;" onclick="showPanel('create',null);goStep(1)">Start creating videos →</button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ALL VIDEOS -->
@@ -1013,6 +1189,7 @@ function showPanel(id,navEl){
   if(id==='create'){loadVoices();renderCreatePersonas();}
   if(id==='history')renderHistory();
   if(id==='docs')renderDocs();
+  if(id==='portraits'){initPortraitsPanel();showIdStage(1);}
 }
 
 // ── PERSONA SIDEBAR ────────────────────────────────────
@@ -1572,17 +1749,29 @@ function uploadPortrait(input){
 async function genPortrait(){
   const prompt=document.getElementById('portraitPrompt').value.trim()||S.persona?.appearance;
   if(!prompt)return toast('Add appearance prompt first','err');
-  const st=document.getElementById('portraitGenStatus');st.style.display='block';st.textContent='Generating... ~10 seconds';
+  const st=document.getElementById('portraitGenStatus');
+  const hasLora=!!S.persona?.loraUrl;
+  st.style.display='block';
+  st.textContent=hasLora?'🔒 Generating with locked identity... ~20 seconds':'Generating portrait... ~20 seconds';
   try{
-    const fd=new FormData();fd.append('persona_name',S.persona?.name||'persona');fd.append('persona_age',S.persona?.age||'36');fd.append('appearance',prompt);fd.append('count','1');
+    const fd=new FormData();
+    fd.append('persona_name',S.persona?.name||'persona');
+    fd.append('persona_age',S.persona?.age||'36');
+    fd.append('appearance',prompt);
+    fd.append('count','1');
+    if(hasLora){
+      fd.append('lora_url',S.persona.loraUrl);
+      fd.append('trigger_word',S.persona.triggerWord||'');
+    }
     const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
     if(d.error)throw new Error(d.error);
     const imgUrl=API()+d.images[0];
     const grid=document.getElementById('portraitGrid');
     grid.children[0].innerHTML=`<img src="${imgUrl}"/><div class="sel-check">✓</div>`;
-    grid.children[0].classList.add('done','selected');document.getElementById('portraitBadge').textContent='Generated ✓';
+    grid.children[0].classList.add('done','selected');
+    document.getElementById('portraitBadge').textContent=hasLora?'🔒 Identity locked ✓':'Generated ✓';
     const resp=await fetch(imgUrl);const blob=await resp.blob();S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
-    st.style.display='none';toast('Portrait ready');
+    st.style.display='none';toast(hasLora?'Portrait generated with locked identity':'Portrait ready');
   }catch(e){st.style.display='none';toast('Error: '+e.message,'err');}
 }
 async function genScene(){
@@ -1624,29 +1813,314 @@ function uploadScene(input){
   const file=input.files[0];if(!file)return;S.sceneFile=file;
   const reader=new FileReader();reader.onload=e=>{document.getElementById('sceneImg').src=e.target.result;document.getElementById('scenePreview').style.display='block';};reader.readAsDataURL(file);
 }
-async function genPortraits10(){
-  const name=document.getElementById('ppName').value,appearance=document.getElementById('ppAppearance').value;
-  if(!appearance)return toast('Add appearance prompt first','err');
-  const outfits=['cream wool blazer','black tailored blazer','luxury navy knitwear','ivory structured coat','silk blouse and blazer','crisp white shirt','smart business casual','formal dark suit','cashmere rollneck','relaxed luxury linen'];
-  const gallery=document.getElementById('portraitGallery');gallery.innerHTML='';
-  for(let i=0;i<10;i++){const s=document.createElement('div');s.className='p-slot generating';s.innerHTML=`<span style="font-size:11px;color:var(--amber);">${i+1}</span>`;gallery.appendChild(s);}
-  const saved=[];
-  for(let i=0;i<10;i++){
-    try{
-      const fd=new FormData();fd.append('persona_name',name);fd.append('persona_age',document.getElementById('ppAge').value);fd.append('appearance',appearance+', wearing '+outfits[i]);fd.append('count','1');
-      const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
-      if(d.error)throw new Error(d.error);
-      const url=API()+d.images[0];
-      gallery.children[i].innerHTML=`<img src="${url}"/>`;gallery.children[i].classList.remove('generating');gallery.children[i].classList.add('done');
-      gallery.children[i].onclick=()=>usePortrait(url);
-      saved.push(url);
-    }catch(e){gallery.children[i].innerHTML='<span style="font-size:10px;color:var(--red);">Error</span>';gallery.children[i].classList.remove('generating');}
+// ── IDENTITY LOCK FLOW ─────────────────────────────────
+
+// Identity state
+let ID = {
+  masterUrl: null, masterFile: null,
+  angleUrls: [], allUrls: [],
+  loraUrl: null, triggerWord: null,
+  personaName: null
+};
+
+function showIdStage(n){
+  for(let i=1;i<=5;i++){
+    const panel=document.getElementById('idpanel-'+i);
+    const tab=document.getElementById('idstage-'+i);
+    if(panel) panel.style.display=i===n?'block':'none';
+    if(tab){
+      tab.style.borderBottomColor=i===n?'var(--purple)':i<n?'var(--green)':'var(--border)';
+      tab.style.color=i===n?'var(--p2)':i<n?'var(--green)':'var(--dim)';
+      tab.style.fontWeight=i<=n?'600':'500';
+    }
   }
-  const pp=S.personas.find(p=>p.name===name);if(pp){pp.savedPortraits=saved;saveAll();}
-  // Save to portrait doc store
-  saved.forEach(url=>S.savedPortraits.push({url,persona:name,time:new Date().toLocaleString()}));
+}
+
+// Pre-fill from active persona when portraits panel opens
+function initPortraitsPanel(){
+  const p=S.persona;
+  if(!p) return;
+  document.getElementById('ppName').value=p.name||'';
+  document.getElementById('ppAge').value=p.age||'';
+  document.getElementById('ppAppearance').value=p.appearance||'';
+  // Set trigger word suggestion
+  const tw=document.getElementById('loraTriggerWord');
+  if(tw&&!tw.value) tw.value=(p.name||'persona').toLowerCase().replace(/\s+/g,'_')+'_v1';
+  // If persona already has a LoRA, show locked state
+  if(p.loraUrl){
+    document.getElementById('lockSuccessMsg').style.display='block';
+    document.getElementById('lockSuccessPersona').textContent=p.name+' identity is locked';
+    document.getElementById('lockIdentityBtn').style.display='none';
+  }
+}
+
+// Stage 1 — Master portrait
+async function genMasterPortrait(){
+  const name=document.getElementById('ppName').value.trim();
+  const age=document.getElementById('ppAge').value.trim();
+  const appearance=document.getElementById('ppAppearance').value.trim();
+  if(!appearance) return toast('Add appearance prompt first','err');
+
+  document.getElementById('masterPortraitResult').style.display='block';
+  document.getElementById('masterPortraitBadge').textContent='Generating...';
+  document.getElementById('masterPortraitStatus').textContent='Generating master portrait... ~20 seconds';
+  document.getElementById('proceedToAnglesBtn').style.display='none';
+  document.getElementById('masterPortraitImg').src='';
+
+  try{
+    const fd=new FormData();
+    fd.append('persona_name',name);
+    fd.append('persona_age',age);
+    fd.append('appearance',appearance);
+    fd.append('outfit','professional attire, hands clasped in front');
+    fd.append('count','1');
+    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    const url=API()+d.images[0];
+    document.getElementById('masterPortraitImg').src=url;
+    document.getElementById('masterPortraitBadge').textContent='Generated — review carefully';
+    document.getElementById('masterPortraitStatus').textContent='';
+    document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
+    ID.masterUrl=url;
+    ID.personaName=name;
+    // Fetch as file for later use
+    const resp=await fetch(url);
+    const blob=await resp.blob();
+    ID.masterFile=new File([blob],'master.png',{type:'image/png'});
+    toast('Master portrait ready — review before proceeding');
+  }catch(e){
+    document.getElementById('masterPortraitStatus').textContent='Error: '+e.message;
+    toast('Error: '+e.message,'err');
+  }
+}
+
+function proceedToAngles(){
+  if(!ID.masterUrl) return toast('Generate master portrait first','err');
+  // Set master thumb in stage 2
+  document.getElementById('masterThumb').src=ID.masterUrl;
+  document.getElementById('masterThumbName').textContent=ID.personaName||'';
+  showIdStage(2);
+  toast('Master portrait locked — now generate 9 angle variations');
+}
+
+// Stage 2 — 9 angle variations
+const ANGLES = [
+  {label:'Slight left turn',    desc:'30 degree turn to the left, three-quarter view, eyes looking at camera'},
+  {label:'Slight right turn',   desc:'30 degree turn to the right, three-quarter view, eyes looking at camera'},
+  {label:'Left profile',        desc:'side profile facing left, 90 degrees, chin level, eyes forward'},
+  {label:'Right profile',       desc:'side profile facing right, 90 degrees, chin level, eyes forward'},
+  {label:'Looking slightly up', desc:'chin slightly raised, looking slightly upward, direct gaze, 10 degree tilt up'},
+  {label:'Looking slightly down',desc:'chin slightly lowered, looking slightly downward, contemplative expression, 10 degree tilt down'},
+  {label:'Three-quarter left',  desc:'45 degree turn to the left, over-shoulder look, direct eye contact with camera'},
+  {label:'Three-quarter right', desc:'45 degree turn to the right, over-shoulder look, direct eye contact with camera'},
+  {label:'Front facing, smiling',desc:'front facing directly, genuine warm smile, eyes slightly creased, natural expression'}
+];
+
+async function genAngleVariations(){
+  if(!ID.masterUrl) return toast('Complete stage 1 first','err');
+  const name=document.getElementById('ppName').value;
+  const age=document.getElementById('ppAge').value;
+  const appearance=document.getElementById('ppAppearance').value;
+
+  document.getElementById('anglesCard').style.display='block';
+  document.getElementById('anglesBadge').textContent='0 / 9';
+  document.getElementById('proceedToLoraBtn').style.display='none';
+
+  // Build grid with placeholders
+  const grid=document.getElementById('anglesGrid');
+  grid.innerHTML=ANGLES.map((a,i)=>`
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <div id="angle-slot-${i}" style="aspect-ratio:3/4;border-radius:8px;border:1px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
+        <span style="font-size:10px;color:var(--amber);text-align:center;padding:4px;">${a.label}</span>
+      </div>
+      <div style="font-size:9px;color:var(--dim);text-align:center;line-height:1.3;">${a.label}</div>
+    </div>`).join('');
+
+  ID.angleUrls=[];
+  let done=0;
+  document.getElementById('anglesStatus').textContent='Generating angle variations... this takes a few minutes';
+
+  for(let i=0;i<ANGLES.length;i++){
+    const slot=document.getElementById('angle-slot-'+i);
+    slot.innerHTML=`<div style="width:16px;height:16px;border:2px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>`;
+    try{
+      const fd=new FormData();
+      fd.append('persona_name',name);
+      fd.append('persona_age',age);
+      // Angle-specific prompt — builds on base appearance with precise angle instruction
+      fd.append('appearance', appearance+', '+ANGLES[i].desc);
+      fd.append('outfit','same professional attire, hands visible');
+      fd.append('count','1');
+      const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
+      const d=await r.json();
+      if(d.error) throw new Error(d.error);
+      const url=API()+d.images[0];
+      slot.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;"/>`;
+      slot.style.border='1px solid var(--green)';
+      ID.angleUrls.push(url);
+      done++;
+      document.getElementById('anglesBadge').textContent=done+' / 9';
+    }catch(e){
+      slot.innerHTML=`<span style="font-size:9px;color:var(--red);padding:4px;text-align:center;">Failed — retry</span>`;
+      slot.style.border='1px solid var(--red)';
+    }
+  }
+
+  ID.allUrls=[ID.masterUrl,...ID.angleUrls];
+  document.getElementById('anglesStatus').textContent=done+' of 9 angle variations generated';
+
+  if(done>=7){
+    document.getElementById('proceedToLoraBtn').style.display='flex';
+    // Pre-populate LoRA training grid
+    populateLoraGrid();
+    toast(done+' angle variations ready → proceed to train LoRA');
+  } else {
+    toast('Some angles failed — you can still proceed with '+done+' images','err');
+    document.getElementById('proceedToLoraBtn').style.display='flex';
+    populateLoraGrid();
+  }
+}
+
+// Stage 3 — LoRA training
+function populateLoraGrid(){
+  const grid=document.getElementById('loraTrainingGrid');
+  grid.innerHTML=ID.allUrls.map((url,i)=>`
+    <div style="aspect-ratio:3/4;border-radius:7px;overflow:hidden;border:1px solid ${i===0?'var(--purple)':'var(--border)'};position:relative;">
+      <img src="${url}" style="width:100%;height:100%;object-fit:cover;"/>
+      ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(124,58,237,.8);font-size:9px;color:#fff;text-align:center;padding:2px;">Master</div>':''}
+    </div>`).join('');
+  // Also set master thumb in stage 4
+  const tm=document.getElementById('loraTestMaster');
+  if(tm) tm.src=ID.masterUrl||'';
+  const lp=document.getElementById('lockPersonaThumb');
+  if(lp) lp.src=ID.masterUrl||'';
+  document.getElementById('lockPersonaName').textContent=ID.personaName||'';
+}
+
+async function trainLora(){
+  if(ID.allUrls.length<5) return toast('Need at least 5 images to train','err');
+  const triggerWord=document.getElementById('loraTriggerWord').value.trim();
+  if(!triggerWord) return toast('Enter a trigger word first','err');
+
+  const btn=document.getElementById('trainLoraBtn');
+  btn.disabled=true; btn.textContent='Submitting training job...';
+  document.getElementById('loraTrainingStatus').style.display='block';
+  document.getElementById('loraStatusMsg').textContent='Submitting training job to fal.ai...';
+
+  try{
+    const fd=new FormData();
+    fd.append('trigger_word', triggerWord);
+    fd.append('persona_name', ID.personaName||'persona');
+    // Send all image URLs as JSON array
+    fd.append('image_urls', JSON.stringify(ID.allUrls));
+
+    const r=await fetch(`${API()}/train-lora`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+
+    const jobId=d.job_id;
+    ID.triggerWord=triggerWord;
+    document.getElementById('loraStatusMsg').textContent='Training in progress — job ID: '+jobId;
+    document.getElementById('loraStatusSub').textContent='This takes 15–20 minutes. Checking progress every 30 seconds...';
+
+    // Poll for completion
+    let elapsed=0;
+    const pollLora=setInterval(async()=>{
+      elapsed+=30;
+      try{
+        const sr=await fetch(`${API()}/lora-status/${jobId}`);
+        const sd=await sr.json();
+        const pct=sd.progress||Math.min(Math.round(elapsed/1200*100),95);
+        document.getElementById('loraProgressBar').style.width=pct+'%';
+        document.getElementById('loraProgressLabel').textContent=pct+'% — '+Math.round(elapsed/60)+' min elapsed';
+        document.getElementById('loraStatusMsg').textContent=sd.message||'Training in progress...';
+
+        if(sd.status==='complete'){
+          clearInterval(pollLora);
+          ID.loraUrl=sd.lora_url;
+          document.getElementById('loraProgressBar').style.width='100%';
+          document.getElementById('loraStatusMsg').textContent='✓ LoRA trained successfully';
+          document.getElementById('loraStatusSub').textContent='Trigger word: '+triggerWord;
+          // Show success in stage 4
+          document.getElementById('loraSuccessBanner').style.display='block';
+          document.getElementById('loraUrlDisplay').textContent='LoRA: '+sd.lora_url;
+          document.getElementById('lockTriggerDisplay').textContent='Trigger word: '+triggerWord;
+          document.getElementById('lockLoraDisplay').textContent=sd.lora_url;
+          toast('LoRA trained! Proceed to test the identity.');
+          setTimeout(()=>showIdStage(4),1500);
+        }
+        if(sd.status==='error'){
+          clearInterval(pollLora);
+          document.getElementById('loraStatusMsg').textContent='Training failed: '+sd.error;
+          btn.disabled=false; btn.textContent='✦ Retry training';
+          toast('Training failed: '+sd.error,'err');
+        }
+      }catch(e){}
+    },30000);
+
+  }catch(e){
+    btn.disabled=false; btn.textContent='✦ Train LoRA — lock this identity';
+    document.getElementById('loraTrainingStatus').style.display='none';
+    toast('Error: '+e.message,'err');
+  }
+}
+
+// Stage 4 — Test
+async function testLoraGeneration(){
+  if(!ID.loraUrl) return toast('Train LoRA first','err');
+  const outfit=document.getElementById('loraTestOutfit').value||'cream cashmere blazer, luxury library background';
+  document.getElementById('loraTestResult').style.display='none';
+  toast('Generating test image with LoRA...');
+  try{
+    const fd=new FormData();
+    fd.append('persona_name',ID.personaName||'persona');
+    fd.append('persona_age',document.getElementById('ppAge').value||'40');
+    fd.append('appearance',document.getElementById('ppAppearance').value);
+    fd.append('outfit',outfit);
+    fd.append('lora_url',ID.loraUrl);
+    fd.append('trigger_word',ID.triggerWord);
+    fd.append('count','1');
+    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    const url=API()+d.images[0];
+    document.getElementById('loraTestImg').src=url;
+    document.getElementById('loraTestMaster').src=ID.masterUrl||'';
+    document.getElementById('loraTestResult').style.display='block';
+    toast('Test image ready — compare faces');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// Stage 5 — Lock to persona
+function lockIdentityToPersona(){
+  if(!ID.loraUrl) return toast('Train LoRA first','err');
+  const pp=S.personas.find(p=>p.name===ID.personaName);
+  if(!pp) return toast('Persona not found','err');
+  pp.loraUrl=ID.loraUrl;
+  pp.triggerWord=ID.triggerWord;
+  pp.portrait=ID.masterUrl;
+  pp.savedPortraits=ID.allUrls;
+  if(pp.name===S.persona?.name) S.persona=pp;
+  saveAll();
+  renderSidePersonas();
+  // Update sidebar portrait
+  document.getElementById('lockSuccessMsg').style.display='block';
+  document.getElementById('lockSuccessPersona').textContent=pp.name+' identity is locked';
+  document.getElementById('lockIdentityBtn').style.display='none';
+  // Update right panel portrait
+  const av=document.getElementById('rpAv');
+  if(av&&pp.portrait) av.innerHTML=`<img src="${pp.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+  toast('🔒 '+pp.name+' identity locked permanently');
+  // Save to portrait docs
+  ID.allUrls.forEach(url=>S.savedPortraits.push({url,persona:pp.name,time:new Date().toLocaleString()}));
   saveAll();updateDocCounts();
-  toast('10 portraits done');
+}
+
+// Legacy function — keep for backward compat
+async function genPortraits10(){
+  showPanel('portraits',null);
+  toast('Use the Identity Lock flow in the Portraits panel');
 }
 
 // ── VIDEO GENERATION ───────────────────────────────────
