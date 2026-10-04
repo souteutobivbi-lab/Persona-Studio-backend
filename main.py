@@ -424,22 +424,48 @@ async def train_lora(
 
     try:
         urls = _json.loads(image_urls)
-        if len(urls) < 5:
-            return JSONResponse({"error": "Need at least 5 images"}, status_code=400)
+        # Filter to valid URLs only
+        valid_urls = [u for u in urls if u and (u.startswith('http') or u.startswith('data:image'))]
+        print(f"[{jid}] Training with {len(valid_urls)} images (from {len(urls)} total)")
+
+        if len(valid_urls) < 1:
+            return JSONResponse({"error": "No valid images found. Please regenerate portraits first."}, status_code=400)
+        print(f"[{jid}] Valid images: {len(valid_urls)} (CDN: {sum(1 for u in valid_urls if u.startswith('http'))}, base64: {sum(1 for u in valid_urls if u.startswith('data'))})")
 
         # Download all images and create a zip for training
-        import zipfile, io
+        import zipfile, io, base64 as _b64
         zip_buffer = io.BytesIO()
+        added = 0
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-            async with httpx.AsyncClient(timeout=30) as client:
-                for i, url in enumerate(urls):
-                    r = await client.get(url)
-                    if r.status_code == 200:
-                        zf.writestr(f"image_{i:02d}.png", r.content)
+            async with httpx.AsyncClient(timeout=60) as client:
+                for i, url in enumerate(valid_urls):
+                    try:
+                        if url.startswith('data:image'):
+                            # Base64 data URL — decode directly
+                            header, data = url.split(',', 1)
+                            img_bytes = _b64.b64decode(data)
+                            zf.writestr(f"image_{i:02d}.png", img_bytes)
+                            added += 1
+                            print(f"[{jid}] Added base64 image {i} ({len(img_bytes)} bytes)")
+                        elif url.startswith('http'):
+                            r = await client.get(url)
+                            if r.status_code == 200:
+                                zf.writestr(f"image_{i:02d}.png", r.content)
+                                added += 1
+                                print(f"[{jid}] Downloaded image {i} ({len(r.content)} bytes)")
+                            else:
+                                print(f"[{jid}] Failed to download image {i}: HTTP {r.status_code}")
+                    except Exception as ie:
+                        print(f"[{jid}] Error processing image {i}: {ie}")
+
+        print(f"[{jid}] Zip created with {added} images")
+        if added < 3:
+            return JSONResponse({"error": f"Only {added} images could be processed. Need at least 3."}, status_code=400)
 
         zip_buffer.seek(0)
         zip_path = UPLOAD_DIR / f"{jid}_training.zip"
         zip_path.write_bytes(zip_buffer.read())
+        print(f"[{jid}] Zip size: {zip_path.stat().st_size} bytes")
 
         # Upload zip to fal.ai storage
         zip_url = fal_upload(str(zip_path))
@@ -454,15 +480,47 @@ async def train_lora(
                 "message": "LoRA training started — takes 15-20 minutes"}
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        import traceback
+        tb = traceback.format_exc()
+        print(f"[{jid}] train-lora error: {tb}")
+        return JSONResponse({"error": str(e), "detail": tb[-500:]}, status_code=500)
 
 async def run_lora_training(jid, zip_url, trigger_word, persona_name):
+    import concurrent.futures
+    loop = asyncio.get_event_loop()
+    # Run blocking fal_client.subscribe in a thread pool so FastAPI stays responsive
+    await loop.run_in_executor(
+        None,
+        lambda: _lora_training_thread(jid, zip_url, trigger_word, persona_name)
+    )
+
+def _lora_training_thread(jid, zip_url, trigger_word, persona_name):
+    """Runs in a thread — blocking fal_client.subscribe won't freeze FastAPI."""
     try:
         import fal_client
         os.environ["FAL_KEY"] = FAL_KEY
         print(f"[{jid}] Starting LoRA training for {persona_name}, trigger: {trigger_word}")
         set_job(jid, {"status": "running", "progress": 5,
-                      "message": "Training job submitted — fal.ai processing..."})
+                      "message": "Training submitted — waiting for GPU..."})
+
+        def on_update(update):
+            try:
+                logs = getattr(update, 'logs', []) or []
+                last_log = logs[-1].get('message', '') if logs else ''
+                progress = 10
+                if last_log:
+                    import re as _re
+                    m = _re.search(r'(\d+)%|step\s+(\d+)/(\d+)', last_log, _re.IGNORECASE)
+                    if m:
+                        if m.group(1):
+                            progress = min(int(m.group(1)), 95)
+                        elif m.group(2):
+                            progress = min(int(int(m.group(2))/int(m.group(3))*90)+5, 95)
+                msg = last_log or 'Training in progress...'
+                set_job(jid, {"status": "running", "progress": progress, "message": msg})
+                print(f"[{jid}] {progress}% — {msg[:80]}")
+            except Exception as ue:
+                print(f"[{jid}] Update error: {ue}")
 
         result = fal_client.subscribe(
             "fal-ai/flux-lora-fast-training",
@@ -479,29 +537,27 @@ async def run_lora_training(jid, zip_url, trigger_word, persona_name):
                 "create_masks": True
             },
             with_logs=True,
-            on_queue_update=lambda u: set_job(jid, {
-                "status": "running",
-                "progress": min(getattr(u, 'progress', 0) or 10, 95),
-                "message": getattr(u, 'message', 'Training in progress...')
-            }) if hasattr(u, 'status') and u.status == 'IN_PROGRESS' else None
+            on_queue_update=on_update
         )
 
-        lora_url = result.get("diffusers_lora_file", {}).get("url") or \
-                   result.get("lora_file", {}).get("url") or \
+        print(f"[{jid}] Result keys: {list(result.keys()) if isinstance(result, dict) else type(result)}")
+        lora_url = (result.get("diffusers_lora_file") or {}).get("url") or \
+                   (result.get("lora_file") or {}).get("url") or \
                    result.get("url", "")
 
-        print(f"[{jid}] LoRA training complete. URL: {lora_url}")
+        print(f"[{jid}] LoRA complete. URL: {lora_url}")
         set_job(jid, {
             "status": "complete", "progress": 100,
-            "message": "LoRA trained successfully",
+            "message": "Identity locked — LoRA trained successfully",
             "lora_url": lora_url,
             "trigger_word": trigger_word
         })
 
     except Exception as e:
-        print(f"[{jid}] LoRA training error: {e}")
-        import traceback; traceback.print_exc()
-        set_job(jid, {"status": "error", "error": str(e)})
+        import traceback
+        tb = traceback.format_exc()
+        print(f"[{jid}] LoRA error: {tb}")
+        set_job(jid, {"status": "error", "error": str(e), "detail": tb[-300:]})
 
 @app.get("/lora-status/{job_id}")
 async def lora_status(job_id: str):
@@ -650,11 +706,16 @@ async def generate_portrait(
 
             result = fal_client.subscribe("fal-ai/flux/dev", arguments=args)
             img_url = result["images"][0]["url"]
-            async with httpx.AsyncClient(timeout=30) as client:
-                r = await client.get(img_url)
-            img_path = OUTPUT_DIR / f"{jid}_portrait_{i}.png"
-            img_path.write_bytes(r.content)
-            images.append(f"/portrait/{jid}/{i}")
+            # Return fal.ai CDN URL directly — permanent, survives redeploys
+            # Also save locally as cache for faster serving
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    r = await client.get(img_url)
+                img_path = OUTPUT_DIR / f"{jid}_portrait_{i}.png"
+                img_path.write_bytes(r.content)
+            except Exception:
+                pass  # Local cache is optional
+            images.append(img_url)  # Always return CDN URL
         return {"job_id": jid, "status": "complete", "images": images}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -685,11 +746,16 @@ async def generate_scene(
             "enable_safety_checker": False
         })
         img_url = result["images"][0]["url"]
-        async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.get(img_url)
-        img_path = OUTPUT_DIR / f"{jid}_scene.png"
-        img_path.write_bytes(r.content)
-        return {"job_id": jid, "status": "complete", "image_url": f"/scene/{jid}"}
+        # Save locally as cache
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                r = await client.get(img_url)
+            img_path = OUTPUT_DIR / f"{jid}_scene.png"
+            img_path.write_bytes(r.content)
+        except Exception:
+            pass
+        # Return CDN URL directly — permanent
+        return {"job_id": jid, "status": "complete", "image_url": img_url}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
