@@ -471,9 +471,15 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   <div class="modal-wrap">
     <div class="modal-close" onclick="closeVideoModal()">✕</div>
     <video id="modalVideo" class="modal-video" controls playsinline></video>
-    <div class="modal-info">
-      <div class="modal-title" id="modalTitle"></div>
-      <div class="modal-meta" id="modalMeta"></div>
+    <div class="modal-info" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-meta" id="modalMeta"></div>
+      </div>
+      <button id="modalDownloadBtn" onclick="downloadVideo(document.getElementById('modalVideo').src,'mediahouz-video-'+Date.now()+'.mp4')"
+        style="background:var(--purple);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+        ↓ Download
+      </button>
     </div>
   </div>
 </div>
@@ -795,7 +801,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
-              <button class="btn ghost" style="flex:1;" onclick="downloadVideo()">↓ Download</button>
+              <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download</button>
               <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
             </div>
           </div>
@@ -2727,7 +2733,30 @@ function updatePipe(n,status,sub){
   const pipes=document.querySelectorAll('#pipelineEl .pipe');
   if(pipes[n-1]){pipes[n-1].className='pipe '+status;pipes[n-1].querySelector('.pipe-n').textContent=status==='done'?'✓':n;if(sub)pipes[n-1].querySelector('.pipe-sub').textContent=sub;}
 }
-function downloadVideo(){const url=S.lastVideoUrl||(S.jobId?`${API()}/download/${S.jobId}`:null);if(url)window.open(url);}
+async function downloadVideo(url, filename){
+  url = url || S.lastVideoUrl || (S.jobId?`${API()}/download/${S.jobId}`:null);
+  if(!url){ toast('No video to download','err'); return; }
+  filename = filename || `mediahouz-${S.persona?.name||'video'}-${Date.now()}.mp4`.replace(/\s+/g,'-').toLowerCase();
+  toast('Downloading...');
+  try{
+    // Fetch the video as a blob and trigger native download
+    const r = await fetch(url);
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    toast('Download started');
+  }catch(e){
+    // Fallback — open in new tab if fetch fails (e.g. CORS)
+    const a=document.createElement('a');
+    a.href=url; a.download=filename; a.target='_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+}
 function publishVideo(){const v=S.videos[0];if(!v)return;v.published=true;saveAll();updateDashboard();renderPublic('home');toast('Published!');}
 
 // ── NEW PERSONA ────────────────────────────────────────
@@ -2897,10 +2926,11 @@ function renderHistory(){
   if(!S.videos.length){list.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No videos yet.</div>';return;}
   list.innerHTML=S.videos.map(v=>`
     <div class="vid-row">
-      <div style="font-size:16px;color:${v.color};">▶</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time}</div></div>
+      <div style="font-size:16px;color:${v.color};cursor:pointer;" onclick="openVideoModal('${v.url}','${v.title}','${v.time}','${v.ratio||'9:16'}')">▶</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time} · ${v.ratio||'9:16'}</div></div>
       <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">${v.published?'✓ Live':'Publish'}</div>
-      <a href="${v.url}" style="color:var(--p2);font-size:12px;text-decoration:none;margin-left:8px;" download>↓</a>
+      <button onclick="downloadVideo('${v.url}','mediahouz-${(v.persona||'video').replace(/\s+/g,'-').toLowerCase()}-${v.jid}.mp4')"
+        style="background:none;border:1px solid var(--border);color:var(--p2);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:6px;flex-shrink:0;">↓</button>
     </div>`).join('');
 }
 function togglePublish(jid){const v=S.videos.find(v=>v.jid===jid);if(!v)return;v.published=!v.published;saveAll();updateDashboard();renderHistory();renderPublic('home');toast(v.published?'Published':'Unpublished');}
