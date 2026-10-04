@@ -2500,15 +2500,18 @@ async function trainLora(){
     const fd=new FormData();
     fd.append('trigger_word', triggerWord);
     fd.append('persona_name', ID.personaName||'persona');
-    // Send all image URLs as JSON array
     fd.append('image_urls', JSON.stringify(ID.allUrls));
 
     const r=await fetch(`${API()}/train-lora`,{method:'POST',body:fd});
     const d=await r.json();
     if(d.error) throw new Error(d.error);
 
-    const jobId=d.job_id;
+    const jobId=d.job_id||d.jobId||('lora_'+Date.now());
+    if(!d.job_id) console.warn('No job_id in response — using fallback:', jobId);
+    ID.loraJobId=jobId;
     ID.triggerWord=triggerWord;
+    // Save job ID so it survives page refresh
+    try{ localStorage.setItem('lora_training_job', JSON.stringify({jobId, triggerWord, personaName:ID.personaName, started:Date.now()})); }catch(e){}
     document.getElementById('loraStatusMsg').textContent='Training in progress — job ID: '+jobId;
     document.getElementById('loraStatusSub').textContent='This takes 15–20 minutes. Checking progress every 30 seconds...';
 
