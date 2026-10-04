@@ -610,19 +610,22 @@ async def generate_portrait(
     if not core or len(core) < 20:
         core = base  # fallback to full appearance if stripping went too far
 
-    # FLUX rule: lead with framing instruction — this is what controls crop
-    # 50mm lens naturally frames waist-up; 85mm pulls to headshot
+    # FLUX framing rule: lead with framing, use 35mm for wider shot that captures waist
+    # 35mm lens gives a wider field of view than 50mm — person appears further back
+    # "three-quarter length" is the photography term for waist-to-top-of-head framing
     prompt = (
-        f"High resolution waist-up portrait photograph of a {persona_age} year old {core}, "
-        f"hands clasped in front, full torso visible, arms visible, "
+        f"Three-quarter length professional photograph of a {persona_age} year old {core}, "
+        f"full figure from waist to top of head, entire upper body visible including waist and hips, "
+        f"subject standing relaxed with hands lightly clasped, "
+        f"substantial empty space above head and below waist in frame, "
         f"{age_desc}, "
         f"{outfit}, "
-        f"seamless pure white studio backdrop, subject centred in frame, "
-        f"Canon EOS 5D Mark IV 50mm f/2.0 lens, "
-        f"large softbox key light at 45 degrees camera left, white fill reflector on right, "
-        f"visible skin pores, natural skin subsurface scattering, fine hair strands, "
-        f"no retouching, no airbrushing, no digital smoothing, "
-        f"commercial editorial photography"
+        f"pure white seamless studio backdrop, subject positioned centre-frame, "
+        f"shot on Canon EOS 5D Mark IV with 35mm f/1.8 lens, "
+        f"subject appears full-length from distance, wide framing, "
+        f"softbox lighting from camera left, fill reflector right, "
+        f"natural skin texture, no retouching, no airbrushing, "
+        f"commercial fashion editorial photography, Getty Images style"
     )
 
     # If LoRA is provided, inject trigger word at start of prompt

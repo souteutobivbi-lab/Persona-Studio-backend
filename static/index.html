@@ -290,10 +290,15 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 .pbar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--purple),var(--p2));transition:width .3s;}
 
 /* Video preview */
-.vprev-wrap{display:flex;justify-content:center;}
-.vprev{aspect-ratio:9/16;border-radius:var(--r);background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;width:min(200px,100%);}
-.vprev video{width:100%;height:100%;object-fit:cover;}
+.vprev-wrap{display:flex;justify-content:center;margin:8px 0;}
+.vprev{border-radius:var(--r);background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.vprev video{width:100%;height:100%;object-fit:cover;display:block;}
 .vprev-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--dim);}
+/* Ratio-specific preview sizes */
+.vprev.ratio-916{aspect-ratio:9/16;width:min(180px,100%);}
+.vprev.ratio-11{aspect-ratio:1/1;width:min(280px,100%);}
+.vprev.ratio-45{aspect-ratio:4/5;width:min(220px,100%);}
+.vprev.ratio-169{aspect-ratio:16/9;width:min(100%,480px);}
 
 /* Skill zone */
 .skill-zone{border:1px dashed var(--border2);border-radius:9px;padding:14px;cursor:pointer;transition:all .12s;}
@@ -534,11 +539,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <div class="card">
             <div class="card-hd">Pipeline <span class="badge green">Ready</span></div>
             <div style="display:flex;flex-direction:column;gap:7px;">
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> FLUX (fal.ai) — portrait + scene — ~$0.02</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Groq — script generation — free</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> ElevenLabs — voiceover — ~£0.01</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> fal.ai Flashtalk 14B — video — ~$0.60</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> ffmpeg grain filter — skin texture — free</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Portrait generation — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Script generation — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Voiceover synthesis — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Talking video generation — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">✓</span> Video processing — ready</div>
             </div>
           </div>
         </div>
@@ -653,7 +658,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <img id="portraitLoraRef" style="width:72px;height:96px;object-fit:cover;border-radius:8px;border:2px solid var(--green);flex-shrink:0;" src=""/>
                   <div>
                     <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">🔒 Identity locked — <span id="portraitLoraName"></span></div>
-                    <div style="font-size:11px;color:var(--muted);line-height:1.6;">FLUX will generate a new image of this exact person. Choose what outfit and styling you want for this video.</div>
+                    <div style="font-size:11px;color:var(--muted);line-height:1.6;">AI will generate a new image of this exact person. Choose what outfit and styling you want for this video.</div>
                   </div>
                 </div>
                 <div class="field" style="margin-bottom:8px;">
@@ -684,7 +689,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   </div>
                   <div style="display:flex;gap:8px;">
                     <button class="btn ghost" style="flex:1;font-size:12px;" onclick="genPortraitWithLora()">↺ Regenerate</button>
-                    <button class="btn primary" style="flex:1;font-size:12px;" onclick="goStep(5)">Use this → Generate video</button>
+                    <button class="btn primary" style="flex:1;font-size:12px;" onclick="useLoraPortraitAndContinue()">Use this → Choose scene →</button>
                   </div>
                 </div>
                 <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;"></div>
@@ -705,9 +710,9 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <div class="p-slot" onclick="document.getElementById('portUpload').click()"><span style="font-size:18px;color:var(--dim);">＋</span></div>
                 </div>
                 <input type="file" id="portUpload" accept="image/*" style="display:none;" onchange="uploadPortrait(this)">
-                <div style="font-size:11px;color:var(--dim);margin:10px 0 5px;">Or generate with FLUX:</div>
+                <div style="font-size:11px;color:var(--dim);margin:10px 0 5px;">Or generate with AI:</div>
                 <textarea class="inp" id="portraitPrompt" style="min-height:56px;font-size:12px;" placeholder="Paste appearance prompt from skill file..."></textarea>
-                <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px;" onclick="genPortrait()">✦ Generate with FLUX</button>
+                <button class="btn ghost" style="width:100%;margin-top:8px;font-size:12px;" onclick="genPortrait()">✦ Generate with AI</button>
                 <div id="portraitGenStatus" style="font-size:11px;color:var(--amber);margin-top:6px;display:none;"></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:10px;">
                   No identity lock yet. <button class="btn ghost sm" onclick="showPanel('portraits',null)" style="font-size:11px;">Set up identity lock →</button>
@@ -736,16 +741,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card">
               <div class="card-hd">Pipeline</div>
               <div class="pipeline" id="pipelineEl">
-                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Remove background</div><div class="pipe-sub">rembg · bria</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Composite portrait + scene</div><div class="pipe-sub">PIL</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generate talking video</div><div class="pipe-sub">fal.ai Flashtalk 14B</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Grain filter + export</div><div class="pipe-sub">ffmpeg</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-lbl">Upload to CDN</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Preparing portrait</div><div class="pipe-sub">Background removal</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Building scene</div><div class="pipe-sub">Portrait + background composite</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generating talking video</div><div class="pipe-sub">AI lip sync · ~30–90 seconds</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Processing video</div><div class="pipe-sub">Colour grade + export</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-lbl">Uploading</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
               </div>
               <div class="pbar" style="margin-top:12px;"><div class="pbar-fill" id="genPbar" style="width:0%;"></div></div>
               <div style="font-size:11px;color:var(--dim);margin-top:5px;" id="genStage">Ready</div>
             </div>
-            <div class="vprev-wrap"><div class="vprev" id="vprev"><div class="vprev-empty"><div style="font-size:28px;">▶</div><span style="font-size:11px;">Video appears here</span></div></div></div>
+            <div class="vprev-wrap"><div class="vprev ratio-916" id="vprev"><div class="vprev-empty"><div style="font-size:28px;">▶</div><span style="font-size:11px;">Video appears here</span></div></div></div>
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
@@ -807,7 +812,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div class="field" style="margin-top:10px;"><div class="lbl">Appearance prompt</div>
                 <textarea class="inp" id="ppAppearance" style="min-height:80px;" placeholder="Studio portrait photograph of a 52-year-old British woman, warm brown skin, dark hair slicked back..."></textarea>
               </div>
-              <button class="gen-btn" style="margin-top:12px;" onclick="genMasterPortrait()">✦ Generate master portrait</button>
+              <div style="display:flex;gap:8px;margin-top:12px;">
+                <button class="gen-btn" style="flex:2;" onclick="genMasterPortrait()">✦ Generate master portrait</button>
+                <button class="btn ghost" style="flex:1;font-size:12px;" onclick="document.getElementById('masterPortraitUpload').click()">↑ Upload your own photo</button>
+              </div>
+              <input type="file" id="masterPortraitUpload" accept="image/*" style="display:none;" onchange="uploadMasterPortrait(this)">
             </div>
 
             <!-- Master portrait result -->
@@ -1069,7 +1078,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             </div>
             <div style="display:flex;gap:8px;">
               <button class="btn ghost" style="flex:1;font-size:12px;" onclick="document.getElementById('npPortraitFile').click()">↑ Upload photo</button>
-              <button class="btn ghost" style="flex:1;font-size:12px;" onclick="npGenPortrait()">✦ Generate with FLUX</button>
+              <button class="btn ghost" style="flex:1;font-size:12px;" onclick="npGenPortrait()">✦ Generate with AI</button>
             </div>
             <input type="file" id="npPortraitFile" accept="image/*" style="display:none;" onchange="npUploadPortrait(this)">
             <div id="npPortraitStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;">Generating...</div>
@@ -1117,7 +1126,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Ratio</span><span style="color:var(--p2);font-weight:500;" id="rpRatio">9:16 (TikTok)</span></div>
           <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Duration</span><span style="color:var(--p2);">15 seconds</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Est. cost</span><span style="color:var(--green);font-weight:600;">~£0.65</span></div>
+
         </div>
 
         <div class="divider"></div>
@@ -1760,7 +1769,20 @@ async function loadNpSkill(input){
 
 // ── NICHE / RATIO ──────────────────────────────────────
 function pickNiche(el,niche){document.querySelectorAll('.niche-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.niche=niche;}
-function pickRatio(el,label,w,h){document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.ratio={label,w,h};document.getElementById('rpRatio').textContent=label;document.getElementById('ratioLabel').textContent=label;}
+function pickRatio(el,label,w,h){
+  document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  S.ratio={label,w,h};
+  document.getElementById('rpRatio').textContent=label;
+  document.getElementById('ratioLabel').textContent=label;
+  // Update preview container to match ratio
+  const vprev=document.getElementById('vprev');
+  if(vprev){
+    vprev.classList.remove('ratio-916','ratio-11','ratio-45','ratio-169');
+    const cls={'9:16':'ratio-916','1:1':'ratio-11','4:5':'ratio-45','16:9':'ratio-169'}[label]||'ratio-916';
+    vprev.classList.add(cls);
+  }
+}
 
 // ── SCRIPT ─────────────────────────────────────────────
 async function generateScript(){
@@ -2171,7 +2193,7 @@ async function genScene(){
   document.getElementById('sceneImg').style.opacity='0.3';
   document.getElementById('sceneImg').src='';
   const prevDiv=document.getElementById('scenePreview');
-  prevDiv.querySelector('div').textContent='⟳ Generating scene with FLUX... ~15 seconds';
+  prevDiv.querySelector('div').textContent='⟳ Generating background scene... ~15 seconds';
   prevDiv.querySelector('div').style.color='var(--amber)';
   try{
     const fd=new FormData();fd.append('scene_description',prompt);
@@ -2237,6 +2259,34 @@ function initPortraitsPanel(){
     document.getElementById('lockSuccessPersona').textContent=p.name+' identity is locked';
     document.getElementById('lockIdentityBtn').style.display='none';
   }
+}
+
+function uploadMasterPortrait(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const src=e.target.result;
+    document.getElementById('masterPortraitImg').src=src;
+    document.getElementById('masterPortraitResult').style.display='block';
+    document.getElementById('masterPortraitBadge').textContent='Uploaded — review before proceeding';
+    document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
+    document.getElementById('masterPortraitStatus').textContent='';
+    ID.masterUrl=src;
+    ID.personaName=document.getElementById('ppName').value;
+    // Store as File for later use
+    ID.masterFile=file;
+    toast('Photo uploaded — review and proceed when ready');
+  };
+  reader.readAsDataURL(file);
+}
+
+function useLoraPortraitAndContinue(){
+  // Portrait is already set from genPortraitWithLora()
+  // Scroll to scene section and stay on step 4
+  const sceneCard=document.querySelector('#sp4 .card:last-of-type');
+  if(sceneCard) sceneCard.scrollIntoView({behavior:'smooth', block:'start'});
+  // Hide the lora result buttons briefly to show scene section
+  toast('Portrait selected — now choose a background scene below');
 }
 
 // Stage 1 — Master portrait
@@ -2573,7 +2623,11 @@ async function startGen(){
           document.getElementById('genPbar').style.width='100%';
           document.getElementById('genStage').innerHTML=`<span style="color:var(--green);">✓ Done in ${total}s</span>`;
           const url=sd.url||`${API()}/download/${job}`;S.lastVideoUrl=url;
-          document.getElementById('vprev').innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;border-radius:11px;" playsinline></video>`;
+          const vp=document.getElementById('vprev');
+          vp.classList.remove('ratio-916','ratio-11','ratio-45','ratio-169');
+          const rcls={'9:16':'ratio-916','1:1':'ratio-11','4:5':'ratio-45','16:9':'ratio-169'}[S.ratio?.label||'9:16']||'ratio-916';
+          vp.classList.add(rcls);
+          vp.innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
           document.getElementById('postGenBtns').style.display='flex';
           btn.textContent='✦ Generate another';btn.disabled=false;
           const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
