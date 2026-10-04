@@ -2303,6 +2303,17 @@ function initPortraitsPanel(){
   document.getElementById('ppName').value=p.name||'';
   document.getElementById('ppAge').value=p.age||'';
   document.getElementById('ppAppearance').value=p.appearance||'';
+
+  // Restore ID state from saved persona data
+  if(p.savedPortraits?.length){
+    ID.personaName=p.name;
+    ID.allUrls=p.savedPortraits.filter(u=>u.startsWith('http')); // only CDN URLs not base64
+    ID.masterUrl=p.portrait||p.savedPortraits.find(u=>u.startsWith('http'))||null;
+    ID.angleUrls=ID.allUrls.slice(1);
+    if(ID.allUrls.length>0){
+      console.log('Restored',ID.allUrls.length,'portrait URLs for',p.name);
+    }
+  }
   // Set trigger word suggestion
   const tw=document.getElementById('loraTriggerWord');
   if(tw&&!tw.value) tw.value=(p.name||'persona').toLowerCase().replace(/\s+/g,'_')+'_v1';
@@ -2458,9 +2469,18 @@ async function genAngleVariations(){
   ID.allUrls=[ID.masterUrl,...ID.angleUrls];
   document.getElementById('anglesStatus').textContent=done+' of 9 angle variations generated';
 
+  // Save all URLs to persona in localStorage immediately
+  const pp=S.personas.find(p=>p.name===ID.personaName);
+  if(pp){
+    pp.savedPortraits=ID.allUrls;
+    pp.portrait=ID.masterUrl;
+    if(S.persona?.name===pp.name) S.persona=pp;
+    saveAll();
+    console.log('Saved',ID.allUrls.length,'portrait URLs to',pp.name);
+  }
+
   if(done>=7){
     document.getElementById('proceedToLoraBtn').style.display='flex';
-    // Pre-populate LoRA training grid
     populateLoraGrid();
     toast(done+' angle variations ready → proceed to train LoRA');
   } else {
