@@ -2483,7 +2483,7 @@ async function genAngleVariations(){
   document.getElementById('anglesStatus').textContent=done+' of 9 angle variations generated';
 
   // Save all URLs to persona in localStorage — clean any double-prefixed URLs first
-  const _clean=u=>{if(!u)return null;const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/);\nreturn m?m[1]:u.startsWith('data:')?u:u.startsWith('http')?u:null;};
+  const _clean=u=>{if(!u)return null;const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/) ;return m?m[1]:u.startsWith('data:')?u:u.startsWith('http')?u:null;};
   ID.allUrls=ID.allUrls.map(_clean).filter(Boolean);
   const pp=S.personas.find(p=>p.name===ID.personaName);
   if(pp){
