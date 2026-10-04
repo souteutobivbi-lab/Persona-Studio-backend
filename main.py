@@ -670,18 +670,16 @@ async def generate_portrait(
     # 35mm lens gives a wider field of view than 50mm — person appears further back
     # "three-quarter length" is the photography term for waist-to-top-of-head framing
     prompt = (
-        f"Three-quarter length professional photograph of a {persona_age} year old {core}, "
-        f"full figure from waist to top of head, entire upper body visible including waist and hips, "
-        f"subject standing relaxed with hands lightly clasped, "
-        f"substantial empty space above head and below waist in frame, "
+        f"Professional portrait photograph of a {persona_age} year old {core}, "
+        f"framed from mid-chest upward showing face, neck, shoulders and upper chest, "
+        f"subject looking directly at camera, confident natural expression, "
         f"{age_desc}, "
         f"{outfit}, "
-        f"pure white seamless studio backdrop, subject positioned centre-frame, "
-        f"shot on Canon EOS 5D Mark IV with 35mm f/1.8 lens, "
-        f"subject appears full-length from distance, wide framing, "
-        f"softbox lighting from camera left, fill reflector right, "
-        f"natural skin texture, no retouching, no airbrushing, "
-        f"commercial fashion editorial photography, Getty Images style"
+        f"pure white seamless studio backdrop, subject centred in frame, "
+        f"shot on Canon EOS 5D Mark IV with 85mm f/1.8 lens, "
+        f"large softbox key light at 45 degrees camera left, white fill reflector right, "
+        f"natural skin texture, visible pores, no retouching, no airbrushing, "
+        f"commercial portrait photography, Getty Images editorial style"
     )
 
     # If LoRA is provided, inject trigger word at start of prompt
@@ -896,11 +894,18 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         portrait_rgba = Image.fromarray(rgba_arr)
         print(f"[{jid}] Background removed + halo fixed.")
 
+        # Crop portrait to top 45% before sending to lip-sync model
+        # Full waist-up portrait → Flashtalk crops to face only (too tight)
+        # Top 45% = head + neck + shoulders + upper chest → Flashtalk output shows this naturally
+        orig_w, orig_h = portrait_rgba.size
+        crop_h = int(orig_h * 0.45)
+        portrait_rgba = portrait_rgba.crop((0, 0, orig_w, crop_h))
+        print(f"[{jid}] Cropped to upper body: {orig_w}x{crop_h} (was {orig_w}x{orig_h})")
+
         if scene_path and Path(scene_path).exists():
             set_job(jid, {"status": "running", "stage": "compositing", "progress": 20})
             print(f"[{jid}] Compositing...")
             bg = Image.open(scene_path).convert("RGBA")
-            # Scale scene to fill portrait dimensions
             bg = bg.resize(portrait_rgba.size, Image.LANCZOS)
             composite = Image.new("RGBA", portrait_rgba.size, (0, 0, 0, 255))
             composite.paste(bg, (0, 0))
@@ -909,7 +914,6 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
             composite.convert("RGB").save(final_portrait_path)
             print(f"[{jid}] Composite done.")
         else:
-            # No scene — paste onto black background (not transparent) for Flashtalk
             bg = Image.new("RGB", portrait_rgba.size, (0, 0, 0))
             bg.paste(portrait_rgba, (0, 0), portrait_rgba)
             final_portrait_path = str(UPLOAD_DIR / f"{jid}_nobg.png")
@@ -941,6 +945,16 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         raw_path = str(OUTPUT_DIR / f"{jid}_raw.mp4")
         urllib.request.urlretrieve(output_url, raw_path)
         print(f"[{jid}] Downloaded.")
+
+        # ── FACE COMPOSITE ────────────────────────────────────────────
+        # Flashtalk outputs a talking-head video cropped to face area.
+        # Strategy: scale Flashtalk output to fill target dimensions,
+        # then overlay the ORIGINAL full portrait (with scene) as a static background
+        # behind it — this gives us the full body in the background with
+        # the animated face in the foreground, scaled to fill the frame.
+        # For 9:16/4:5/1:1: the Flashtalk video IS the video — scale to fill.
+        # The portrait framing should be handled at generation time (prompt).
+        # We keep this simple: scale Flashtalk to fill target, pad if needed.
 
         set_job(jid, {"status": "running", "stage": "processing", "progress": 88,
                       "message": f"Encoding {ratio} video for streaming..."})
