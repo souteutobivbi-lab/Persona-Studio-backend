@@ -1191,7 +1191,9 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 <div class="toast" id="toast"></div>
 
 <script>
-const API=()=>localStorage.getItem('apiUrl')||'https://persona-studio.homivis.com';
+const DEFAULT_API='https://persona-studio.homivis.com';
+if(!localStorage.getItem('apiUrl')) localStorage.setItem('apiUrl', DEFAULT_API);
+const API=()=>localStorage.getItem('apiUrl')||DEFAULT_API;
 let S={
   persona:null, niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL', captionStyle:'none',
   audioFile:null, portraitFile:null, sceneFile:null,
