@@ -610,7 +610,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card">
               <div class="card-hd">Topic <span class="badge" id="topicBadge" style="display:none;">From skill file</span></div>
               <input class="inp" id="topicInp" placeholder="e.g. How to spot a property with hidden potential"/>
-              <div id="topicSuggestions" style="display:none;margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;margin-bottom:4px;">
+                <div style="font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Topic suggestions</div>
+                <button onclick="refreshTopicSuggestions()" style="background:none;border:none;color:var(--p2);font-size:11px;cursor:pointer;padding:2px 6px;">↺ Refresh</button>
+              </div>
+              <div id="topicSuggestions" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
             </div>
             <button class="gen-btn" id="genScriptBtn" onclick="generateScript()">✦ Generate scripts with AI</button>
             <div id="scriptCard" style="display:none;" class="card">
@@ -1587,11 +1591,76 @@ function goStep(n){
     if(i===n-1)t.classList.add('on');
     else if(i<n-1)t.classList.add('done');
   });
+  if(n===2){
+    // Always re-parse skill and refresh topic suggestions when entering script step
+    const p=S.persona;
+    if(p?.skill){
+      parseSkillForUI(p.skill, true);
+      // Also ensure skill name shows
+      document.getElementById('skillName').textContent='✓ '+p.skillName;
+    }
+    // Always regenerate topic suggestions — fresh 5 every time
+    refreshTopicSuggestions();
+  }
   if(n===3)loadVoices();
   if(n===4)renderPortraitStep();
 }
 
 // ── SKILL PARSING ──────────────────────────────────────
+async function refreshTopicSuggestions(){
+  const sugEl=document.getElementById('topicSuggestions');
+  if(!sugEl) return;
+  sugEl.style.display='flex';
+  sugEl.innerHTML='<div style="font-size:11px;color:var(--dim);">⟳ Generating fresh topics...</div>';
+
+  const p=S.persona;
+  const niche=S.niche||p?.niche||'wealth';
+  const name=p?.name||'persona';
+  const skill=p?.skill||'';
+
+  // First get topics from skill file (parsed by parseSkillForUI)
+  const skillTopics=window._skillTopics||[];
+
+  // Generate fresh topics via backend
+  try{
+    const fd=new FormData();
+    fd.append('persona_name',name);
+    fd.append('niche',niche);
+    fd.append('skill_context',skill.substring(0,1500));
+    fd.append('count','8'); // ask for 8, show 5-6 best
+    const r=await fetch(`${API()}/generate-topics`,{method:'POST',body:fd});
+    const d=await r.json();
+    const aiTopics=d.topics||[];
+
+    // Merge AI topics with skill file topics, deduplicate, shuffle, take 5
+    const all=[...new Set([...skillTopics,...aiTopics])];
+    // Shuffle for variety
+    for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
+    const final=all.slice(0,6);
+
+    if(final.length){
+      sugEl.style.display='flex';
+      sugEl.style.flexWrap='wrap';
+      sugEl.style.gap='6px';
+      sugEl.style.marginTop='10px';
+      sugEl.innerHTML=final.map(s=>`
+        <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;document.querySelectorAll('.topic-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active');"
+          data-val="${s.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">${s.length>55?s.substring(0,55)+'…':s}</button>`).join('');
+    } else {
+      sugEl.innerHTML='';
+    }
+  }catch(e){
+    // Fallback to skill topics only
+    if(skillTopics.length){
+      sugEl.innerHTML=skillTopics.slice(0,5).map(s=>`
+        <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.classList.add('active');"
+          data-val="${s.replace(/"/g,'&quot;')}">${s.length>55?s.substring(0,55)+'…':s}</button>`).join('');
+    } else {
+      sugEl.innerHTML='';
+    }
+  }
+}
+
 function parseSkillForUI(text, updateTopic=true){
   const lines=text.split('\n');
 
@@ -1657,7 +1726,10 @@ function parseSkillForUI(text, updateTopic=true){
   const cleaned=suggestions
     .filter(s=>s.length>22 && s.split(' ').length>=4 && !s.includes('","') && !s.includes("- ") )
     .filter((s,i,a)=>a.indexOf(s)===i)
-    .slice(0,6);
+    .slice(0,8);
+
+  // Store globally for refreshTopicSuggestions to use
+  window._skillTopics=cleaned;
 
   const sugEl=document.getElementById('topicSuggestions');
   if(sugEl){
@@ -2021,7 +2093,7 @@ async function previewVoice(id,name){
   const area=document.getElementById('voicePreviewArea'),player=document.getElementById('voicePreviewPlayer'),label=document.getElementById('voicePreviewLabel');
   area.style.display='block';label.textContent='Generating preview...';player.src='';
   try{
-    const fd=new FormData();fd.append('script','Welcome to MediaHouz. Creating powerful AI content.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
+    const fd=new FormData();fd.append('script','I\'m a British content creator. This is how I sound on camera — clear, measured, and authoritative.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
     const r=await fetch(`${API()}/generate-voice`,{method:'POST',body:fd});const d=await r.json();
     player.src=`${API()}/audio/${d.job_id}`;player.play();label.textContent='Previewing: '+name;
   }catch(e){label.textContent='Preview failed';}

@@ -251,6 +251,68 @@ async def get_voices(gender: str = "female", accent: str = "british"):
     return [{"id": v["id"], "name": v["name"], "description": v["description"],
              "gender": gender, "accent": "british"} for v in curated]
 
+@app.post("/generate-topics")
+async def generate_topics(
+    persona_name: str = Form(...),
+    niche: str = Form("wealth"),
+    skill_context: Optional[str] = Form(""),
+    count: int = Form(8)
+):
+    from groq import Groq
+    client = Groq(api_key=GROQ_KEY)
+
+    system_prompt = """You are a content strategist for British AI influencer personas.
+Generate specific, compelling video topic ideas that will educate, surprise and build followership.
+Each topic must be:
+- A specific claim, insight, or question — not a vague theme
+- Something the persona has genuine expertise to address
+- Phrased as a hook or angle — the way it would appear in a video
+- Educational and factual — not motivational fluff
+Return ONLY a JSON array of topic strings. No markdown, no explanation, no preamble."""
+
+    user_prompt = f"""Generate {count} distinct video topic ideas for {persona_name}, a British authority in {niche}.
+
+{f'Skill context: {skill_context[:800]}' if skill_context else ''}
+
+Topics must be specific angles, named techniques, common mistakes, or counterintuitive truths in the {niche} niche.
+Examples of good format:
+- "Why buyers who skip the structural survey lose an average of £23,000"
+- "The three-day rule that professional interior designers always follow"
+- "What the kerb appeal myth actually costs property sellers"
+
+Return only: ["topic1", "topic2", ..., "topic{count}"]"""
+
+    try:
+        response = client.chat.completions.create(
+            model="qwen/qwen3.8-27b",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=600,
+            temperature=0.9  # Higher temperature for variety each time
+        )
+        raw = response.choices[0].message.content.strip()
+        if "<think>" in raw:
+            raw = raw[raw.rfind("</think>")+8:].strip()
+        raw = raw.replace("```json","").replace("```","").strip()
+        import json as _json
+        topics = _json.loads(raw)
+        if not isinstance(topics, list):
+            topics = [topics]
+        topics = [t.strip().strip('"').strip("'") for t in topics if t and len(t.strip())>10]
+        return {"topics": topics[:count]}
+    except Exception as e:
+        # Niche-aware fallback topics
+        fallbacks = {
+            "wealth": ["Why most people mistake income for wealth","The one asset most high earners forget to protect","What separates people who build wealth from those who earn well","The compounding mistake that costs most investors a decade","Why timing the market is the wrong question entirely"],
+            "property": ["Why buyers who skip the structural survey lose thousands","The three things that kill a sale on viewing day","What estate agents never tell sellers about pricing","How to spot a problem property before making an offer","The renovation that adds value versus the one that doesn't"],
+            "interior design": ["Why symmetry is the most overused principle in interior design","The lighting mistake that makes every room feel smaller","What professional designers look at first in any space","The invisible detail that separates good rooms from great ones","Why most people buy the wrong size sofa"],
+            "health": ["The sleep habit that outperforms most supplements","Why most people hydrate incorrectly throughout the day","The recovery mistake that keeps people stuck","What your energy levels in the afternoon are actually telling you","The one mobility exercise that changes everything"],
+        }
+        niche_key = next((k for k in fallbacks if k in niche.lower()), "wealth")
+        return {"topics": fallbacks[niche_key]}
+
 @app.post("/generate-script")
 async def generate_script(
     persona_name: str = Form(...),
