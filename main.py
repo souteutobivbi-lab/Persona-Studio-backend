@@ -104,14 +104,14 @@ def set_job(jid, data):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.1", "host": "railway"}
+    return {"status": "ok", "version": "3.2", "host": "railway", "brand": "MediaHouz"}
 
 @app.get("/")
 async def root():
     p = Path(__file__).parent / "static" / "index.html"
     if p.exists():
         return HTMLResponse(p.read_text())
-    return {"api": "Persona Studio v3.1"}
+    return {"api": "MediaHouz v3.2"}
 
 from fastapi.staticfiles import StaticFiles
 static_path = Path(__file__).parent / "static"

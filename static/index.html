@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Persona — AI Content Studio</title>
+<title>MediaHouz</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -401,7 +401,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   <nav class="pub-nav">
     <a class="pub-nav-logo" onclick="showPubPage('home')" style="cursor:pointer;">
       <div class="pub-nav-logo-mark">P</div>
-      <div class="pub-nav-name">Persona</div>
+      <div class="pub-nav-name">MediaHouz</div>
     </a>
     <div class="pub-nav-links">
       <button class="pub-nav-link active" id="pnl-home" onclick="showPubPage('home')">Videos</button>
@@ -416,7 +416,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   <div id="pub-home" class="pub-page active">
     <div class="home-header">
       <div class="home-header-inner">
-        <div class="home-eyebrow">Persona</div>
+        <div class="home-eyebrow">MediaHouz</div>
         <h1 class="home-title" id="homeTitle">Latest videos</h1>
         <p class="home-subtitle" id="homeSubtitle" style="display:none;"></p>
       </div>
@@ -441,7 +441,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
     </div>
 
     <footer class="pub-footer">
-      <div class="pub-footer-logo">Persona</div>
+      <div class="pub-footer-logo">MediaHouz</div>
       <div class="pub-footer-links">
         <span class="pub-footer-link" onclick="openStudio()">Studio</span>
       </div>
@@ -460,7 +460,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
       </div>
     </div>
     <footer class="pub-footer">
-      <div class="pub-footer-logo">Persona</div>
+      <div class="pub-footer-logo">MediaHouz</div>
       <div class="pub-footer-links"><span class="pub-footer-link" onclick="openStudio()">Studio</span></div>
     </footer>
   </div>
@@ -485,7 +485,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   <div class="sidebar">
     <div class="logo">
       <div class="logo-mark">P</div>
-      <div><div class="logo-text">Persona</div><div class="logo-sub">Creator Studio</div></div>
+      <div><div class="logo-text">MediaHouz</div><div class="logo-sub">Creator Studio</div></div>
     </div>
 
     <div class="nav-lbl">Workspace</div>
@@ -1131,7 +1131,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <div id="panel-settings" class="tab-panel">
           <div class="card">
             <div class="card-hd">API configuration</div>
-            <div class="field"><div class="lbl">Backend URL</div><input class="inp" id="apiUrl" value="https://persona-studio.homivis.com"/></div>
+            <div class="field"><div class="lbl">Backend URL</div><input class="inp" id="apiUrl" value="https://mediahouz.homivis.com"/></div>
             <div class="field" style="margin-top:10px;"><div class="lbl">ElevenLabs API key</div><input class="inp" type="password" id="elKey" placeholder="sk_..."/></div>
             <div class="field" style="margin-top:10px;"><div class="lbl">fal.ai API key</div><input class="inp" type="password" id="falKey" placeholder="xxx:xxx"/></div>
             <div class="field" style="margin-top:10px;"><div class="lbl">Groq API key</div><input class="inp" type="password" id="groqKey" placeholder="gsk_..."/></div>
@@ -1185,7 +1185,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 <div class="toast" id="toast"></div>
 
 <script>
-const API=()=>localStorage.getItem('apiUrl')||'https://persona-studio.homivis.com';
+const API=()=>localStorage.getItem('apiUrl')||'https://mediahouz.homivis.com';
 let S={
   persona:null, niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL', captionStyle:'none',
   audioFile:null, portraitFile:null, sceneFile:null,
@@ -2013,7 +2013,7 @@ async function previewVoice(id,name){
   const area=document.getElementById('voicePreviewArea'),player=document.getElementById('voicePreviewPlayer'),label=document.getElementById('voicePreviewLabel');
   area.style.display='block';label.textContent='Generating preview...';player.src='';
   try{
-    const fd=new FormData();fd.append('script','Welcome to Persona. Creating powerful AI content.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
+    const fd=new FormData();fd.append('script','Welcome to MediaHouz. Creating powerful AI content.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
     const r=await fetch(`${API()}/generate-voice`,{method:'POST',body:fd});const d=await r.json();
     player.src=`${API()}/audio/${d.job_id}`;player.play();label.textContent='Previewing: '+name;
   }catch(e){label.textContent='Preview failed';}
