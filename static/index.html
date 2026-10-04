@@ -2190,7 +2190,7 @@ async function genPortraitWithLora(){
     const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
     const d=await r.json();
     if(d.error) throw new Error(d.error);
-    const imgUrl=API()+d.images[0];
+    const imgUrl=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
 
     // Show comparison
     document.getElementById('portraitLoraGenImg').src=imgUrl;
@@ -2231,7 +2231,7 @@ async function genPortrait(){
     }
     const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
     if(d.error)throw new Error(d.error);
-    const imgUrl=API()+d.images[0];
+    const imgUrl=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     const grid=document.getElementById('portraitGrid');
     grid.children[0].innerHTML=`<img src="${imgUrl}"/><div class="sel-check">✓</div>`;
     grid.children[0].classList.add('done','selected');
@@ -2259,7 +2259,7 @@ async function genScene(){
     const r=await fetch(`${API()}/generate-scene`,{method:'POST',body:fd});
     const d=await r.json();
     if(d.error)throw new Error(d.error);
-    const imgUrl=API()+d.image_url;
+    const imgUrl=(d.image_url||"").startsWith("http")?d.image_url:API()+d.image_url;
     document.getElementById('sceneImg').src=imgUrl;
     document.getElementById('sceneImg').style.opacity='1';
     prevDiv.querySelector('div').textContent='✓ Scene ready';
@@ -2311,14 +2311,19 @@ function initPortraitsPanel(){
   document.getElementById('ppAppearance').value=p.appearance||'';
 
   // Restore ID state from saved persona data
+  // Clean any double-prefixed URLs (e.g. https://persona-studio.homivis.comhttps://fal.media/...)
+  const cleanUrl=u=>{
+    if(!u) return null;
+    const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/);
+    return m?m[1]:u.startsWith('data:')?u:null;
+  };
   if(p.savedPortraits?.length){
     ID.personaName=p.name;
-    ID.allUrls=p.savedPortraits.filter(u=>u.startsWith('http')); // only CDN URLs not base64
-    ID.masterUrl=p.portrait||p.savedPortraits.find(u=>u.startsWith('http'))||null;
-    ID.angleUrls=ID.allUrls.slice(1);
-    if(ID.allUrls.length>0){
-      console.log('Restored',ID.allUrls.length,'portrait URLs for',p.name);
-    }
+    const cleaned=p.savedPortraits.map(cleanUrl).filter(Boolean);
+    ID.allUrls=cleaned;
+    ID.masterUrl=cleanUrl(p.portrait)||cleaned[0]||null;
+    ID.angleUrls=cleaned.slice(1);
+    console.log('Restored',cleaned.length,'portrait URLs for',p.name,ID.masterUrl?.substring(0,60));
   }
   // Set trigger word suggestion
   const tw=document.getElementById('loraTriggerWord');
@@ -2382,7 +2387,7 @@ async function genMasterPortrait(){
     const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
     const d=await r.json();
     if(d.error) throw new Error(d.error);
-    const url=API()+d.images[0];
+    const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     document.getElementById('masterPortraitImg').src=url;
     document.getElementById('masterPortraitBadge').textContent='Generated — review carefully';
     document.getElementById('masterPortraitStatus').textContent='';
@@ -2460,7 +2465,7 @@ async function genAngleVariations(){
       const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
       const d=await r.json();
       if(d.error) throw new Error(d.error);
-      const url=API()+d.images[0];
+      const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
       slot.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;"/>`;
       slot.style.border='1px solid var(--green)';
       ID.angleUrls.push(url);
@@ -2475,11 +2480,13 @@ async function genAngleVariations(){
   ID.allUrls=[ID.masterUrl,...ID.angleUrls];
   document.getElementById('anglesStatus').textContent=done+' of 9 angle variations generated';
 
-  // Save all URLs to persona in localStorage immediately
+  // Save all URLs to persona in localStorage — clean any double-prefixed URLs first
+  const _clean=u=>{if(!u)return null;const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/);\nreturn m?m[1]:u.startsWith('data:')?u:u.startsWith('http')?u:null;};
+  ID.allUrls=ID.allUrls.map(_clean).filter(Boolean);
   const pp=S.personas.find(p=>p.name===ID.personaName);
   if(pp){
     pp.savedPortraits=ID.allUrls;
-    pp.portrait=ID.masterUrl;
+    pp.portrait=_clean(ID.masterUrl)||ID.masterUrl;
     if(S.persona?.name===pp.name) S.persona=pp;
     saveAll();
     console.log('Saved',ID.allUrls.length,'portrait URLs to',pp.name);
@@ -2523,10 +2530,17 @@ async function trainLora(){
   document.getElementById('loraStatusMsg').textContent='Submitting training job to fal.ai...';
 
   try{
+    // Build full image list — master (may be base64) + angles (CDN URLs)
+    const allImgs = ID.allUrls.length ? ID.allUrls :
+      (S.persona?.savedPortraits||[]);
+
+    if(!allImgs.length) return toast('No training images found — please regenerate angle variations first','err');
+    console.log('Training with',allImgs.length,'images:',allImgs.map(u=>u.substring(0,40)));
+
     const fd=new FormData();
     fd.append('trigger_word', triggerWord);
-    fd.append('persona_name', ID.personaName||'persona');
-    fd.append('image_urls', JSON.stringify(ID.allUrls));
+    fd.append('persona_name', ID.personaName||S.persona?.name||'persona');
+    fd.append('image_urls', JSON.stringify(allImgs));
 
     const r=await fetch(`${API()}/train-lora`,{method:'POST',body:fd});
     const d=await r.json();
@@ -2601,7 +2615,7 @@ async function testLoraGeneration(){
     const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
     const d=await r.json();
     if(d.error) throw new Error(d.error);
-    const url=API()+d.images[0];
+    const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     document.getElementById('loraTestImg').src=url;
     document.getElementById('loraTestMaster').src=ID.masterUrl||'';
     document.getElementById('loraTestResult').style.display='block';
@@ -2773,7 +2787,7 @@ async function npGenPortrait(){
     const fd=new FormData();fd.append('persona_name',document.getElementById('npName').value||'persona');fd.append('persona_age',document.getElementById('npAge').value||'36');fd.append('appearance',appearance);fd.append('count','1');
     const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
     if(d.error)throw new Error(d.error);
-    const url=API()+d.images[0];document.getElementById('npPortraitImg').src=url;document.getElementById('npPortraitPreview').style.display='flex';
+    const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];document.getElementById('npPortraitImg').src=url;document.getElementById('npPortraitPreview').style.display='flex';
     const resp=await fetch(url);const blob=await resp.blob();window._npFile=new File([blob],'portrait.png',{type:'image/png'});
     st.style.display='none';toast('Portrait generated');
   }catch(e){st.textContent='Error: '+e.message;toast('Error','err');}
