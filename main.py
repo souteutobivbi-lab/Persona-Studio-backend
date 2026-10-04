@@ -333,6 +333,22 @@ Return ONLY: ["script1", "script2", "script3", "script4", "script5"]"""
         scripts = found if len(found) >= 3 else [raw[:300]]
     return {"scripts": scripts[:5], "script": scripts[0] if scripts else "", "words": len(scripts[0].split()) if scripts else 0}
 
+def format_script_for_tts(script: str) -> str:
+    """Format script text to guide natural ElevenLabs delivery.
+    - Ensure sentence-ending pauses with proper punctuation
+    - Add natural breaks between hook, body and CTA
+    - Remove any double spaces or artifacts
+    """
+    import re
+    text = script.strip()
+    # Ensure sentences end with punctuation for natural pauses
+    text = re.sub(r'([a-z])\s{2,}([A-Z])', r'\1. \2', text)
+    # Add pause after self-introduction line (first sentence ending with name/role)
+    text = re.sub(r'(\b(?:here|designer|strategist|builder|advisor|coach)\b\.?)(\s)', r'\1 \2', text, flags=re.IGNORECASE)
+    # Clean up
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
 @app.post("/generate-voice")
 async def generate_voice(
     script: str = Form(...),
@@ -341,15 +357,51 @@ async def generate_voice(
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     out_path = OUTPUT_DIR / f"{jid}_voice.mp3"
-    async with httpx.AsyncClient(timeout=30) as client:
+
+    # Format script for natural delivery
+    formatted_script = format_script_for_tts(script)
+
+    # Try eleven_turbo_v2_5 first (best for natural English), fallback to multilingual
+    # Settings tuned for natural British delivery:
+    # - stability 0.45: more natural variation, less robotic consistency
+    # - similarity_boost 0.82: close to voice without over-enunciating
+    # - style 0.25: slight expressiveness without being dramatic
+    # - use_speaker_boost: true — improves clarity
+    voice_settings = {
+        "stability": 0.45,
+        "similarity_boost": 0.82,
+        "style": 0.20,
+        "use_speaker_boost": True
+    }
+
+    async with httpx.AsyncClient(timeout=45) as client:
+        # Try eleven_turbo_v2_5 — best natural English quality
         r = await client.post(
             f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
             headers={"xi-api-key": ELEVENLABS_KEY, "Content-Type": "application/json"},
-            json={"text": script, "model_id": "eleven_multilingual_v2",
-                  "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
+            json={
+                "text": formatted_script,
+                "model_id": "eleven_turbo_v2_5",
+                "voice_settings": voice_settings,
+                "output_format": "mp3_44100_128"
+            }
         )
+        # Fallback to multilingual_v2 if turbo not available
+        if r.status_code != 200:
+            r = await client.post(
+                f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+                headers={"xi-api-key": ELEVENLABS_KEY, "Content-Type": "application/json"},
+                json={
+                    "text": formatted_script,
+                    "model_id": "eleven_multilingual_v2",
+                    "voice_settings": voice_settings,
+                    "output_format": "mp3_44100_128"
+                }
+            )
+
     if r.status_code != 200:
-        return JSONResponse({"error": r.text[:200]}, status_code=400)
+        return JSONResponse({"error": r.text[:300]}, status_code=400)
+
     out_path.write_bytes(r.content)
     return {"job_id": jid, "audio_path": str(out_path), "status": "done"}
 
