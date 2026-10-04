@@ -1306,7 +1306,12 @@ function renderVideoGrid(){
     else ratioGroups['9:16'].videos.push({v,i});
   });
 
-  const ratioAspect={'9:16':'aspect-ratio:9/16','4:5':'aspect-ratio:4/5','1:1':'aspect-ratio:1/1','16:9':'aspect-ratio:16/9'};
+  const ratioAspect={
+    '9:16':'aspect-ratio:9/16',
+    '4:5':'aspect-ratio:4/5',
+    '1:1':'aspect-ratio:1/1',
+    '16:9':'aspect-ratio:16/9'
+  };
 
   let html='';
   for(const [ratio,group] of Object.entries(ratioGroups)){
@@ -1317,7 +1322,7 @@ function renderVideoGrid(){
       <div class="${group.rowClass}">
         ${group.videos.map(({v,i})=>`
         <div class="vc" id="vc-${i}">
-          <div class="vc-thumb" style="${aspect};" onclick="toggleVideoPlay(${i})">
+          <div class="vc-thumb" style="${aspect};width:100%;overflow:hidden;" onclick="toggleVideoPlay(${i})">
             <video id="vcv-${i}" src="${v.url}" preload="metadata" playsinline loop
               style="width:100%;height:100%;object-fit:cover;display:block;"></video>
             <div class="vc-overlay" id="vco-${i}">

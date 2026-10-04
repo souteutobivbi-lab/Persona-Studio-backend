@@ -769,17 +769,20 @@ async def generate_portrait(
     # FLUX framing rule: lead with framing, use 35mm for wider shot that captures waist
     # 35mm lens gives a wider field of view than 50mm — person appears further back
     # "three-quarter length" is the photography term for waist-to-top-of-head framing
+    # Portrait framing for Flashtalk: head + shoulders + upper chest
+    # Subject fills upper 70% of frame — face visible, shoulders and upper chest showing
+    # This gives Flashtalk enough face area while keeping shoulders in the animated output
     prompt = (
-        f"Professional portrait photograph of a {persona_age} year old {core}, "
-        f"framed from mid-chest upward showing face, neck, shoulders and upper chest, "
-        f"subject looking directly at camera, confident natural expression, "
+        f"Professional studio portrait of a {persona_age} year old {core}, "
+        f"shoulders-up framing, face and both shoulders fully visible, upper chest showing, "
+        f"subject fills frame from shoulders to top of head with slight space above, "
+        f"looking directly into camera, natural confident expression, "
         f"{age_desc}, "
         f"{outfit}, "
-        f"pure white seamless studio backdrop, subject centred in frame, "
-        f"shot on Canon EOS 5D Mark IV with 85mm f/1.8 lens, "
-        f"large softbox key light at 45 degrees camera left, white fill reflector right, "
-        f"natural skin texture, visible pores, no retouching, no airbrushing, "
-        f"commercial portrait photography, Getty Images editorial style"
+        f"pure white seamless studio backdrop, perfectly centred, "
+        f"Canon EOS 5D Mark IV 85mm f/2.0, large softbox camera left, fill reflector right, "
+        f"sharp focus on eyes, natural skin texture, no retouching, "
+        f"BBC news presenter style portrait, professional broadcast photography"
     )
 
     # If LoRA is provided, inject trigger word at start of prompt
@@ -994,14 +997,6 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         portrait_rgba = Image.fromarray(rgba_arr)
         print(f"[{jid}] Background removed + halo fixed.")
 
-        # Crop portrait to top 45% before sending to lip-sync model
-        # Full waist-up portrait → Flashtalk crops to face only (too tight)
-        # Top 45% = head + neck + shoulders + upper chest → Flashtalk output shows this naturally
-        orig_w, orig_h = portrait_rgba.size
-        crop_h = int(orig_h * 0.45)
-        portrait_rgba = portrait_rgba.crop((0, 0, orig_w, crop_h))
-        print(f"[{jid}] Cropped to upper body: {orig_w}x{crop_h} (was {orig_w}x{orig_h})")
-
         if scene_path and Path(scene_path).exists():
             set_job(jid, {"status": "running", "stage": "compositing", "progress": 20})
             print(f"[{jid}] Compositing...")
@@ -1087,62 +1082,51 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         # 16:9  → scale persona to fill 1920x1080 height (upscale 768x448 → 1920x1080 keeping AR)
         #          overlay centred on blurred scene background for broadcast look
 
-        if ratio == "16:9" and has_scene:
-            scene_input = str(scene_path)
+        if ratio == "16:9":
             final_path_tmp = str(OUTPUT_DIR / f"{jid}_final.mp4")
 
-            # Scale persona to fill 1920 wide while keeping aspect ratio
-            # 768x448 → scale to 1920 wide → height becomes 1920*(448/768) = 1120
-            # Then centre vertically on 1080 canvas (crop 20px top+bottom)
-            # This keeps the face in frame and fills the width entirely
-            filter_complex = (
-                # Background: scene image scaled to fill 1920x1080, heavily blurred
-                f"[0:v]scale=1920:1080:force_original_aspect_ratio=increase,"
-                f"crop=1920:1080,gblur=sigma=20[bg];"
-                # Persona: scale to fill width (1920), keeping aspect ratio
-                f"[1:v]scale=1920:-2[fg_scaled];"
-                # Composite: overlay persona centred vertically on background
-                f"[bg][fg_scaled]overlay=0:(H-h)/2,"
-                f"{grain}[out]"
-            )
-
-            ret = subprocess.run([
-                "ffmpeg", "-y",
-                "-loop", "1", "-i", scene_input,
-                "-i", raw_path,
-                "-filter_complex", filter_complex,
-                "-map", "[out]",
-                "-map", "1:a",
-                "-c:v", "libx264", "-crf", "22", "-preset", "fast",
-                "-profile:v", "baseline", "-level", "4.0",
-                "-pix_fmt", "yuv420p",
-                "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
-                "-movflags", "+faststart",
-                "-maxrate", "6M", "-bufsize", "12M",
-                "-shortest",
-                final_path_tmp
-            ], capture_output=True)
+            if has_scene:
+                # 16:9 with scene: scene fills background, Flashtalk video scaled to fill frame
+                # Flashtalk 768x448 → scale to 1920x1080 filling width
+                # Scene blurred behind as broadcast backdrop
+                filter_complex = (
+                    f"[0:v]scale=1920:1080:force_original_aspect_ratio=increase,"
+                    f"crop=1920:1080,gblur=sigma=18[bg];"
+                    f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,"
+                    f"crop=1920:1080[fg];"
+                    f"[bg][fg]overlay=0:0,{grain}[out]"
+                )
+                ret = subprocess.run([
+                    "ffmpeg", "-y",
+                    "-loop", "1", "-i", str(scene_path),
+                    "-i", raw_path,
+                    "-filter_complex", filter_complex,
+                    "-map", "[out]", "-map", "1:a",
+                    "-c:v", "libx264", "-crf", "22", "-preset", "fast",
+                    "-profile:v", "baseline", "-level", "4.0",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+                    "-movflags", "+faststart", "-maxrate", "6M", "-bufsize", "12M",
+                    "-shortest", final_path_tmp
+                ], capture_output=True)
+            else:
+                # 16:9 no scene — scale Flashtalk output to fill 1920x1080
+                vf = (
+                    f"scale=1920:1080:force_original_aspect_ratio=increase,"
+                    f"crop=1920:1080,"
+                    f"{grain}"
+                )
+                ret = subprocess.run([
+                    "ffmpeg", "-y", "-i", raw_path,
+                    "-vf", vf,
+                    "-c:v", "libx264", "-crf", "22", "-preset", "fast",
+                    "-profile:v", "baseline", "-level", "4.0",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+                    "-movflags", "+faststart", "-maxrate", "6M", "-bufsize", "12M",
+                    final_path_tmp
+                ], capture_output=True)
             final_path = final_path_tmp
-
-        elif ratio == "16:9":
-            # No scene — scale persona to fill 1920x1080, black background
-            # Upscale 768x448 to 1920 wide, centre on 1080 canvas
-            vf = (
-                f"scale=1920:-2,"
-                f"pad=1920:1080:0:(oh-ih)/2:black,"
-                f"{grain}"
-            )
-            ret = subprocess.run([
-                "ffmpeg", "-y", "-i", raw_path,
-                "-vf", vf,
-                "-c:v", "libx264", "-crf", "22", "-preset", "fast",
-                "-profile:v", "baseline", "-level", "4.0",
-                "-pix_fmt", "yuv420p",
-                "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
-                "-movflags", "+faststart",
-                "-maxrate", "6M", "-bufsize", "12M",
-                final_path
-            ], capture_output=True)
 
         else:
             # 9:16, 1:1, 4:5 — scale to fit target, pad with black (no cropping = no face cutoff)
