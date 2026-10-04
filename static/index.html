@@ -751,6 +751,47 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div style="font-size:11px;color:var(--dim);margin-top:5px;" id="genStage">Ready</div>
             </div>
             <div class="vprev-wrap"><div class="vprev ratio-916" id="vprev"><div class="vprev-empty"><div style="font-size:28px;">▶</div><span style="font-size:11px;">Video appears here</span></div></div></div>
+            <!-- Caption style selector -->
+            <div class="card">
+              <div class="card-hd">Captions <span class="badge">Optional — choose a style to burn subtitles in</span></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;" id="captionStyleGrid">
+                <div class="caption-opt on" data-style="none" onclick="pickCaption(this,'none')"
+                  style="padding:10px;border-radius:9px;border:1px solid var(--purple);background:var(--p3);cursor:pointer;text-align:center;transition:all .12s;">
+                  <div style="font-size:16px;margin-bottom:4px;">✕</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--p2);">None</div>
+                </div>
+                <div class="caption-opt" data-style="tiktok" onclick="pickCaption(this,'tiktok')"
+                  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .12s;">
+                  <div style="font-size:14px;font-weight:800;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;margin-bottom:4px;">Aa</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);">TikTok</div>
+                  <div style="font-size:10px;color:var(--dim);margin-top:2px;">Bold white + outline</div>
+                </div>
+                <div class="caption-opt" data-style="minimal" onclick="pickCaption(this,'minimal')"
+                  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .12s;">
+                  <div style="font-size:14px;color:#eee;margin-bottom:4px;">Aa</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);">Minimal</div>
+                  <div style="font-size:10px;color:var(--dim);margin-top:2px;">Clean light text</div>
+                </div>
+                <div class="caption-opt" data-style="highlight" onclick="pickCaption(this,'highlight')"
+                  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .12s;">
+                  <div style="font-size:14px;font-weight:700;background:rgba(0,0,0,.6);color:#fff;padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:4px;">Aa</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);">Highlight</div>
+                  <div style="font-size:10px;color:var(--dim);margin-top:2px;">Text on dark strip</div>
+                </div>
+                <div class="caption-opt" data-style="broadcast" onclick="pickCaption(this,'broadcast')"
+                  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .12s;">
+                  <div style="font-size:14px;font-weight:700;background:#111;color:#fff;padding:1px 7px;border-radius:2px;display:inline-block;margin-bottom:4px;">Aa</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);">Broadcast</div>
+                  <div style="font-size:10px;color:var(--dim);margin-top:2px;">Lower third bar</div>
+                </div>
+                <div class="caption-opt" data-style="cinematic" onclick="pickCaption(this,'cinematic')"
+                  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .12s;">
+                  <div style="font-size:14px;font-style:italic;color:#ddd;margin-bottom:4px;">Aa</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);">Cinematic</div>
+                  <div style="font-size:10px;color:var(--dim);margin-top:2px;">Italic serif</div>
+                </div>
+              </div>
+            </div>
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
@@ -1146,7 +1187,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 <script>
 const API=()=>localStorage.getItem('apiUrl')||'https://persona-studio.homivis.com';
 let S={
-  persona:null, niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL',
+  persona:null, niche:'wealth', script:'', voiceId:'EXAVITQu4vr4xnSDxMaL', captionStyle:'none',
   audioFile:null, portraitFile:null, sceneFile:null,
   ratio:{label:'9:16',w:512,h:768}, jobId:'', lastVideoUrl:'',
   videos:[], personas:[], savedScripts:[], skills:[], savedPortraits:[],
@@ -1769,6 +1810,18 @@ async function loadNpSkill(input){
 
 // ── NICHE / RATIO ──────────────────────────────────────
 function pickNiche(el,niche){document.querySelectorAll('.niche-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.niche=niche;}
+function pickCaption(el,style){
+  document.querySelectorAll('.caption-opt').forEach(c=>{
+    c.style.borderColor='var(--border)';
+    c.style.background='var(--surface)';
+    c.querySelector('div:nth-child(2)').style.color='var(--muted)';
+  });
+  el.style.borderColor='var(--purple)';
+  el.style.background='var(--p3)';
+  el.querySelector('div:nth-child(2)').style.color='var(--p2)';
+  S.captionStyle=style;
+}
+
 function pickRatio(el,label,w,h){
   document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
@@ -2580,6 +2633,8 @@ async function startGen(){
     fd.append('ratio',S.ratio.label||'9:16');
     fd.append('out_width',String(S.ratio.w||512));
     fd.append('out_height',String(S.ratio.h||768));
+    if(S.script) fd.append('script',S.script);
+    if(S.captionStyle&&S.captionStyle!=='none') fd.append('caption_style',S.captionStyle);
     if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
     const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
     if(d.error)throw new Error(d.error);
@@ -2596,6 +2651,7 @@ async function startGen(){
       processing:'Encoding video for mobile streaming...',
       grain_filter:'Applying grain filter...',
       uploading_cdn:'Uploading to CDN...',
+      captions:'Burning captions into video...',
       done:'Complete!'
     };
     pollIv=setInterval(async()=>{
@@ -2614,6 +2670,7 @@ async function startGen(){
         if(st==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Flashtalk lip-sync (~30–90s)...');}
         if(st==='downloading'){updatePipe(3,'done');updatePipe(4,'run','Downloading...');}
         if(st==='processing'||st==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Encoding for mobile...');}
+        if(st==='captions'){updatePipe(4,'done');updatePipe(5,'run','Burning captions...');}
         if(st==='uploading_cdn'){updatePipe(4,'done');updatePipe(5,'run','Uploading to CDN...');}
         if(sd.status==='complete'){
           clearInterval(pollIv);pollIv=null;

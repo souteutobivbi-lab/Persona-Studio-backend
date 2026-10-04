@@ -700,6 +700,83 @@ async def serve_scene(jid: str):
         return FileResponse(str(path), media_type="image/png")
     return JSONResponse({"error": "not found"}, status_code=404)
 
+def generate_srt(script: str, duration: float) -> str:
+    """Generate a timed SRT subtitle file from script text and audio duration.
+    Splits into lines of ~8 words, evenly timed across the duration.
+    """
+    import re
+    # Clean script
+    text = re.sub(r'\s+', ' ', script.strip())
+    words = text.split()
+    if not words:
+        return ""
+
+    # Group into caption lines — ~7 words per line for readability
+    words_per_line = 7
+    lines = []
+    for i in range(0, len(words), words_per_line):
+        lines.append(' '.join(words[i:i+words_per_line]))
+
+    # Calculate timing — evenly distribute duration across lines
+    time_per_line = duration / len(lines)
+
+    def fmt_time(seconds: float) -> str:
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = int(seconds % 60)
+        ms = int((seconds % 1) * 1000)
+        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+    srt = ""
+    for i, line in enumerate(lines):
+        start = i * time_per_line
+        end = (i + 1) * time_per_line - 0.05  # small gap between captions
+        srt += f"{i+1}\n{fmt_time(start)} --> {fmt_time(end)}\n{line}\n\n"
+
+    return srt
+
+def get_caption_ffmpeg_filter(style: str, ratio: str, srt_path: str) -> str:
+    """Return ffmpeg subtitle filter string for each caption style."""
+    srt_escaped = srt_path.replace('\\', '/').replace(':', '\\:')
+
+    # Position: bottom for portrait, lower-third for landscape
+    is_landscape = ratio == "16:9"
+    y_pos = "h-th-60" if is_landscape else "h-th-120"
+
+    styles = {
+        "tiktok": (
+            f"subtitles='{srt_escaped}':force_style='"
+            f"FontName=Arial,FontSize=22,Bold=1,PrimaryColour=&H00FFFFFF,"
+            f"OutlineColour=&H00000000,Outline=3,Shadow=1,"
+            f"Alignment=2,MarginV=80'"
+        ),
+        "minimal": (
+            f"subtitles='{srt_escaped}':force_style='"
+            f"FontName=Arial,FontSize=16,Bold=0,PrimaryColour=&H00FFFFFF,"
+            f"OutlineColour=&H00000000,Outline=2,Shadow=0,"
+            f"Alignment=2,MarginV=60'"
+        ),
+        "highlight": (
+            f"subtitles='{srt_escaped}':force_style='"
+            f"FontName=Arial,FontSize=20,Bold=1,PrimaryColour=&H00FFFFFF,"
+            f"BackColour=&H80000000,BorderStyle=4,"
+            f"Outline=0,Shadow=0,Alignment=2,MarginV=80'"
+        ),
+        "broadcast": (
+            f"subtitles='{srt_escaped}':force_style='"
+            f"FontName=Arial,FontSize=18,Bold=1,PrimaryColour=&H00FFFFFF,"
+            f"BackColour=&HCC000000,BorderStyle=4,"
+            f"Outline=0,Shadow=0,Alignment=2,MarginV=40'"
+        ),
+        "cinematic": (
+            f"subtitles='{srt_escaped}':force_style='"
+            f"FontName=Georgia,FontSize=18,Bold=0,Italic=1,"
+            f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
+            f"Outline=2,Shadow=1,Alignment=2,MarginV=100'"
+        ),
+    }
+    return styles.get(style, styles["tiktok"])
+
 @app.post("/generate-video")
 async def generate_video(
     portrait: UploadFile = File(...),
@@ -708,7 +785,9 @@ async def generate_video(
     job_id: str = Form(None),
     ratio: str = Form("9:16"),
     out_width: int = Form(512),
-    out_height: int = Form(768)
+    out_height: int = Form(768),
+    script: Optional[str] = Form(None),
+    caption_style: Optional[str] = Form(None)  # none, tiktok, minimal, highlight, broadcast, cinematic
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
@@ -720,10 +799,13 @@ async def generate_video(
     if scene and scene.filename:
         scene_path = UPLOAD_DIR / f"{jid}_scene.png"
         scene_path.write_bytes(await scene.read())
-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, ratio, out_width, out_height))
+    asyncio.create_task(run_video_pipeline(
+        jid, str(portrait_path), str(audio_path), scene_path,
+        ratio, out_width, out_height, script, caption_style
+    ))
     return {"job_id": jid, "status": "running"}
 
-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ratio="9:16", out_width=512, out_height=768):
+async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ratio="9:16", out_width=512, out_height=768, script=None, caption_style=None):
     try:
         import fal_client
         from PIL import Image
@@ -914,6 +996,47 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, ra
         if final_size < 10000:
             print(f"[{jid}] ffmpeg output too small ({final_size} bytes) — using raw video instead")
             final_path = raw_path
+
+        # ── CAPTION BURNING ────────────────────────────────────────────
+        if caption_style and caption_style != "none" and script:
+            set_job(jid, {"status": "running", "stage": "captions", "progress": 93,
+                          "message": "Burning captions into video..."})
+            try:
+                # Get audio duration
+                probe = subprocess.run([
+                    "ffprobe", "-v", "quiet", "-print_format", "json",
+                    "-show_format", str(audio_path)
+                ], capture_output=True)
+                probe_data = json.loads(probe.stdout.decode())
+                duration = float(probe_data.get("format", {}).get("duration", 20.0))
+
+                # Generate SRT from script
+                srt_content = generate_srt(script, duration)
+                srt_path = str(UPLOAD_DIR / f"{jid}_captions.srt")
+                Path(srt_path).write_text(srt_content, encoding='utf-8')
+
+                # Burn captions into video
+                captioned_path = str(OUTPUT_DIR / f"{jid}_captioned.mp4")
+                caption_filter = get_caption_ffmpeg_filter(caption_style, ratio, srt_path)
+
+                ret_cap = subprocess.run([
+                    "ffmpeg", "-y", "-i", final_path,
+                    "-vf", caption_filter,
+                    "-c:v", "libx264", "-crf", "23", "-preset", "fast",
+                    "-profile:v", "baseline", "-level", "3.1",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "copy",
+                    "-movflags", "+faststart",
+                    captioned_path
+                ], capture_output=True)
+
+                if ret_cap.returncode == 0 and Path(captioned_path).stat().st_size > 10000:
+                    final_path = captioned_path
+                    print(f"[{jid}] Captions burned successfully ({caption_style})")
+                else:
+                    print(f"[{jid}] Caption burning failed: {ret_cap.stderr.decode()[:300]}")
+            except Exception as e:
+                print(f"[{jid}] Caption error (non-fatal): {e}")
 
         upload_size = Path(final_path).stat().st_size
         print(f"[{jid}] Uploading {upload_size} bytes to fal.ai CDN...")
