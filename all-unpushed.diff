@@ -435,7 +435,7 @@ index 207f8b5..e487923 100644
 +    threading.Thread(target=_run, daemon=True).start()
 +    return {"job_id": jid, "status": "running"}
 diff --git a/static/index.html b/static/index.html
-index 4683bd7..e82ec9e 100644
+index 4683bd7..16a62f4 100644
 --- a/static/index.html
 +++ b/static/index.html
 @@ -644,6 +644,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
@@ -582,7 +582,20 @@ index 4683bd7..e82ec9e 100644
      fd.append('trigger_word', p.triggerWord||'');
      fd.append('count','1');
      const d=await generatePortraitAndPoll(fd);
-@@ -2531,6 +2572,11 @@ async function lockQuickPortraitAsMaster(){
+@@ -2502,9 +2543,10 @@ async function genQuickPortrait(){
+     document.getElementById('qpMethodBadge').textContent = method;
+     const score = d.identity_scores&&d.identity_scores[0];
+     document.getElementById('qpScoreRow').textContent = score && score>0 ? 'Identity score: '+Math.round(score*100)+'%' : '';
+-    // show/hide lock button
++    // Always show lock button — allow re-locking with a better portrait
+     const lockBtn = document.getElementById('qpLockBtn');
+-    lockBtn.style.display = (!p.masterPortraitUrl && !p.loraUrl) ? 'block' : 'none';
++    lockBtn.style.display = 'block';
++    lockBtn.textContent = p.masterPortraitUrl ? '🔒 Replace master portrait' : '🔒 Set as master portrait';
+     // store last generated path for locking
+     window._qpLastImg = {url: imgUrl, path: d.images[0], personaName: pid};
+     resultEl.style.display='block';
+@@ -2531,6 +2573,11 @@ async function lockQuickPortraitAsMaster(){
      const d = await r.json();
      if(d.error) throw new Error(d.error);
      p.masterPortraitUrl = d.fal_url;
@@ -594,7 +607,7 @@ index 4683bd7..e82ec9e 100644
      saveAll();
      document.getElementById('qpLockBtn').style.display='none';
      populateQpPersonaSelect(); // refresh dropdown lock indicators
-@@ -2554,8 +2600,8 @@ async function useQuickPortraitForVideo(){
+@@ -2554,8 +2601,8 @@ async function useQuickPortraitForVideo(){
    } catch(e){ console.warn('portrait blob fetch failed', e); }
    showPanel('create', null);
    goStep(2);
@@ -605,7 +618,7 @@ index 4683bd7..e82ec9e 100644
    if(grid){
      const slot = document.createElement('div');
      slot.className='p-slot done selected';
-@@ -2952,6 +2998,8 @@ async function startGen(){
+@@ -2952,6 +2999,8 @@ async function startGen(){
      if(S.script) fd.append('script',S.script);
      if(S.captionStyle&&S.captionStyle!=='none') fd.append('caption_style',S.captionStyle);
      if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
@@ -614,7 +627,7 @@ index 4683bd7..e82ec9e 100644
      const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
      if(d.error)throw new Error(d.error);
      const job=d.job_id||jid;
-@@ -3002,6 +3050,20 @@ async function startGen(){
+@@ -3002,6 +3051,20 @@ async function startGen(){
            vp.classList.add(rcls);
            vp.innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
            document.getElementById('postGenBtns').style.display='flex';
@@ -635,7 +648,7 @@ index 4683bd7..e82ec9e 100644
            btn.textContent='✦ Generate another';btn.disabled=false;
            const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
            S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
-@@ -3020,6 +3082,89 @@ function updatePipe(n,status,sub){
+@@ -3020,6 +3083,89 @@ function updatePipe(n,status,sub){
    const pipes=document.querySelectorAll('#pipelineEl .pipe');
    if(pipes[n-1]){pipes[n-1].className='pipe '+status;pipes[n-1].querySelector('.pipe-n').textContent=status==='done'?'✓':n;if(sub)pipes[n-1].querySelector('.pipe-sub').textContent=sub;}
  }
@@ -725,7 +738,7 @@ index 4683bd7..e82ec9e 100644
  async function downloadVideo(url, filename){
    url = url || S.lastVideoUrl || (S.jobId?`${API()}/download/${S.jobId}`:null);
    if(!url){ toast('No video to download','err'); return; }
-@@ -3284,6 +3429,29 @@ updateDashboard();
+@@ -3284,6 +3430,29 @@ updateDashboard();
  updateDocCounts();
  setDocTab('skills');
  
@@ -755,7 +768,7 @@ index 4683bd7..e82ec9e 100644
  // ── Portrait job polling helper ──────────────────────────────────────────────
  // POSTs to /generate-portrait, gets job_id, polls /portrait-status/{jid}
  // every 3 s until complete. Returns the completed job object (has .images[]).
-@@ -3304,6 +3472,46 @@ async function generatePortraitAndPoll(fd) {
+@@ -3304,6 +3473,46 @@ async function generatePortraitAndPoll(fd) {
    throw new Error('Portrait generation timed out after 5 minutes');
  }
  // ─────────────────────────────────────────────────────────────────────────────
