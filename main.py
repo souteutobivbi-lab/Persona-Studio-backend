@@ -211,9 +211,8 @@ Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no la
 ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
         max_tok = 1200
 
-    model = "llama-3.3-70b-versatile" if has_vivienne_structure else "llama-3.1-8b-instant"
     response = client.chat.completions.create(
-        model=model,
+        model="qwen/qwen3.8-27b",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tok, temperature=0.88
     )
