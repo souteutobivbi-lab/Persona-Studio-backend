@@ -320,12 +320,22 @@ async def generate_portrait(
     os.environ["FAL_KEY"] = FAL_KEY
     jid = str(uuid.uuid4())[:8]
 
-    # Resolve master portrait URL
+    # Resolve master portrait URL — must be a public https URL for PuLID
     ref_url = master_url.strip()
+    # If it's a relative local path (e.g. /portrait/abc/0), ignore it — not fetchable by fal
+    if ref_url and not ref_url.startswith("http"):
+        ref_url = ""
+    # Fall back to in-memory store (set via /set-master-portrait which uploads to fal CDN)
     if not ref_url and persona_id:
         entry = MASTER_PORTRAITS.get(persona_id)
         if entry:
             ref_url = entry["url"]
+    # Also check by persona_name in case persona_id is the name string
+    if not ref_url and persona_id:
+        for key, entry in MASTER_PORTRAITS.items():
+            if key.lower() == persona_id.lower():
+                ref_url = entry["url"]
+                break
 
     prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color)
     images = []
@@ -350,12 +360,13 @@ async def generate_portrait(
                 img_url = result["images"][0]["url"]
                 method = "pulid"
             else:
-                # ── FLUX Schnell: no master yet, generate baseline ──
-                print(f"[{jid}] FLUX generation {i} (no master portrait set)")
-                result = fal_client.subscribe("fal-ai/flux/schnell", arguments={
+                # ── FLUX Dev: better prompt following for seated/scene portraits ──
+                print(f"[{jid}] FLUX Dev generation {i} (no master portrait set)")
+                result = fal_client.subscribe("fal-ai/flux/dev", arguments={
                     "prompt": prompt,
                     "image_size": "portrait_4_3",
-                    "num_inference_steps": 8,
+                    "num_inference_steps": 28,
+                    "guidance_scale": 3.5,
                     "num_images": 1,
                     "enable_safety_checker": False
                 })
