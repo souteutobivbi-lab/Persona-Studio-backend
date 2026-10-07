@@ -219,7 +219,15 @@ Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no la
     )
     raw = response.choices[0].message.content.strip()
     try:
+        # Strip <think>...</think> reasoning blocks (Llama 3.3 / DeepSeek style)
+        import re as _re
+        raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
         raw = raw.replace('```json','').replace('```','').strip()
+        # Find JSON array even if prefixed with prose
+        start = raw.find('[')
+        end = raw.rfind(']')
+        if start != -1 and end != -1:
+            raw = raw[start:end+1]
         scripts = json.loads(raw)
         if not isinstance(scripts, list):
             scripts = [scripts]
