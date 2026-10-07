@@ -71,6 +71,16 @@ static_path = Path(__file__).parent / "static"
 if static_path.exists():
     app.mount("/assets", StaticFiles(directory=str(static_path)), name="static")
 
+MUSIC_DIR = Path(__file__).parent / "static" / "music"
+MUSIC_TRACKS = {
+    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth — warm harp"},
+    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone — meditation ambience"},
+}
+
+@app.get("/music-tracks")
+async def list_music_tracks():
+    return {"tracks": [{"id": k, "label": v["label"]} for k, v in MUSIC_TRACKS.items()]}
+
 @app.post("/parse-skill")
 async def parse_skill(skill_text: str = Form(...)):
     from groq import Groq
@@ -127,28 +137,84 @@ async def generate_script(
 ):
     from groq import Groq
     client = Groq(api_key=GROQ_KEY)
-    skill_section = ""
+
+    # Detect Vivienne-style skill vs generic — look for structure markers
+    has_vivienne_structure = False
+    script_examples = ""
+    structure_rules = ""
     if skill_context:
-        skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style."
-    response = client.chat.completions.create(
-        model="qwen/qwen3.8-27b",
-        messages=[{"role": "user", "content": f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
+        sc = skill_context
+        has_vivienne_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
+                                   or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
+        # Extract script structure section
+        if "SCRIPT STRUCTURE" in sc:
+            start = sc.find("SCRIPT STRUCTURE")
+            end = sc.find("━━━", start + 20)
+            structure_rules = sc[start:end].strip() if end > start else sc[start:start+800]
+        # Extract example scripts section
+        if "EXAMPLE SCRIPTS" in sc:
+            start = sc.find("EXAMPLE SCRIPTS")
+            end = sc.find("━━━", start + 20)
+            script_examples = sc[start:end].strip() if end > start else sc[start:start+2000]
+        # Extract sign-offs
+        signoffs = ""
+        if "SIGN-OFFS" in sc:
+            start = sc.find("SIGN-OFFS")
+            end = sc.find("━━━", start + 20)
+            signoffs = sc[start:end].strip() if end > start else ""
+
+    if has_vivienne_structure:
+        # Full Vivienne-spec prompt: 100-140 words, 5-part structure
+        prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
+Topic: {topic}
+
+{structure_rules}
+
+{script_examples}
+
+CRITICAL RULES — follow exactly:
+1. Each script MUST be 100-140 words. Count carefully. Do not submit anything under 90 words.
+2. Follow the 5-part structure every time:
+   - Opening line: first name introduction ("I'm {persona_name}..." or "My name is {persona_name}...")
+   - The Claim: one clear, specific uncomfortable truth (15-25 words)
+   - The Unpacking: real mechanism explained with specificity (40-70 words)
+   - The Turn: reframe that changes how the viewer sees it (15-25 words)
+   - CTA: one of the sign-offs from the skill — earned, not tacked on
+3. Podcast confession style — essay-like, not a listicle
+4. Warm, direct, British cadence — measured, real, understated firmness
+5. No hashtags, no emojis, no stage directions, no filler
+6. Each of the 5 must cover a different angle of the topic with a different opening emotion
+7. Never shame the viewer. Validate before educating.
+
+{signoffs}
+
+Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
+["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
+        max_tok = 2000
+    else:
+        # Generic shorter scripts for other personas
+        skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
+        prompt = f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
 Topic: {topic}{skill_section}
 
-STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable, the kind of thing that makes a viewer stop scrolling and feel seen. Think: a real conversation, not a sales pitch.
+STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable. A real conversation, not a sales pitch.
 
-Rules for each script:
-- 30–45 words (15–20 seconds when spoken)
-- Each script must open with a different emotional hook (a confession, a painful truth, a bold claim, a question that cuts deep, a shared secret)
-- Warm, direct, British cadence — never American-corporate
-- End with either a quiet insight, a lingering question, or a gentle challenge to the viewer
-- No hashtags, no emojis, no stage directions, no filler phrases like "Hey guys" or "So today"
-- Each of the 5 must feel like a completely different moment — different emotion, different angle, different energy
-- The viewer should feel like {persona_name} is speaking directly to them, not performing for them
+Rules:
+- 45-80 words each (comfortable speaking pace)
+- Open with a different emotional hook each time
+- Warm, direct, British cadence
+- End with a quiet insight or gentle challenge
+- No hashtags, no emojis, no stage directions, no filler
+- Each must feel like a completely different moment
 
-Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels. Example format:
-["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""}],
-        max_tokens=800, temperature=0.92
+Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
+["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
+        max_tok = 1200
+
+    response = client.chat.completions.create(
+        model="qwen/qwen3-32b",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tok, temperature=0.88
     )
     raw = response.choices[0].message.content.strip()
     try:
@@ -158,6 +224,8 @@ Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no la
             scripts = [scripts]
     except:
         scripts = [raw]
+    # Filter out any scripts under 40 words (malformed outputs)
+    scripts = [s for s in scripts if len(s.split()) >= 40] or scripts
     return {"scripts": scripts, "script": scripts[0] if scripts else "", "words": len(scripts[0].split()) if scripts else 0}
 
 @app.post("/generate-voice")
@@ -270,9 +338,27 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
         print(f"Face similarity error (skipping): {e}")
         return -1.0
 
-# In-memory master portrait store  {persona_id: fal_cdn_url}
-# Using fal CDN URLs so they survive Railway container restarts
-MASTER_PORTRAITS: dict = {}  # persona_id → {"local": path, "url": fal_url}
+# Persistent master portrait store — survives Railway restarts
+# Saved to /app/master_portraits.json; fal CDN URLs are permanent
+PORTRAITS_FILE = Path("/app/master_portraits.json")
+
+def load_master_portraits() -> dict:
+    try:
+        if PORTRAITS_FILE.exists():
+            data = json.loads(PORTRAITS_FILE.read_text())
+            print(f"Loaded {len(data)} locked portraits from disk: {list(data.keys())}")
+            return data
+    except Exception as e:
+        print(f"Warning: could not load master portraits: {e}")
+    return {}
+
+def save_master_portraits(portraits: dict):
+    try:
+        PORTRAITS_FILE.write_text(json.dumps(portraits, indent=2))
+    except Exception as e:
+        print(f"Warning: could not save master portraits: {e}")
+
+MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id → {"local": path, "url": fal_url}
 
 @app.post("/set-master-portrait")
 async def set_master_portrait(
@@ -289,7 +375,8 @@ async def set_master_portrait(
     # Upload to fal CDN for persistence
     fal_url = fal_client.upload_file(str(master_path))
     MASTER_PORTRAITS[persona_id] = {"local": str(master_path), "url": fal_url}
-    print(f"Master portrait set for {persona_id}: {fal_url}")
+    save_master_portraits(MASTER_PORTRAITS)
+    print(f"[LOCKED] Master portrait saved for '{persona_id}': {fal_url}")
     return {"status": "ok", "persona_id": persona_id, "fal_url": fal_url}
 
 @app.post("/get-master-portrait")
@@ -299,6 +386,27 @@ async def get_master_portrait(persona_id: str = Form(...)):
     if not entry:
         return JSONResponse({"error": "No master portrait set for this persona"}, status_code=404)
     return {"persona_id": persona_id, "fal_url": entry["url"], "has_master": True}
+
+@app.get("/locked-personas")
+async def list_locked_personas():
+    """Return all personas that have a locked master portrait."""
+    return {
+        "locked": [
+            {"persona_id": pid, "fal_url": entry["url"]}
+            for pid, entry in MASTER_PORTRAITS.items()
+        ],
+        "count": len(MASTER_PORTRAITS)
+    }
+
+@app.delete("/locked-personas/{persona_id}")
+async def delete_locked_persona(persona_id: str):
+    """Remove identity lock for a persona."""
+    if persona_id not in MASTER_PORTRAITS:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    del MASTER_PORTRAITS[persona_id]
+    save_master_portraits(MASTER_PORTRAITS)
+    print(f"[UNLOCKED] Removed identity lock for '{persona_id}'")
+    return {"status": "ok", "persona_id": persona_id}
 
 @app.post("/generate-portrait")
 async def generate_portrait(
@@ -354,37 +462,24 @@ async def generate_portrait(
                 })
 
                 if ref_url:
-                    print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
+                    print(f"[{jid}] PuLID {i} master: {ref_url[:60]}...")
+                    # fal-ai/pulid is the proven face-lock model (instant-character stalls)
                     try:
-                        import concurrent.futures as _cf
-                        # Try instant-character up to 2 times with 90s timeout each
-                        ic_success = False
-                        for _attempt in range(2):
-                            try:
-                                _ex = _cf.ThreadPoolExecutor(max_workers=1)
-                                _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
-                                    "prompt": prompt,
-                                    "image_url": ref_url,
-                                    "scale": 0.85,
-                                    "guidance_scale": 3.5,
-                                    "num_inference_steps": 28,
-                                    "image_size": "portrait_4_3",
-                                    "num_images": 1
-                                })
-                                _ex.shutdown(wait=False)
-                                result = _fut.result(timeout=90)
-                                img_url = result["images"][0]["url"]
-                                _method = "instant-character"
-                                ic_success = True
-                                break
-                            except Exception as _ic_err:
-                                print(f"[{jid}] instant-character attempt {_attempt+1} failed: {_ic_err}")
-                        if not ic_success:
-                            ic_err = Exception("instant-character failed after 2 attempts")
-                            raise ic_err
-                        img_url = img_url  # already set above
-                    except Exception as ic_err:
-                        print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
+                        result = _fal.subscribe("fal-ai/pulid", arguments={
+                            "prompt": prompt,
+                            "face_image_url": ref_url,
+                            "num_inference_steps": 20,
+                            "style_strength": 20,
+                            "num_images": 1,
+                        })
+                        imgs = result.get("images") or result.get("image") or []
+                        if isinstance(imgs, dict):
+                            imgs = [imgs]
+                        img_url = imgs[0]["url"]
+                        _method = "pulid"
+                        print(f"[{jid}] PuLID {i} done: {img_url[:60]}")
+                    except Exception as pulid_err:
+                        print(f"[{jid}] PuLID failed ({pulid_err!r}), falling back to FLUX Dev")
                         result = _fal.subscribe("fal-ai/flux/dev", arguments={
                             "prompt": prompt,
                             "image_size": "portrait_4_3",
@@ -504,7 +599,8 @@ async def generate_video(
     portrait: UploadFile = File(...),
     audio: UploadFile = File(...),
     scene: Optional[UploadFile] = File(None),
-    job_id: str = Form(None)
+    job_id: str = Form(None),
+    bg_music: str = Form("")   # track id from MUSIC_TRACKS, empty = no music
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
@@ -516,10 +612,14 @@ async def generate_video(
     if scene and scene.filename:
         scene_path = UPLOAD_DIR / f"{jid}_scene.png"
         scene_path.write_bytes(await scene.read())
-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path))
+    music_path = None
+    if bg_music and bg_music in MUSIC_TRACKS:
+        music_path = str(MUSIC_DIR / MUSIC_TRACKS[bg_music]["file"])
+        print(f"[{jid}] Background music: {bg_music}")
+    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path))
     return {"job_id": jid, "status": "running"}
 
-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None):
     try:
         import fal_client
         from PIL import Image
@@ -572,26 +672,42 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
         urllib.request.urlretrieve(output_url, raw_path)
         print(f"[{jid}] Downloaded.")
 
-        # Stage 6: Fix aspect ratio + grain filter
-        # flashtalk outputs 768x448 landscape — scale up and pad to 9:16
+        # Stage 6: Fix aspect ratio + grain filter + optional background music
         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
         # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
         # scale to height 1280 then center-crop to 720 wide.
-        ret = subprocess.run([
-            "ffmpeg", "-i", raw_path,
-            "-vf", (
-                "scale=-2:1280,"
-                "crop=720:1280,"
-                "noise=alls=10:allf=t+u,"
-                "unsharp=5:5:1.5:5:5:0.0,"
-                "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
-            ),
-            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-            "-c:a", "aac", "-b:a", "128k",
-            "-movflags", "+faststart",
-            final_path, "-y"
-        ], capture_output=True)
+        vf = (
+            "scale=-2:1280,"
+            "crop=720:1280,"
+            "noise=alls=10:allf=t+u,"
+            "unsharp=5:5:1.5:5:5:0.0,"
+            "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
+        )
+        if music_path and Path(music_path).exists():
+            print(f"[{jid}] Mixing background music: {music_path}")
+            ret = subprocess.run([
+                "ffmpeg",
+                "-i", raw_path,
+                "-stream_loop", "-1", "-i", music_path,
+                "-vf", vf,
+                "-filter_complex",
+                "[1:a]volume=0.12,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "-map", "0:v", "-map", "[a]",
+                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                final_path, "-y"
+            ], capture_output=True)
+        else:
+            ret = subprocess.run([
+                "ffmpeg", "-i", raw_path,
+                "-vf", vf,
+                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                final_path, "-y"
+            ], capture_output=True)
         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
         if ret.returncode != 0:
             print(f"[{jid}] ffmpeg stderr: {ret.stderr.decode()[:500]}")
@@ -634,3 +750,110 @@ async def download_video(job_id: str):
     return JSONResponse({"error": "not ready"}, status_code=404)
 
 
+
+
+# ---------------------------------------------------------------------------
+# Outfit swap — preserves face, body & background; replaces only clothing
+# Uses SAM2 for clothing segmentation mask + FLUX inpainting
+# ---------------------------------------------------------------------------
+
+@app.post("/swap-outfit")
+async def swap_outfit(
+    persona_id: str = Form(...),
+    outfit: str = Form(...),
+    outfit_color: str = Form(""),
+):
+    """
+    Inpaint new clothing onto the locked master portrait.
+    Face, body shape, skin, hair and background are pixel-perfect unchanged.
+    Returns {job_id, status:"running"} immediately.
+    Poll /portrait-status/{jid} for completion.
+    """
+    import fal_client
+    os.environ["FAL_KEY"] = FAL_KEY
+
+    entry = MASTER_PORTRAITS.get(persona_id)
+    if not entry:
+        return JSONResponse({"error": f"No locked portrait for '{persona_id}'"}, status_code=400)
+
+    master_url = entry["url"]
+    jid = str(uuid.uuid4())[:8]
+    set_job(jid, {"status": "running", "progress": 0, "stage": "segmenting"})
+
+    outfit_prompt = f"{outfit_color} {outfit}".strip() if outfit_color else outfit
+
+    def _run():
+        try:
+            import fal_client as _fal
+            import requests as _req
+            import base64
+
+            # ── Step 1: SAM2 — get clothing mask ──────────────────────────
+            print(f"[{jid}] SAM2 segmenting clothing on {master_url[:60]}...")
+            set_job(jid, {"status": "running", "progress": 15, "stage": "segmenting_clothing"})
+
+            sam_result = _fal.subscribe("fal-ai/sam2", arguments={
+                "image_url": master_url,
+                "prompts": [{"type": "text", "text": "clothing, outfit, shirt, dress, top, jacket, clothes"}],
+                "output_format": "png",
+            })
+
+            mask_url = None
+            if sam_result.get("masks"):
+                mask_url = sam_result["masks"][0].get("url") or sam_result["masks"][0].get("image", {}).get("url")
+            if not mask_url and sam_result.get("image"):
+                mask_url = sam_result["image"].get("url")
+
+            if not mask_url:
+                raise ValueError(f"SAM2 returned no mask: {sam_result}")
+
+            print(f"[{jid}] SAM2 mask: {mask_url[:60]}")
+            set_job(jid, {"status": "running", "progress": 40, "stage": "inpainting"})
+
+            # ── Step 2: FLUX inpainting — fill only the clothing region ───
+            inpaint_prompt = (
+                f"Professional portrait, {outfit_prompt}, "
+                f"photorealistic, sharp, studio lighting, "
+                f"same person same pose same background"
+            )
+            print(f"[{jid}] FLUX inpainting: {inpaint_prompt[:80]}...")
+
+            inpaint_result = _fal.subscribe("fal-ai/flux-lora/inpainting", arguments={
+                "image_url": master_url,
+                "mask_url": mask_url,
+                "prompt": inpaint_prompt,
+                "num_inference_steps": 28,
+                "strength": 0.95,
+                "guidance_scale": 3.5,
+                "num_images": 1,
+                "enable_safety_checker": False,
+            })
+
+            imgs = inpaint_result.get("images") or []
+            if not imgs:
+                raise ValueError(f"Inpainting returned no images: {inpaint_result}")
+
+            out_url = imgs[0]["url"]
+            print(f"[{jid}] Inpainted: {out_url[:60]}")
+
+            # ── Save locally ───────────────────────────────────────────────
+            set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
+            out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
+            r = _req.get(out_url, timeout=60)
+            out_path.write_bytes(r.content)
+
+            set_job(jid, {
+                "status": "complete",
+                "progress": 100,
+                "images": [f"/portrait/{jid}/0"],
+                "method": "outfit-swap-inpaint",
+                "outfit": outfit_prompt,
+            })
+            print(f"[{jid}] Outfit swap complete")
+
+        except Exception as e:
+            print(f"[{jid}] Outfit swap error: {e}")
+            set_job(jid, {"status": "error", "error": str(e)})
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"job_id": jid, "status": "running"}
