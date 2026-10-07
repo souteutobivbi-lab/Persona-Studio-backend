@@ -840,6 +840,71 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <!-- PORTRAITS / IDENTITY LOCK -->
         <div id="panel-portraits" class="tab-panel">
 
+          <!-- ── QUICK PORTRAIT (PuLID) — no LoRA needed ── -->
+          <div class="card" style="border-color:rgba(124,58,237,.4);background:linear-gradient(135deg,var(--p3),var(--card));">
+            <div class="card-hd">⚡ Quick Portrait — Podcast style <span class="badge" style="background:var(--p3);color:var(--p2);">~$0.05 · No LoRA needed</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+              Generate a seated podcast portrait instantly. If you've set a master portrait below, PuLID locks that face — same person every time. Otherwise FLUX generates a new face from the appearance prompt.
+            </div>
+            <div class="g2" style="margin-bottom:10px;">
+              <div class="field">
+                <div class="lbl">Persona</div>
+                <select class="inp" id="qpPersonaSelect" onchange="qpPersonaChanged()">
+                  <option value="">— select persona —</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="lbl">Outfit colour</div>
+                <select class="inp" id="qpOutfitColor">
+                  <option value="deep red">Deep red</option>
+                  <option value="burgundy">Burgundy</option>
+                  <option value="sage green">Sage green</option>
+                  <option value="dusty pink">Dusty pink</option>
+                  <option value="cobalt blue">Cobalt blue</option>
+                  <option value="burnt orange">Burnt orange</option>
+                  <option value="ivory cream">Ivory cream</option>
+                  <option value="forest green">Forest green</option>
+                  <option value="plum purple">Plum purple</option>
+                  <option value="caramel brown">Caramel brown</option>
+                  <option value="slate grey">Slate grey</option>
+                  <option value="gold">Gold</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <div class="lbl">Outfit style <span style="color:var(--dim);font-weight:400;">(optional)</span></div>
+              <input class="inp" id="qpOutfitStyle" placeholder="e.g. fitted blazer, off-shoulder top, wrap dress"/>
+            </div>
+            <div id="qpMasterStatus" style="display:none;font-size:11px;padding:7px 10px;border-radius:7px;margin-bottom:10px;"></div>
+            <button class="gen-btn" onclick="genQuickPortrait()">⚡ Generate podcast portrait</button>
+            <div id="qpResult" style="display:none;margin-top:14px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <div style="width:140px;flex-shrink:0;">
+                  <div style="aspect-ratio:3/4;border-radius:9px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+                    <img id="qpImg" style="width:100%;height:100%;object-fit:cover;" src=""/>
+                  </div>
+                  <div id="qpMethodBadge" style="font-size:10px;text-align:center;margin-top:5px;padding:3px 8px;border-radius:20px;background:var(--p3);color:var(--p2);"></div>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:12px;font-weight:500;margin-bottom:6px;">Portrait generated</div>
+                  <div id="qpScoreRow" style="font-size:11px;color:var(--muted);margin-bottom:10px;"></div>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button class="btn ghost" style="font-size:12px;width:100%;" onclick="genQuickPortrait()">↺ Regenerate</button>
+                    <button class="btn primary" style="font-size:12px;width:100%;" onclick="useQuickPortraitForVideo()">Use in video →</button>
+                    <button class="btn ghost" style="font-size:11px;width:100%;color:var(--green);border-color:rgba(34,197,94,.3);" id="qpLockBtn" onclick="lockQuickPortraitAsMaster()">🔒 Set as master portrait</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="qpStatus" style="font-size:11px;color:var(--amber);margin-top:8px;display:none;"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;margin:4px 0;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <div style="font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Or train a permanent identity lock (LoRA · ~$2 one-time)</div>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+
           <!-- Stage indicator -->
           <div style="display:flex;gap:0;margin-bottom:4px;">
             <div class="id-stage on" id="idstage-1" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;border-bottom:2px solid var(--purple);color:var(--p2);cursor:pointer;" onclick="showIdStage(1)">1 · Master</div>
@@ -1448,7 +1513,26 @@ function showPanel(id,navEl){
   if(id==='create'){loadVoices();renderCreatePersonas();}
   if(id==='history')renderHistory();
   if(id==='docs')renderDocs();
-  if(id==='portraits'){initPortraitsPanel();showIdStage(1);}
+  if(id==='portraits'){initPortraitsPanel();showIdStage(1);populateQpPersonaSelect();}
+}
+
+function populateQpPersonaSelect(){
+  const sel = document.getElementById('qpPersonaSelect');
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— select persona —</option>';
+  S.personas.forEach(p=>{
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name + (p.masterPortraitUrl||p.loraUrl ? ' 🔒' : '');
+    sel.appendChild(opt);
+  });
+  if(current) sel.value = current;
+  // if active persona, pre-select it
+  if(!sel.value && S.persona){
+    sel.value = S.persona.id;
+    qpPersonaChanged();
+  }
 }
 
 // ── PERSONA SIDEBAR ────────────────────────────────────
@@ -2367,6 +2451,122 @@ let ID = {
   loraUrl: null, triggerWord: null,
   personaName: null
 };
+
+// ── QUICK PORTRAIT (PuLID) functions ──
+function qpPersonaChanged(){
+  const sel = document.getElementById('qpPersonaSelect');
+  const pid = sel.value;
+  const statusEl = document.getElementById('qpMasterStatus');
+  if(!pid){ statusEl.style.display='none'; return; }
+  const p = S.personas.find(x=>x.id===pid);
+  if(!p){ statusEl.style.display='none'; return; }
+  const hasMaster = !!(p.masterPortraitUrl || p.loraUrl);
+  statusEl.style.display = 'block';
+  if(hasMaster){
+    statusEl.style.background = 'var(--g2)';
+    statusEl.style.border = '1px solid rgba(34,197,94,.2)';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '🔒 Master portrait set — PuLID will lock the face (~$0.05)';
+  } else {
+    statusEl.style.background = 'rgba(245,158,11,.08)';
+    statusEl.style.border = '1px solid rgba(245,158,11,.2)';
+    statusEl.style.color = 'var(--amber)';
+    statusEl.textContent = '✦ No master portrait yet — FLUX will generate a new face (~$0.02). You can lock it afterwards.';
+  }
+}
+
+async function genQuickPortrait(){
+  const pid = document.getElementById('qpPersonaSelect').value;
+  if(!pid) return toast('Select a persona first','err');
+  const p = S.personas.find(x=>x.id===pid);
+  if(!p) return toast('Persona not found','err');
+  const color = document.getElementById('qpOutfitColor').value;
+  const style = document.getElementById('qpOutfitStyle').value.trim();
+  const outfit = style || 'fitted dress';
+  const statusEl = document.getElementById('qpStatus');
+  const resultEl = document.getElementById('qpResult');
+  statusEl.style.display='block';
+  statusEl.textContent = (p.masterPortraitUrl||p.loraUrl) ? '🔒 Generating with PuLID identity lock...' : '✦ Generating with FLUX...';
+  resultEl.style.display='none';
+  try {
+    const fd = new FormData();
+    fd.append('persona_name', p.name);
+    fd.append('persona_age', p.age||'28');
+    fd.append('appearance', p.appearance||'');
+    fd.append('outfit', outfit);
+    fd.append('outfit_color', color);
+    fd.append('count','1');
+    fd.append('persona_id', pid);
+    if(p.masterPortraitUrl) fd.append('master_url', p.masterPortraitUrl);
+    const r = await fetch(API()+'/generate-portrait',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    const imgUrl = API()+'/portrait/'+d.images[0];
+    document.getElementById('qpImg').src = imgUrl;
+    const method = d.method==='pulid' ? '🔒 PuLID — identity locked' : '✦ FLUX — new face';
+    document.getElementById('qpMethodBadge').textContent = method;
+    const score = d.identity_scores&&d.identity_scores[0];
+    document.getElementById('qpScoreRow').textContent = score && score>0 ? 'Identity score: '+Math.round(score*100)+'%' : '';
+    // show/hide lock button
+    const lockBtn = document.getElementById('qpLockBtn');
+    lockBtn.style.display = (!p.masterPortraitUrl && !p.loraUrl) ? 'block' : 'none';
+    // store last generated path for locking
+    window._qpLastImg = {url: imgUrl, path: d.images[0], personaId: pid};
+    resultEl.style.display='block';
+    statusEl.style.display='none';
+    toast('Portrait ready');
+  } catch(e){
+    statusEl.textContent='Error: '+e.message;
+    toast(e.message,'err');
+  }
+}
+
+async function lockQuickPortraitAsMaster(){
+  if(!window._qpLastImg) return toast('Generate a portrait first','err');
+  const {url, personaId} = window._qpLastImg;
+  const p = S.personas.find(x=>x.id===personaId);
+  if(!p) return toast('Persona not found','err');
+  toast('Locking as master portrait...');
+  try {
+    const blob = await fetch(url).then(r=>r.blob());
+    const fd = new FormData();
+    fd.append('persona_id', personaId);
+    fd.append('portrait', blob, 'master.png');
+    const r = await fetch(API()+'/set-master-portrait',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    p.masterPortraitUrl = d.fal_url;
+    savePersonas();
+    document.getElementById('qpLockBtn').style.display='none';
+    qpPersonaChanged(); // refresh status banner
+    toast('🔒 Master portrait locked — all future portraits will use this face');
+  } catch(e){
+    toast('Lock failed: '+e.message,'err');
+  }
+}
+
+function useQuickPortraitForVideo(){
+  if(!window._qpLastImg) return;
+  const {url, personaId} = window._qpLastImg;
+  const p = S.personas.find(x=>x.id===personaId);
+  if(p) selectPersona(p.id);
+  // set portrait in the create video flow
+  S.portraitUrl = url;
+  S.portraitPath = window._qpLastImg.path;
+  showPanel('create', null);
+  goStep(4);
+  // show portrait in the scene step
+  const grid = document.getElementById('portraitGrid');
+  if(grid){
+    const slot = document.createElement('div');
+    slot.className='p-slot done selected';
+    slot.innerHTML='<img src="'+url+'"/><div class="sel-check">✓</div>';
+    grid.innerHTML='';
+    grid.appendChild(slot);
+  }
+  document.getElementById('portraitBadge').textContent='Quick portrait ✓';
+  toast('Portrait set — choose your scene');
+}
 
 function showIdStage(n){
   for(let i=1;i<=5;i++){
