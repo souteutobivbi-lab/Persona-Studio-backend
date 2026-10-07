@@ -3125,9 +3125,10 @@ function cancelGen(){
   toast('Cancelled');
 }
 async function startGen(){
-  // If no File yet but we have a URL (e.g. from skipOutfitToVideo), fetch via proxy
-  if(!S.portraitFile && S.portraitUrl){
-    S.portraitFile = await fetchPortraitAsFile(S.portraitUrl);
+  // If no File yet, try every portrait URL source we have
+  if(!S.portraitFile){
+    const url = S.portraitUrl || S.persona?.masterPortraitUrl || S.persona?.portrait;
+    if(url) S.portraitFile = await fetchPortraitAsFile(url);
   }
   if(!S.portraitFile)return toast('Upload or generate a portrait first','err');
   if(!S.audioFile)return toast('Generate a voiceover first','err');
