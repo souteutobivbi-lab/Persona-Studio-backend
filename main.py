@@ -865,3 +865,59 @@ async def swap_outfit(
 
     threading.Thread(target=_run, daemon=True).start()
     return {"job_id": jid, "status": "running"}
+
+
+@app.post("/generate-description")
+async def generate_description(
+    script: str = Form(...),
+    persona_name: str = Form(...),
+    niche: str = Form(...),
+    platform: str = Form("all")   # tiktok | instagram | youtube | all
+):
+    """Generate social media descriptions/captions from a video script."""
+    from groq import Groq
+    client = Groq(api_key=GROQ_KEY)
+
+    prompt = f"""You are a social media copywriter for {persona_name}, a creator in the {niche} niche posting short-form vertical video.
+
+The video script is:
+\"\"\"
+{script}
+\"\"\"
+
+Write platform-optimised captions for this video. Return ONLY a JSON object with these keys:
+{{
+  "tiktok": "TikTok caption — hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
+  "instagram": "Instagram caption — 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
+  "youtube": "YouTube Shorts description — 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading — not a throwaway line."
+}}
+
+Rules:
+- Keep the voice and tone of the script — warm, direct, specific
+- Never use generic hashtags like #motivation #love — make them specific to the content
+- The hook line for TikTok should mirror the script opening or amplify the claim
+- No emojis except sparingly on Instagram (1-2 max)
+- Do not invent facts not in the script
+- Hashtags must be lowercase, no spaces
+
+Return only the JSON object, nothing else."""
+
+    try:
+        resp = client.chat.completions.create(
+            model="qwen/qwen3.8-27b",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600,
+            temperature=0.7,
+        )
+        raw = resp.choices[0].message.content.strip()
+        import re as _re
+        raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
+        raw = raw.replace('```json', '').replace('```', '').strip()
+        start = raw.find('{')
+        end = raw.rfind('}')
+        if start != -1 and end != -1:
+            raw = raw[start:end+1]
+        result = json.loads(raw)
+        return result
+    except Exception as e:
+        return {"error": str(e), "tiktok": "", "instagram": "", "youtube": ""}
