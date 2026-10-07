@@ -921,3 +921,18 @@ Return only the JSON object, nothing else."""
         return result
     except Exception as e:
         return {"error": str(e), "tiktok": "", "instagram": "", "youtube": ""}
+
+@app.get("/proxy-image")
+async def proxy_image(url: str):
+    """Proxy an external image URL through the backend to avoid CORS issues.
+    Used by the frontend to fetch fal.ai CDN portraits as blobs."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+            content_type = r.headers.get("content-type", "image/jpeg")
+            from fastapi.responses import Response
+            return Response(content=r.content, media_type=content_type)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=502)

@@ -3125,13 +3125,9 @@ function cancelGen(){
   toast('Cancelled');
 }
 async function startGen(){
-  // If no File yet but we have a URL (e.g. from skipOutfitToVideo), try to fetch it now
+  // If no File yet but we have a URL (e.g. from skipOutfitToVideo), fetch via proxy
   if(!S.portraitFile && S.portraitUrl){
-    try{
-      const resp=await fetch(S.portraitUrl);
-      const blob=await resp.blob();
-      S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
-    }catch(e){ console.warn('Could not fetch portrait from URL',e); }
+    S.portraitFile = await fetchPortraitAsFile(S.portraitUrl);
   }
   if(!S.portraitFile)return toast('Upload or generate a portrait first','err');
   if(!S.audioFile)return toast('Generate a voiceover first','err');
@@ -3262,6 +3258,28 @@ function downloadPortraitUsed(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   toast('Portrait downloading...');
 }
+async function fetchPortraitAsFile(portraitUrl){
+  // Try direct fetch first; if CORS blocks it, route through backend proxy
+  try{
+    const resp = await fetch(portraitUrl);
+    if(!resp.ok) throw new Error('status '+resp.status);
+    const blob = await resp.blob();
+    return new File([blob],'portrait.png',{type:'image/png'});
+  }catch(e){
+    // CORS-blocked (fal.ai CDN) — use backend proxy
+    try{
+      const proxyUrl = `${API()}/proxy-image?url=${encodeURIComponent(portraitUrl)}`;
+      const resp = await fetch(proxyUrl);
+      if(!resp.ok) throw new Error('proxy status '+resp.status);
+      const blob = await resp.blob();
+      return new File([blob],'portrait.png',{type:'image/png'});
+    }catch(e2){
+      console.warn('Could not fetch portrait via proxy either',e2);
+      return null;
+    }
+  }
+}
+
 async function skipOutfitToVideo(){
   // Use the locked portrait as-is, bypass outfit selection, proceed to next step
   const p = S.persona;
@@ -3271,16 +3289,9 @@ async function skipOutfitToVideo(){
   const btn = event?.currentTarget;
   if(btn){ btn.disabled=true; btn.textContent='⏳ Loading portrait...'; }
 
-  // Must have S.portraitFile before advancing — fetch and convert first
-  try{
-    const resp = await fetch(portraitUrl);
-    const blob = await resp.blob();
-    S.portraitFile = new File([blob],'portrait.png',{type:'image/png'});
-  }catch(e){
-    // Cross-origin fallback — create a minimal placeholder so startGen() doesn't block
-    // and rely on S.portraitUrl for the actual upload path
-    console.warn('Could not fetch portrait as file, using URL path',e);
-  }
+  // Fetch as File (with CORS proxy fallback)
+  const file = await fetchPortraitAsFile(portraitUrl);
+  if(file) S.portraitFile = file;
 
   // Set all portrait state
   S.portraitUrl = portraitUrl;
