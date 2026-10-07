@@ -353,7 +353,9 @@ async def generate_portrait(
                 if ref_url:
                     print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
                     try:
-                        result = _fal.subscribe("fal-ai/instant-character", arguments={
+                        import concurrent.futures as _cf
+                        _ex = _cf.ThreadPoolExecutor(max_workers=1)
+                        _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
                             "prompt": prompt,
                             "image_url": ref_url,
                             "scale": 0.8,
@@ -362,6 +364,8 @@ async def generate_portrait(
                             "image_size": "portrait_4_3",
                             "num_images": 1
                         })
+                        _ex.shutdown(wait=False)
+                        result = _fut.result(timeout=45)
                         img_url = result["images"][0]["url"]
                         _method = "instant-character"
                     except Exception as ic_err:
