@@ -2684,7 +2684,7 @@ function initPortraitsPanel(){
   const cleanUrl=u=>{
     if(!u) return null;
     const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/);
-    return m?m[1]:u.startsWith('data:')?u:null;
+    return m?m[1]:null; // reject data: base64 URLs — they are too large to store
   };
   if(p.savedPortraits?.length){
     ID.personaName=p.name;
