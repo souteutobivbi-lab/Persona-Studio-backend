@@ -2350,9 +2350,7 @@ async function genPortraitWithLora(){
     fd.append('lora_url', p.loraUrl);
     fd.append('trigger_word', p.triggerWord||'');
     fd.append('count','1');
-    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
+    const d=await generatePortraitAndPoll(fd);
     const imgUrl=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
 
     // Show comparison
@@ -2392,8 +2390,7 @@ async function genPortrait(){
       fd.append('lora_url',S.persona.loraUrl);
       fd.append('trigger_word',S.persona.triggerWord||'');
     }
-    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
-    if(d.error)throw new Error(d.error);
+    const d=await generatePortraitAndPoll(fd);
     const imgUrl=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     const grid=document.getElementById('portraitGrid');
     grid.children[0].innerHTML=`<img src="${imgUrl}"/><div class="sel-check">✓</div>`;
@@ -2498,9 +2495,7 @@ async function genQuickPortrait(){
     fd.append('count','1');
     fd.append('persona_id', pid);
     if(p.masterPortraitUrl) fd.append('master_url', p.masterPortraitUrl);
-    const r = await fetch(API()+'/generate-portrait',{method:'POST',body:fd});
-    const d = await r.json();
-    if(d.error) throw new Error(d.error);
+    const d = await generatePortraitAndPoll(fd);
     const imgUrl = API()+d.images[0]; // d.images[0] is already "/portrait/jid/0"
     document.getElementById('qpImg').src = imgUrl;
     const method = d.method==='instant-character' ? '🔒 Identity locked' : d.method==='flux-fallback' ? '✦ FLUX fallback' : '✦ FLUX — new face';
@@ -2664,9 +2659,7 @@ async function genMasterPortrait(){
     fd.append('appearance',appearance);
     fd.append('outfit','professional attire, hands clasped in front');
     fd.append('count','1');
-    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
+    const d=await generatePortraitAndPoll(fd);
     const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     document.getElementById('masterPortraitImg').src=url;
     document.getElementById('masterPortraitBadge').textContent='Generated — review carefully';
@@ -2742,9 +2735,7 @@ async function genAngleVariations(){
       fd.append('appearance', appearance+', '+ANGLES[i].desc);
       fd.append('outfit','same professional attire, hands visible');
       fd.append('count','1');
-      const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
-      const d=await r.json();
-      if(d.error) throw new Error(d.error);
+      const d=await generatePortraitAndPoll(fd);
       const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
       slot.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;"/>`;
       slot.style.border='1px solid var(--green)';
@@ -2892,9 +2883,7 @@ async function testLoraGeneration(){
     fd.append('lora_url',ID.loraUrl);
     fd.append('trigger_word',ID.triggerWord);
     fd.append('count','1');
-    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
+    const d=await generatePortraitAndPoll(fd);
     const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     document.getElementById('loraTestImg').src=url;
     document.getElementById('loraTestMaster').src=ID.masterUrl||'';
@@ -3065,8 +3054,7 @@ async function npGenPortrait(){
   const st=document.getElementById('npPortraitStatus');st.style.display='block';
   try{
     const fd=new FormData();fd.append('persona_name',document.getElementById('npName').value||'persona');fd.append('persona_age',document.getElementById('npAge').value||'36');fd.append('appearance',appearance);fd.append('count','1');
-    const r=await fetch(`${API()}/generate-portrait`,{method:'POST',body:fd});const d=await r.json();
-    if(d.error)throw new Error(d.error);
+    const d=await generatePortraitAndPoll(fd);
     const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];document.getElementById('npPortraitImg').src=url;document.getElementById('npPortraitPreview').style.display='flex';
     const resp=await fetch(url);const blob=await resp.blob();window._npFile=new File([blob],'portrait.png',{type:'image/png'});
     st.style.display='none';toast('Portrait generated');
@@ -3291,6 +3279,27 @@ document.getElementById('rpRole').textContent=S.persona.role+' · '+S.persona.ag
 updateDashboard();
 updateDocCounts();
 setDocTab('skills');
+
+// ── Portrait job polling helper ──────────────────────────────────────────────
+// POSTs to /generate-portrait, gets job_id, polls /portrait-status/{jid}
+// every 3 s until complete. Returns the completed job object (has .images[]).
+async function generatePortraitAndPoll(fd) {
+  const r = await fetch(API()+'/generate-portrait', {method:'POST', body:fd});
+  if(!r.ok) throw new Error('Portrait request failed: '+r.status);
+  const init = await r.json();
+  if(init.error) throw new Error(init.error);
+  const jid = init.job_id;
+  // Poll every 3 s
+  for(let attempts = 0; attempts < 40; attempts++) {
+    await new Promise(res => setTimeout(res, 3000));
+    const sr = await fetch(API()+'/portrait-status/'+jid);
+    const s  = await sr.json();
+    if(s.status === 'complete') return s;
+    if(s.status === 'error')   throw new Error(s.error || 'Portrait generation failed');
+  }
+  throw new Error('Portrait generation timed out after 2 minutes');
+}
+// ─────────────────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>
