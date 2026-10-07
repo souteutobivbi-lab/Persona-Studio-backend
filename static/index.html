@@ -1523,14 +1523,14 @@ function populateQpPersonaSelect(){
   sel.innerHTML = '<option value="">— select persona —</option>';
   S.personas.forEach(p=>{
     const opt = document.createElement('option');
-    opt.value = p.id;
+    opt.value = p.name; // use name as key — personas have no .id field
     opt.textContent = p.name + (p.masterPortraitUrl||p.loraUrl ? ' 🔒' : '');
     sel.appendChild(opt);
   });
   if(current) sel.value = current;
   // if active persona, pre-select it
   if(!sel.value && S.persona){
-    sel.value = S.persona.id;
+    sel.value = S.persona.name;
     qpPersonaChanged();
   }
 }
@@ -2458,7 +2458,7 @@ function qpPersonaChanged(){
   const pid = sel.value;
   const statusEl = document.getElementById('qpMasterStatus');
   if(!pid){ statusEl.style.display='none'; return; }
-  const p = S.personas.find(x=>x.id===pid);
+  const p = S.personas.find(x=>x.name===pid);
   if(!p){ statusEl.style.display='none'; return; }
   const hasMaster = !!(p.masterPortraitUrl || p.loraUrl);
   statusEl.style.display = 'block';
@@ -2478,7 +2478,7 @@ function qpPersonaChanged(){
 async function genQuickPortrait(){
   const pid = document.getElementById('qpPersonaSelect').value;
   if(!pid) return toast('Select a persona first','err');
-  const p = S.personas.find(x=>x.id===pid);
+  const p = S.personas.find(x=>x.name===pid);
   if(!p) return toast('Persona not found','err');
   const color = document.getElementById('qpOutfitColor').value;
   const style = document.getElementById('qpOutfitStyle').value.trim();
@@ -2501,7 +2501,7 @@ async function genQuickPortrait(){
     const r = await fetch(API()+'/generate-portrait',{method:'POST',body:fd});
     const d = await r.json();
     if(d.error) throw new Error(d.error);
-    const imgUrl = API()+'/portrait/'+d.images[0];
+    const imgUrl = API()+d.images[0]; // d.images[0] is already "/portrait/jid/0"
     document.getElementById('qpImg').src = imgUrl;
     const method = d.method==='pulid' ? '🔒 PuLID — identity locked' : '✦ FLUX — new face';
     document.getElementById('qpMethodBadge').textContent = method;
@@ -2511,7 +2511,7 @@ async function genQuickPortrait(){
     const lockBtn = document.getElementById('qpLockBtn');
     lockBtn.style.display = (!p.masterPortraitUrl && !p.loraUrl) ? 'block' : 'none';
     // store last generated path for locking
-    window._qpLastImg = {url: imgUrl, path: d.images[0], personaId: pid};
+    window._qpLastImg = {url: imgUrl, path: d.images[0], personaName: pid};
     resultEl.style.display='block';
     statusEl.style.display='none';
     toast('Portrait ready');
@@ -2523,21 +2523,22 @@ async function genQuickPortrait(){
 
 async function lockQuickPortraitAsMaster(){
   if(!window._qpLastImg) return toast('Generate a portrait first','err');
-  const {url, personaId} = window._qpLastImg;
-  const p = S.personas.find(x=>x.id===personaId);
+  const {url, personaName} = window._qpLastImg;
+  const p = S.personas.find(x=>x.name===personaName);
   if(!p) return toast('Persona not found','err');
   toast('Locking as master portrait...');
   try {
     const blob = await fetch(url).then(r=>r.blob());
     const fd = new FormData();
-    fd.append('persona_id', personaId);
+    fd.append('persona_id', personaName);
     fd.append('portrait', blob, 'master.png');
     const r = await fetch(API()+'/set-master-portrait',{method:'POST',body:fd});
     const d = await r.json();
     if(d.error) throw new Error(d.error);
     p.masterPortraitUrl = d.fal_url;
-    savePersonas();
+    saveAll();
     document.getElementById('qpLockBtn').style.display='none';
+    populateQpPersonaSelect(); // refresh dropdown lock indicators
     qpPersonaChanged(); // refresh status banner
     toast('🔒 Master portrait locked — all future portraits will use this face');
   } catch(e){
@@ -2547,9 +2548,9 @@ async function lockQuickPortraitAsMaster(){
 
 function useQuickPortraitForVideo(){
   if(!window._qpLastImg) return;
-  const {url, personaId} = window._qpLastImg;
-  const p = S.personas.find(x=>x.id===personaId);
-  if(p) selectPersona(p.id);
+  const {url, personaName} = window._qpLastImg;
+  const p = S.personas.find(x=>x.name===personaName);
+  if(p) selectPersona(p);
   // set portrait in the create video flow
   S.portraitUrl = url;
   S.portraitPath = window._qpLastImg.path;
