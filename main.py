@@ -352,8 +352,8 @@ async def generate_portrait(
                 result = fal_client.subscribe("fal-ai/pulid", arguments={
                     "prompt": prompt,
                     "reference_images": [{"image_url": ref_url}],
-                    "num_inference_steps": 20,
-                    "guidance_scale": 7.0,
+                    "num_inference_steps": 12,
+                    "guidance_scale": 1.5,
                     "image_size": "portrait_4_3",
                     "enable_safety_checker": False
                 })
