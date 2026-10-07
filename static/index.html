@@ -2553,8 +2553,8 @@ async function useQuickPortraitForVideo(){
     S.portraitFile = new File([blob],'portrait.png',{type:'image/png'});
   } catch(e){ console.warn('portrait blob fetch failed', e); }
   showPanel('create', null);
-  goStep(4);
-  // show portrait in the scene step
+  goStep(2);
+  // pre-populate portrait grid so it's ready when user reaches step 4
   const grid = document.getElementById('portraitGrid');
   if(grid){
     const slot = document.createElement('div');
@@ -2563,8 +2563,9 @@ async function useQuickPortraitForVideo(){
     grid.innerHTML='';
     grid.appendChild(slot);
   }
-  document.getElementById('portraitBadge').textContent='Quick portrait ✓';
-  toast('Portrait set — choose your scene');
+  const pb = document.getElementById('portraitBadge');
+  if(pb) pb.textContent='Quick portrait ✓';
+  toast('Portrait set — now add your script');
 }
 
 function showIdStage(n){
