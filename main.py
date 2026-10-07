@@ -904,14 +904,13 @@ Return only the JSON object, nothing else."""
 
     try:
         resp = client.chat.completions.create(
-            model="qwen/qwen3.8-27b",
+            model="llama-3.1-8b-instant",  # fast model — no thinking phase, responds in ~3s
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=600,
+            max_tokens=700,
             temperature=0.7,
         )
         raw = resp.choices[0].message.content.strip()
         import re as _re
-        raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
         raw = raw.replace('```json', '').replace('```', '').strip()
         start = raw.find('{')
         end = raw.rfind('}')

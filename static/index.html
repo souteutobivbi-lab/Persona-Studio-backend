@@ -3380,9 +3380,12 @@ function copyDesc(elId, btnId){
 }
 
 async function generateVideoDescription(script, personaName, niche){
+  // Prevent duplicate concurrent calls
+  if(window._descGenerating) return;
+  window._descGenerating = true;
   const panel = document.getElementById('videoDescPanel');
   const spinner = document.getElementById('videoDescSpinner');
-  if(!panel) return;
+  if(!panel){ window._descGenerating=false; return; }
   // Clear previous content
   ['descTikTok','descInstagram','descYoutube'].forEach(id=>{
     const el = document.getElementById(id);
@@ -3405,6 +3408,8 @@ async function generateVideoDescription(script, personaName, niche){
   } catch(e){
     if(spinner){ spinner.textContent = 'Failed — try regenerating'; spinner.style.color='var(--red)'; }
     console.warn('Description generation failed:', e);
+  } finally {
+    window._descGenerating = false;
   }
 }
 
