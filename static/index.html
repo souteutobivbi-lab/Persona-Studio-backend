@@ -3290,7 +3290,8 @@ async function generatePortraitAndPoll(fd) {
   if(init.error) throw new Error(init.error);
   const jid = init.job_id;
   // Poll every 3 s
-  for(let attempts = 0; attempts < 150; attempts++) {`n    await new Promise(res => setTimeout(res, 2000));
+  for(let attempts = 0; attempts < 150; attempts++) {
+    await new Promise(res => setTimeout(res, 2000));
     const sr = await fetch(API()+'/portrait-status/'+jid);
     const s  = await sr.json();
     if(s.status === 'complete') return s;
@@ -3302,4 +3303,5 @@ async function generatePortraitAndPoll(fd) {
 </script>
 </body>
 </html>
+
 
