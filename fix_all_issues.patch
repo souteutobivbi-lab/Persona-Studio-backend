@@ -1,0 +1,169 @@
+From a77f36fb441124b275a180a0f4ca40bf3b45b408 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 10:58:44 +0100
+Subject: [PATCH] fix: 9:16 video, instant-character retry, portrait grid,
+ podcast scripts
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+main.py:
+- ffmpeg: scale=-2:1280,crop=720:1280 → true 9:16 (720×1280) output
+  (was wrong: scaling to 448×448 then tiny pad)
+- instant-character: retry up to 2× with 90s timeout each (was 45s,
+  1 attempt — too aggressive, caused most FLUX fallbacks)
+- Script prompt: emotional podcast-confession style, 30-45 words,
+  intimate/vulnerable, not sales-pitch; 5 distinct emotional angles
+
+static/index.html:
+- Portrait grid: querySelector('#portraitStandardMode .p-grid') to
+  target visible grid — there are 2 elements with id=portraitGrid,
+  getElementById was hitting the hidden LoRA-manual-mode one
+- Scene step: "Skip scene → generate with portrait only" ghost button
+  so scene is fully optional without blocking
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py           | 79 +++++++++++++++++++++++++++++------------------
+ static/index.html |  5 +--
+ 2 files changed, 52 insertions(+), 32 deletions(-)
+
+diff --git a/main.py b/main.py
+index 207f8b5..13d3164 100644
+--- a/main.py
++++ b/main.py
+@@ -132,20 +132,23 @@ async def generate_script(
+         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style."
+     response = client.chat.completions.create(
+         model="qwen/qwen3.8-27b",
+-        messages=[{"role": "user", "content": f"""Write 5 different 15-second talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
++        messages=[{"role": "user", "content": f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
+ Topic: {topic}{skill_section}
+ 
++STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable, the kind of thing that makes a viewer stop scrolling and feel seen. Think: a real conversation, not a sales pitch.
++
+ Rules for each script:
+-- Maximum 40 words each
+-- Different hook for each script
+-- Conversational, warm, authoritative
+-- End with soft CTA or persona sign-off
+-- No hashtags, no emojis, no stage directions
+-- Each script must feel distinct — different angle, different hook, different energy
+-
+-Return ONLY a JSON array of 5 script strings, nothing else. Example format:
++- 30–45 words (15–20 seconds when spoken)
++- Each script must open with a different emotional hook (a confession, a painful truth, a bold claim, a question that cuts deep, a shared secret)
++- Warm, direct, British cadence — never American-corporate
++- End with either a quiet insight, a lingering question, or a gentle challenge to the viewer
++- No hashtags, no emojis, no stage directions, no filler phrases like "Hey guys" or "So today"
++- Each of the 5 must feel like a completely different moment — different emotion, different angle, different energy
++- The viewer should feel like {persona_name} is speaking directly to them, not performing for them
++
++Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels. Example format:
+ ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""}],
+-        max_tokens=600, temperature=0.85
++        max_tokens=800, temperature=0.92
+     )
+     raw = response.choices[0].message.content.strip()
+     try:
+@@ -354,20 +357,32 @@ async def generate_portrait(
+                     print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
+                     try:
+                         import concurrent.futures as _cf
+-                        _ex = _cf.ThreadPoolExecutor(max_workers=1)
+-                        _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
+-                            "prompt": prompt,
+-                            "image_url": ref_url,
+-                            "scale": 0.8,
+-                            "guidance_scale": 3.5,
+-                            "num_inference_steps": 28,
+-                            "image_size": "portrait_4_3",
+-                            "num_images": 1
+-                        })
+-                        _ex.shutdown(wait=False)
+-                        result = _fut.result(timeout=45)
+-                        img_url = result["images"][0]["url"]
+-                        _method = "instant-character"
++                        # Try instant-character up to 2 times with 90s timeout each
++                        ic_success = False
++                        for _attempt in range(2):
++                            try:
++                                _ex = _cf.ThreadPoolExecutor(max_workers=1)
++                                _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
++                                    "prompt": prompt,
++                                    "image_url": ref_url,
++                                    "scale": 0.85,
++                                    "guidance_scale": 3.5,
++                                    "num_inference_steps": 28,
++                                    "image_size": "portrait_4_3",
++                                    "num_images": 1
++                                })
++                                _ex.shutdown(wait=False)
++                                result = _fut.result(timeout=90)
++                                img_url = result["images"][0]["url"]
++                                _method = "instant-character"
++                                ic_success = True
++                                break
++                            except Exception as _ic_err:
++                                print(f"[{jid}] instant-character attempt {_attempt+1} failed: {_ic_err}")
++                        if not ic_success:
++                            ic_err = Exception("instant-character failed after 2 attempts")
++                            raise ic_err
++                        img_url = img_url  # already set above
+                     except Exception as ic_err:
+                         print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
+                         result = _fal.subscribe("fal-ai/flux/dev", arguments={
+@@ -561,16 +576,20 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+         # flashtalk outputs 768x448 landscape — scale up and pad to 9:16
+         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
+         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
++        # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
++        # scale to height 1280 then center-crop to 720 wide.
+         ret = subprocess.run([
+             "ffmpeg", "-i", raw_path,
+             "-vf", (
+-                "scale=448:448:force_original_aspect_ratio=decrease,"
+-                "pad=448:768:(ow-iw)/2:(oh-ih)/2:black,"
+-                "noise=alls=15:allf=t+u,"
+-                "unsharp=5:5:1.8:5:5:0.0,"
+-                "eq=contrast=1.06:brightness=-0.02:saturation=0.92"
++                "scale=-2:1280,"
++                "crop=720:1280,"
++                "noise=alls=10:allf=t+u,"
++                "unsharp=5:5:1.5:5:5:0.0,"
++                "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
+             ),
+-            "-c:v", "libx264", "-crf", "17", "-c:a", "copy",
++            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
++            "-c:a", "aac", "-b:a", "128k",
++            "-movflags", "+faststart",
+             final_path, "-y"
+         ], capture_output=True)
+         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
+diff --git a/static/index.html b/static/index.html
+index 4683bd7..7bf2044 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -744,6 +744,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+               </div>
+             </div>
+             <button class="gen-btn" onclick="goStep(5)">Next — Generate →</button>
++            <button class="btn ghost" style="width:100%;margin-top:6px;font-size:12px;color:var(--dim);" onclick="S.sceneFile=null;S.sceneUrl=null;goStep(5)">Skip scene — generate with portrait only →</button>
+           </div>
+ 
+           <!-- Step 5 -->
+@@ -2554,8 +2555,8 @@ async function useQuickPortraitForVideo(){
+   } catch(e){ console.warn('portrait blob fetch failed', e); }
+   showPanel('create', null);
+   goStep(2);
+-  // pre-populate portrait grid so it's ready when user reaches step 4
+-  const grid = document.getElementById('portraitGrid');
++  // pre-populate STANDARD portrait grid (targeting the visible one, not the hidden LoRA manual-mode duplicate)
++  const grid = document.querySelector('#portraitStandardMode .p-grid') || document.getElementById('portraitGrid');
+   if(grid){
+     const slot = document.createElement('div');
+     slot.className='p-slot done selected';
+-- 
+2.43.0
+

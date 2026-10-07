@@ -1,0 +1,52 @@
+From b861e1161164fea3c316657a8d8f04102e8620dc Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 10:05:32 +0100
+Subject: [PATCH] =?UTF-8?q?fix:=20Use=20in=20video=20=E2=86=92=20goes=20to?=
+ =?UTF-8?q?=20Script=20step=20(step=202)=20not=20Scene=20(step=204)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- goStep(4) → goStep(2) in useQuickPortraitForVideo()
+- Portrait grid still pre-populated silently so it's ready at step 4
+- Toast updated: "Portrait set — now add your script"
+- portraitBadge null-checked (was crashing if element missing)
+
+Flow is now correct: Persona → Script → Voice → Scene → Generate
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ static/index.html | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/static/index.html b/static/index.html
+index 419c251..4683bd7 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -2553,8 +2553,8 @@ async function useQuickPortraitForVideo(){
+     S.portraitFile = new File([blob],'portrait.png',{type:'image/png'});
+   } catch(e){ console.warn('portrait blob fetch failed', e); }
+   showPanel('create', null);
+-  goStep(4);
+-  // show portrait in the scene step
++  goStep(2);
++  // pre-populate portrait grid so it's ready when user reaches step 4
+   const grid = document.getElementById('portraitGrid');
+   if(grid){
+     const slot = document.createElement('div');
+@@ -2563,8 +2563,9 @@ async function useQuickPortraitForVideo(){
+     grid.innerHTML='';
+     grid.appendChild(slot);
+   }
+-  document.getElementById('portraitBadge').textContent='Quick portrait ✓';
+-  toast('Portrait set — choose your scene');
++  const pb = document.getElementById('portraitBadge');
++  if(pb) pb.textContent='Quick portrait ✓';
++  toast('Portrait set — now add your script');
+ }
+ 
+ function showIdStage(n){
+-- 
+2.43.0
+

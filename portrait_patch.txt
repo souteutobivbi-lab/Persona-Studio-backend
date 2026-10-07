@@ -1,0 +1,120 @@
+﻿@app.post("/generate-portrait")
+async def generate_portrait(
+    persona_name: str = Form(...),
+    persona_age: str = Form(...),
+    appearance: str = Form(...),
+    outfit: str = Form("elegant fitted dress"),
+    outfit_color: str = Form(""),
+    count: int = Form(1),
+    persona_id: str = Form(""),
+    master_url: str = Form("")
+):
+    import fal_client
+    os.environ["FAL_KEY"] = FAL_KEY
+    jid = str(uuid.uuid4())[:8]
+
+    # Resolve master portrait URL
+    ref_url = master_url.strip()
+    if ref_url and not ref_url.startswith("http"):
+        ref_url = ""
+    if not ref_url and persona_id:
+        entry = MASTER_PORTRAITS.get(persona_id)
+        if entry:
+            ref_url = entry["url"]
+    if not ref_url and persona_id:
+        for key, entry in MASTER_PORTRAITS.items():
+            if key.lower() == persona_id.lower():
+                ref_url = entry["url"]
+                break
+
+    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color)
+
+    # Kick off in background thread — do NOT await or hold HTTP connection
+    set_job(jid, {"status": "running", "progress": 0, "stage": "generating"})
+
+    def _run():
+        try:
+            import fal_client as _fal
+            import requests as _req
+            _imgs = []
+            _scores = []
+            _method = "flux"
+
+            for i in range(min(count, 4)):
+                img_path = OUTPUT_DIR / f"{jid}_portrait_{i}.png"
+                set_job(jid, {"status": "running", "stage": f"generating_{i+1}_of_{min(count,4)}", "progress": int((i / min(count,4)) * 80)})
+
+                if ref_url:
+                    print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
+                    try:
+                        result = _fal.subscribe("fal-ai/instant-character", arguments={
+                            "prompt": prompt,
+                            "image_url": ref_url,
+                            "scale": 0.8,
+                            "guidance_scale": 3.5,
+                            "num_inference_steps": 28,
+                            "image_size": "portrait_4_3",
+                            "num_images": 1
+                        })
+                        img_url = result["images"][0]["url"]
+                        _method = "instant-character"
+                    except Exception as ic_err:
+                        print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
+                        result = _fal.subscribe("fal-ai/flux/dev", arguments={
+                            "prompt": prompt,
+                            "image_size": "portrait_4_3",
+                            "num_inference_steps": 28,
+                            "guidance_scale": 3.5,
+                            "num_images": 1,
+                            "enable_safety_checker": False
+                        })
+                        img_url = result["images"][0]["url"]
+                        _method = "flux-fallback"
+                else:
+                    print(f"[{jid}] FLUX Dev {i} (no master)")
+                    result = _fal.subscribe("fal-ai/flux/dev", arguments={
+                        "prompt": prompt,
+                        "image_size": "portrait_4_3",
+                        "num_inference_steps": 28,
+                        "guidance_scale": 3.5,
+                        "num_images": 1,
+                        "enable_safety_checker": False
+                    })
+                    img_url = result["images"][0]["url"]
+                    _method = "flux"
+
+                r = _req.get(img_url, timeout=60)
+                img_path.write_bytes(r.content)
+
+                score = -1.0
+                if ref_url:
+                    master_local = MASTER_PORTRAITS.get(persona_id, {}).get("local")
+                    if master_local and Path(master_local).exists():
+                        score = get_face_similarity(str(img_path), master_local)
+
+                _imgs.append(f"/portrait/{jid}/{i}")
+                _scores.append(round(score, 3) if score >= 0 else None)
+
+            set_job(jid, {
+                "status": "complete",
+                "progress": 100,
+                "stage": "done",
+                "images": _imgs,
+                "identity_scores": _scores,
+                "method": _method,
+                "master_used": bool(ref_url)
+            })
+            print(f"[{jid}] Portrait generation complete ({_method})")
+
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            set_job(jid, {"status": "error", "error": str(e), "progress": 0})
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"job_id": jid, "status": "running"}
+
+
+@app.get("/portrait-status/{jid}")
+async def portrait_status(jid: str):
+    return get_job(jid)
+

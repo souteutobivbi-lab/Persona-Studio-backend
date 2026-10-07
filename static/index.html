@@ -744,6 +744,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               </div>
             </div>
             <button class="gen-btn" onclick="goStep(5)">Next — Generate →</button>
+            <button class="btn ghost" style="width:100%;margin-top:6px;font-size:12px;color:var(--dim);" onclick="S.sceneFile=null;S.sceneUrl=null;goStep(5)">Skip scene — generate with portrait only →</button>
           </div>
 
           <!-- Step 5 -->
@@ -2554,8 +2555,8 @@ async function useQuickPortraitForVideo(){
   } catch(e){ console.warn('portrait blob fetch failed', e); }
   showPanel('create', null);
   goStep(2);
-  // pre-populate portrait grid so it's ready when user reaches step 4
-  const grid = document.getElementById('portraitGrid');
+  // pre-populate STANDARD portrait grid (targeting the visible one, not the hidden LoRA manual-mode duplicate)
+  const grid = document.querySelector('#portraitStandardMode .p-grid') || document.getElementById('portraitGrid');
   if(grid){
     const slot = document.createElement('div');
     slot.className='p-slot done selected';
