@@ -2546,9 +2546,9 @@ function useQuickPortraitForVideo(){
   const {url, personaName} = window._qpLastImg;
   const p = S.personas.find(x=>x.name===personaName);
   if(p) selectPersona(p);
-  // set portrait in the create video flow
   S.portraitUrl = url;
   S.portraitPath = window._qpLastImg.path;
+  fetch(url).then(r=>r.blob()).then(blob=>{S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});});
   showPanel('create', null);
   goStep(4);
   // show portrait in the scene step
