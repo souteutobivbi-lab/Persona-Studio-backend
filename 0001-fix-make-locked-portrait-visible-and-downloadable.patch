@@ -1,0 +1,122 @@
+From 8230752b045e340a5e86cde4a9c57f02784cac04 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 14:45:00 +0100
+Subject: [PATCH] fix: make locked portrait visible and downloadable
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Step 2 locked identity banner: enlarge reference image (72→80px),
+  add '↓ Save' overlay and 'View full size' button to always access
+  the locked master portrait
+- Step 5 post-generation: show portrait download row with thumbnail
+  and '↓ Save portrait' button after every video completes
+- Add viewLockedPortrait() — opens fal CDN URL in new tab
+- Add downloadLockedPortrait() — downloads master portrait URL
+- Add downloadPortraitUsed() — downloads the portrait that was sent
+  to the video pipeline (object URL from S.portraitFile)
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ static/index.html | 58 +++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 56 insertions(+), 2 deletions(-)
+
+diff --git a/static/index.html b/static/index.html
+index c2f88e5..7157bd1 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -665,10 +665,14 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+               <!-- LOCKED IDENTITY MODE — shown when persona has a LoRA -->
+               <div id="portraitLoraMode" style="display:none;">
+                 <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:10px;margin-bottom:14px;">
+-                  <img id="portraitLoraRef" style="width:72px;height:96px;object-fit:cover;border-radius:8px;border:2px solid var(--green);flex-shrink:0;" src=""/>
++                  <div style="flex-shrink:0;position:relative;">
++                    <img id="portraitLoraRef" style="width:80px;height:107px;object-fit:cover;border-radius:8px;border:2px solid var(--green);display:block;" src=""/>
++                    <a id="portraitLoraRefDownload" href="#" download style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;background:rgba(0,0,0,.6);color:#fff;padding:2px 0;border-radius:0 0 6px 6px;text-decoration:none;" onclick="event.preventDefault();downloadLockedPortrait()">↓ Save</a>
++                  </div>
+                   <div>
+                     <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">🔒 Identity locked — <span id="portraitLoraName"></span></div>
+                     <div style="font-size:11px;color:var(--muted);line-height:1.6;">AI will generate a new image of this exact person. Choose what outfit and styling you want for this video.</div>
++                    <button class="btn ghost" style="margin-top:8px;font-size:11px;padding:4px 10px;" onclick="viewLockedPortrait()">🔍 View full size</button>
+                   </div>
+                 </div>
+                 <div class="field" style="margin-bottom:8px;">
+@@ -816,9 +820,18 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
+             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
+             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
+-              <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download</button>
++              <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download video</button>
+               <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
+             </div>
++            <!-- Portrait download row — shown after video generated -->
++            <div id="portraitDownloadRow" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;display:none;align-items:center;gap:10px;">
++              <img id="portraitDownloadThumb" style="width:40px;height:53px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" src=""/>
++              <div style="flex:1;min-width:0;">
++                <div style="font-size:12px;font-weight:600;">Portrait used in this video</div>
++                <div style="font-size:11px;color:var(--dim);" id="portraitDownloadLabel">Tap to save</div>
++              </div>
++              <button class="btn ghost" style="font-size:12px;padding:6px 14px;flex-shrink:0;" id="portraitDownloadBtn" onclick="downloadPortraitUsed()">↓ Save portrait</button>
++            </div>
+           </div>
+         </div>
+ 
+@@ -3020,6 +3033,20 @@ async function startGen(){
+           vp.classList.add(rcls);
+           vp.innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
+           document.getElementById('postGenBtns').style.display='flex';
++          // Show portrait download row
++          if(S.portraitFile){
++            const prow=document.getElementById('portraitDownloadRow');
++            const pthumb=document.getElementById('portraitDownloadThumb');
++            const plabel=document.getElementById('portraitDownloadLabel');
++            if(prow&&pthumb){
++              const objUrl=URL.createObjectURL(S.portraitFile);
++              pthumb.src=objUrl;
++              if(plabel) plabel.textContent=(S.persona?.name||'Portrait')+' · used in this video';
++              prow.style.display='flex';
++              window._lastPortraitUrl=objUrl;
++              window._lastPortraitName=(S.persona?.name||'portrait').replace(/\s+/g,'-').toLowerCase()+'-'+Date.now()+'.png';
++            }
++          }
+           btn.textContent='✦ Generate another';btn.disabled=false;
+           const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
+           S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
+@@ -3038,6 +3065,33 @@ function updatePipe(n,status,sub){
+   const pipes=document.querySelectorAll('#pipelineEl .pipe');
+   if(pipes[n-1]){pipes[n-1].className='pipe '+status;pipes[n-1].querySelector('.pipe-n').textContent=status==='done'?'✓':n;if(sub)pipes[n-1].querySelector('.pipe-sub').textContent=sub;}
+ }
++function viewLockedPortrait(){
++  const p=S.persona;
++  const url=p?.loraUrl?(p.portrait||''):(p?.masterPortraitUrl||'');
++  if(!url){toast('No locked portrait found','err');return;}
++  window.open(url,'_blank');
++}
++function downloadLockedPortrait(){
++  const p=S.persona;
++  const url=p?.loraUrl?(p.portrait||''):(p?.masterPortraitUrl||'');
++  if(!url){toast('No locked portrait found','err');return;}
++  const a=document.createElement('a');
++  a.href=url;
++  a.download=(p?.name||'locked-portrait').replace(/\s+/g,'-').toLowerCase()+'-locked.png';
++  a.target='_blank';
++  document.body.appendChild(a);a.click();document.body.removeChild(a);
++  toast('Locked portrait downloading...');
++}
++function downloadPortraitUsed(){
++  const url = window._lastPortraitUrl || (S.persona?.masterPortraitUrl) || '';
++  if(!url){ toast('No portrait to download','err'); return; }
++  const a=document.createElement('a');
++  a.href=url;
++  a.download=window._lastPortraitName||(S.persona?.name||'portrait').replace(/\s+/g,'-').toLowerCase()+'.png';
++  a.target='_blank';
++  document.body.appendChild(a);a.click();document.body.removeChild(a);
++  toast('Portrait downloading...');
++}
+ async function downloadVideo(url, filename){
+   url = url || S.lastVideoUrl || (S.jobId?`${API()}/download/${S.jobId}`:null);
+   if(!url){ toast('No video to download','err'); return; }
+-- 
+2.43.0
+

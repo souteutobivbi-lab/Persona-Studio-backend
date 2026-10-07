@@ -1,0 +1,207 @@
+From 945a0fba14fffb5d2471ab4acd3d72d8ef1648b6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 12:03:47 +0100
+Subject: [PATCH] feat: background music selector + ffmpeg amix mixing
+
+- Add music track selector card to Step 5 (Generate) in index.html
+- Fetch /music-tracks on load, populate radio buttons dynamically
+- Wire selected track into generate-video FormData as bg_music
+- run_video_pipeline: when music_path set, use ffmpeg filter_complex
+  amix to mix background track at 12% volume (-18dBish) looped for
+  full video duration; voiceover always wins first:duration
+- ffmpeg cmd split into two branches: with/without music
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py           | 69 ++++++++++++++++++++++++++++++++++-------------
+ static/index.html | 52 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 102 insertions(+), 19 deletions(-)
+
+diff --git a/main.py b/main.py
+index 8fde6c8..e2b69a8 100644
+--- a/main.py
++++ b/main.py
+@@ -71,6 +71,16 @@ static_path = Path(__file__).parent / "static"
+ if static_path.exists():
+     app.mount("/assets", StaticFiles(directory=str(static_path)), name="static")
+ 
++MUSIC_DIR = Path(__file__).parent / "static" / "music"
++MUSIC_TRACKS = {
++    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth — warm harp"},
++    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone — meditation ambience"},
++}
++
++@app.get("/music-tracks")
++async def list_music_tracks():
++    return {"tracks": [{"id": k, "label": v["label"]} for k, v in MUSIC_TRACKS.items()]}
++
+ @app.post("/parse-skill")
+ async def parse_skill(skill_text: str = Form(...)):
+     from groq import Groq
+@@ -531,7 +541,8 @@ async def generate_video(
+     portrait: UploadFile = File(...),
+     audio: UploadFile = File(...),
+     scene: Optional[UploadFile] = File(None),
+-    job_id: str = Form(None)
++    job_id: str = Form(None),
++    bg_music: str = Form("")   # track id from MUSIC_TRACKS, empty = no music
+ ):
+     jid = job_id or str(uuid.uuid4())[:8]
+     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
+@@ -543,10 +554,14 @@ async def generate_video(
+     if scene and scene.filename:
+         scene_path = UPLOAD_DIR / f"{jid}_scene.png"
+         scene_path.write_bytes(await scene.read())
+-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path))
++    music_path = None
++    if bg_music and bg_music in MUSIC_TRACKS:
++        music_path = str(MUSIC_DIR / MUSIC_TRACKS[bg_music]["file"])
++        print(f"[{jid}] Background music: {bg_music}")
++    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path))
+     return {"job_id": jid, "status": "running"}
+ 
+-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
++async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None):
+     try:
+         import fal_client
+         from PIL import Image
+@@ -599,26 +614,42 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+         urllib.request.urlretrieve(output_url, raw_path)
+         print(f"[{jid}] Downloaded.")
+ 
+-        # Stage 6: Fix aspect ratio + grain filter
+-        # flashtalk outputs 768x448 landscape — scale up and pad to 9:16
++        # Stage 6: Fix aspect ratio + grain filter + optional background music
+         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
+         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
+         # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
+         # scale to height 1280 then center-crop to 720 wide.
+-        ret = subprocess.run([
+-            "ffmpeg", "-i", raw_path,
+-            "-vf", (
+-                "scale=-2:1280,"
+-                "crop=720:1280,"
+-                "noise=alls=10:allf=t+u,"
+-                "unsharp=5:5:1.5:5:5:0.0,"
+-                "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
+-            ),
+-            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+-            "-c:a", "aac", "-b:a", "128k",
+-            "-movflags", "+faststart",
+-            final_path, "-y"
+-        ], capture_output=True)
++        vf = (
++            "scale=-2:1280,"
++            "crop=720:1280,"
++            "noise=alls=10:allf=t+u,"
++            "unsharp=5:5:1.5:5:5:0.0,"
++            "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
++        )
++        if music_path and Path(music_path).exists():
++            print(f"[{jid}] Mixing background music: {music_path}")
++            ret = subprocess.run([
++                "ffmpeg",
++                "-i", raw_path,
++                "-stream_loop", "-1", "-i", music_path,
++                "-vf", vf,
++                "-filter_complex",
++                "[1:a]volume=0.12,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
++                "-map", "0:v", "-map", "[a]",
++                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
++                "-c:a", "aac", "-b:a", "128k",
++                "-movflags", "+faststart",
++                final_path, "-y"
++            ], capture_output=True)
++        else:
++            ret = subprocess.run([
++                "ffmpeg", "-i", raw_path,
++                "-vf", vf,
++                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
++                "-c:a", "aac", "-b:a", "128k",
++                "-movflags", "+faststart",
++                final_path, "-y"
++            ], capture_output=True)
+         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
+         if ret.returncode != 0:
+             print(f"[{jid}] ffmpeg stderr: {ret.stderr.decode()[:500]}")
+diff --git a/static/index.html b/static/index.html
+index 767f680..c2f88e5 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -803,6 +803,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+                 </div>
+               </div>
+             </div>
++            <!-- Background music selector -->
++            <div class="card" id="musicCard">
++              <div class="card-hd">Background Music <span class="badge">Optional — plays low under your voice</span></div>
++              <div id="musicTrackList" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
++                <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;border:1px solid var(--purple);background:var(--p3);cursor:pointer;">
++                  <input type="radio" name="bgMusic" value="" checked style="accent-color:var(--purple);">
++                  <div><div style="font-size:13px;font-weight:600;color:var(--p2);">None</div><div style="font-size:11px;color:var(--dim);">No background music</div></div>
++                </label>
++              </div>
++            </div>
+             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
+             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
+             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
+@@ -2958,6 +2968,8 @@ async function startGen(){
+     if(S.script) fd.append('script',S.script);
+     if(S.captionStyle&&S.captionStyle!=='none') fd.append('caption_style',S.captionStyle);
+     if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
++    const bgMusicEl=document.querySelector('input[name="bgMusic"]:checked');
++    if(bgMusicEl&&bgMusicEl.value) fd.append('bg_music',bgMusicEl.value);
+     const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
+     if(d.error)throw new Error(d.error);
+     const job=d.job_id||jid;
+@@ -3329,6 +3341,46 @@ async function generatePortraitAndPoll(fd) {
+   throw new Error('Portrait generation timed out after 5 minutes');
+ }
+ // ─────────────────────────────────────────────────────────────────────────────
++
++// Load background music tracks from backend and populate the music selector
++(async function loadMusicTracks(){
++  try{
++    const r=await fetch(API()+'/music-tracks');
++    const d=await r.json();
++    const list=document.getElementById('musicTrackList');
++    if(!list||!d.tracks||!d.tracks.length)return;
++    d.tracks.forEach(t=>{
++      const lbl=document.createElement('label');
++      lbl.style.cssText='display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .12s;';
++      lbl.innerHTML=`<input type="radio" name="bgMusic" value="${t.id}" style="accent-color:var(--purple);">
++        <div><div style="font-size:13px;font-weight:600;color:var(--muted);">${t.label}</div><div style="font-size:11px;color:var(--dim);">Plays softly under voiceover</div></div>`;
++      lbl.querySelector('input').addEventListener('change',function(){
++        document.querySelectorAll('#musicTrackList label').forEach(l=>{
++          l.style.borderColor='var(--border)';l.style.background='var(--surface)';
++          l.querySelector('div div:first-child').style.color='var(--muted)';
++        });
++        if(this.checked&&this.value){
++          lbl.style.borderColor='var(--purple)';lbl.style.background='var(--p3)';
++          lbl.querySelector('div div:first-child').style.color='var(--p2)';
++        }
++      });
++      list.appendChild(lbl);
++    });
++    // wire the "None" radio too
++    const noneInput=list.querySelector('input[value=""]');
++    if(noneInput)noneInput.addEventListener('change',function(){
++      if(this.checked){
++        document.querySelectorAll('#musicTrackList label').forEach(l=>{
++          l.style.borderColor='var(--border)';l.style.background='var(--surface)';
++          l.querySelector('div div:first-child').style.color='var(--muted)';
++        });
++        const noneLbl=this.closest('label');
++        noneLbl.style.borderColor='var(--purple)';noneLbl.style.background='var(--p3)';
++        noneLbl.querySelector('div div:first-child').style.color='var(--p2)';
++      }
++    });
++  }catch(e){console.warn('Could not load music tracks:',e);}
++})();
+ </script>
+ </body>
+ </html>
+-- 
+2.43.0
+

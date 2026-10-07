@@ -1,0 +1,1301 @@
+diff --git a/main.py b/main.py
+index 207f8b5..4dfb9c2 100644
+--- a/main.py
++++ b/main.py
+@@ -71,6 +71,16 @@ static_path = Path(__file__).parent / "static"
+ if static_path.exists():
+     app.mount("/assets", StaticFiles(directory=str(static_path)), name="static")
+ 
++MUSIC_DIR = Path(__file__).parent / "static" / "music"
++MUSIC_TRACKS = {
++    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth — warm harp"},
++    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone — meditation ambience"},
++}
++
++@app.get("/music-tracks")
++async def list_music_tracks():
++    return {"tracks": [{"id": k, "label": v["label"]} for k, v in MUSIC_TRACKS.items()]}
++
+ @app.post("/parse-skill")
+ async def parse_skill(skill_text: str = Form(...)):
+     from groq import Groq
+@@ -132,20 +142,23 @@ async def generate_script(
+         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style."
+     response = client.chat.completions.create(
+         model="qwen/qwen3.8-27b",
+-        messages=[{"role": "user", "content": f"""Write 5 different 15-second talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
++        messages=[{"role": "user", "content": f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
+ Topic: {topic}{skill_section}
+ 
++STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable, the kind of thing that makes a viewer stop scrolling and feel seen. Think: a real conversation, not a sales pitch.
++
+ Rules for each script:
+-- Maximum 40 words each
+-- Different hook for each script
+-- Conversational, warm, authoritative
+-- End with soft CTA or persona sign-off
+-- No hashtags, no emojis, no stage directions
+-- Each script must feel distinct — different angle, different hook, different energy
+-
+-Return ONLY a JSON array of 5 script strings, nothing else. Example format:
++- 30–45 words (15–20 seconds when spoken)
++- Each script must open with a different emotional hook (a confession, a painful truth, a bold claim, a question that cuts deep, a shared secret)
++- Warm, direct, British cadence — never American-corporate
++- End with either a quiet insight, a lingering question, or a gentle challenge to the viewer
++- No hashtags, no emojis, no stage directions, no filler phrases like "Hey guys" or "So today"
++- Each of the 5 must feel like a completely different moment — different emotion, different angle, different energy
++- The viewer should feel like {persona_name} is speaking directly to them, not performing for them
++
++Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels. Example format:
+ ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""}],
+-        max_tokens=600, temperature=0.85
++        max_tokens=800, temperature=0.92
+     )
+     raw = response.choices[0].message.content.strip()
+     try:
+@@ -267,9 +280,27 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
+         print(f"Face similarity error (skipping): {e}")
+         return -1.0
+ 
+-# In-memory master portrait store  {persona_id: fal_cdn_url}
+-# Using fal CDN URLs so they survive Railway container restarts
+-MASTER_PORTRAITS: dict = {}  # persona_id → {"local": path, "url": fal_url}
++# Persistent master portrait store — survives Railway restarts
++# Saved to /app/master_portraits.json; fal CDN URLs are permanent
++PORTRAITS_FILE = Path("/app/master_portraits.json")
++
++def load_master_portraits() -> dict:
++    try:
++        if PORTRAITS_FILE.exists():
++            data = json.loads(PORTRAITS_FILE.read_text())
++            print(f"Loaded {len(data)} locked portraits from disk: {list(data.keys())}")
++            return data
++    except Exception as e:
++        print(f"Warning: could not load master portraits: {e}")
++    return {}
++
++def save_master_portraits(portraits: dict):
++    try:
++        PORTRAITS_FILE.write_text(json.dumps(portraits, indent=2))
++    except Exception as e:
++        print(f"Warning: could not save master portraits: {e}")
++
++MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id → {"local": path, "url": fal_url}
+ 
+ @app.post("/set-master-portrait")
+ async def set_master_portrait(
+@@ -286,7 +317,8 @@ async def set_master_portrait(
+     # Upload to fal CDN for persistence
+     fal_url = fal_client.upload_file(str(master_path))
+     MASTER_PORTRAITS[persona_id] = {"local": str(master_path), "url": fal_url}
+-    print(f"Master portrait set for {persona_id}: {fal_url}")
++    save_master_portraits(MASTER_PORTRAITS)
++    print(f"[LOCKED] Master portrait saved for '{persona_id}': {fal_url}")
+     return {"status": "ok", "persona_id": persona_id, "fal_url": fal_url}
+ 
+ @app.post("/get-master-portrait")
+@@ -297,6 +329,27 @@ async def get_master_portrait(persona_id: str = Form(...)):
+         return JSONResponse({"error": "No master portrait set for this persona"}, status_code=404)
+     return {"persona_id": persona_id, "fal_url": entry["url"], "has_master": True}
+ 
++@app.get("/locked-personas")
++async def list_locked_personas():
++    """Return all personas that have a locked master portrait."""
++    return {
++        "locked": [
++            {"persona_id": pid, "fal_url": entry["url"]}
++            for pid, entry in MASTER_PORTRAITS.items()
++        ],
++        "count": len(MASTER_PORTRAITS)
++    }
++
++@app.delete("/locked-personas/{persona_id}")
++async def delete_locked_persona(persona_id: str):
++    """Remove identity lock for a persona."""
++    if persona_id not in MASTER_PORTRAITS:
++        return JSONResponse({"error": "Not found"}, status_code=404)
++    del MASTER_PORTRAITS[persona_id]
++    save_master_portraits(MASTER_PORTRAITS)
++    print(f"[UNLOCKED] Removed identity lock for '{persona_id}'")
++    return {"status": "ok", "persona_id": persona_id}
++
+ @app.post("/generate-portrait")
+ async def generate_portrait(
+     persona_name: str = Form(...),
+@@ -351,25 +404,24 @@ async def generate_portrait(
+                 })
+ 
+                 if ref_url:
+-                    print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
++                    print(f"[{jid}] PuLID {i} master: {ref_url[:60]}...")
++                    # fal-ai/pulid is the proven face-lock model (instant-character stalls)
+                     try:
+-                        import concurrent.futures as _cf
+-                        _ex = _cf.ThreadPoolExecutor(max_workers=1)
+-                        _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
++                        result = _fal.subscribe("fal-ai/pulid", arguments={
+                             "prompt": prompt,
+-                            "image_url": ref_url,
+-                            "scale": 0.8,
+-                            "guidance_scale": 3.5,
+-                            "num_inference_steps": 28,
+-                            "image_size": "portrait_4_3",
+-                            "num_images": 1
++                            "face_image_url": ref_url,
++                            "num_inference_steps": 20,
++                            "style_strength": 20,
++                            "num_images": 1,
+                         })
+-                        _ex.shutdown(wait=False)
+-                        result = _fut.result(timeout=45)
+-                        img_url = result["images"][0]["url"]
+-                        _method = "instant-character"
+-                    except Exception as ic_err:
+-                        print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
++                        imgs = result.get("images") or result.get("image") or []
++                        if isinstance(imgs, dict):
++                            imgs = [imgs]
++                        img_url = imgs[0]["url"]
++                        _method = "pulid"
++                        print(f"[{jid}] PuLID {i} done: {img_url[:60]}")
++                    except Exception as pulid_err:
++                        print(f"[{jid}] PuLID failed ({pulid_err!r}), falling back to FLUX Dev")
+                         result = _fal.subscribe("fal-ai/flux/dev", arguments={
+                             "prompt": prompt,
+                             "image_size": "portrait_4_3",
+@@ -489,7 +541,8 @@ async def generate_video(
+     portrait: UploadFile = File(...),
+     audio: UploadFile = File(...),
+     scene: Optional[UploadFile] = File(None),
+-    job_id: str = Form(None)
++    job_id: str = Form(None),
++    bg_music: str = Form("")   # track id from MUSIC_TRACKS, empty = no music
+ ):
+     jid = job_id or str(uuid.uuid4())[:8]
+     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
+@@ -501,10 +554,14 @@ async def generate_video(
+     if scene and scene.filename:
+         scene_path = UPLOAD_DIR / f"{jid}_scene.png"
+         scene_path.write_bytes(await scene.read())
+-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path))
++    music_path = None
++    if bg_music and bg_music in MUSIC_TRACKS:
++        music_path = str(MUSIC_DIR / MUSIC_TRACKS[bg_music]["file"])
++        print(f"[{jid}] Background music: {bg_music}")
++    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path))
+     return {"job_id": jid, "status": "running"}
+ 
+-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
++async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None):
+     try:
+         import fal_client
+         from PIL import Image
+@@ -557,22 +614,42 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+         urllib.request.urlretrieve(output_url, raw_path)
+         print(f"[{jid}] Downloaded.")
+ 
+-        # Stage 6: Fix aspect ratio + grain filter
+-        # flashtalk outputs 768x448 landscape — scale up and pad to 9:16
++        # Stage 6: Fix aspect ratio + grain filter + optional background music
+         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
+         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
+-        ret = subprocess.run([
+-            "ffmpeg", "-i", raw_path,
+-            "-vf", (
+-                "scale=448:448:force_original_aspect_ratio=decrease,"
+-                "pad=448:768:(ow-iw)/2:(oh-ih)/2:black,"
+-                "noise=alls=15:allf=t+u,"
+-                "unsharp=5:5:1.8:5:5:0.0,"
+-                "eq=contrast=1.06:brightness=-0.02:saturation=0.92"
+-            ),
+-            "-c:v", "libx264", "-crf", "17", "-c:a", "copy",
+-            final_path, "-y"
+-        ], capture_output=True)
++        # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
++        # scale to height 1280 then center-crop to 720 wide.
++        vf = (
++            "scale=-2:1280,"
++            "crop=720:1280,"
++            "noise=alls=10:allf=t+u,"
++            "unsharp=5:5:1.5:5:5:0.0,"
++            "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
++        )
++        if music_path and Path(music_path).exists():
++            print(f"[{jid}] Mixing background music: {music_path}")
++            ret = subprocess.run([
++                "ffmpeg",
++                "-i", raw_path,
++                "-stream_loop", "-1", "-i", music_path,
++                "-vf", vf,
++                "-filter_complex",
++                "[1:a]volume=0.12,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
++                "-map", "0:v", "-map", "[a]",
++                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
++                "-c:a", "aac", "-b:a", "128k",
++                "-movflags", "+faststart",
++                final_path, "-y"
++            ], capture_output=True)
++        else:
++            ret = subprocess.run([
++                "ffmpeg", "-i", raw_path,
++                "-vf", vf,
++                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
++                "-c:a", "aac", "-b:a", "128k",
++                "-movflags", "+faststart",
++                final_path, "-y"
++            ], capture_output=True)
+         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
+         if ret.returncode != 0:
+             print(f"[{jid}] ffmpeg stderr: {ret.stderr.decode()[:500]}")
+@@ -615,3 +692,110 @@ async def download_video(job_id: str):
+     return JSONResponse({"error": "not ready"}, status_code=404)
+ 
+ 
++
++
++# ---------------------------------------------------------------------------
++# Outfit swap — preserves face, body & background; replaces only clothing
++# Uses SAM2 for clothing segmentation mask + FLUX inpainting
++# ---------------------------------------------------------------------------
++
++@app.post("/swap-outfit")
++async def swap_outfit(
++    persona_id: str = Form(...),
++    outfit: str = Form(...),
++    outfit_color: str = Form(""),
++):
++    """
++    Inpaint new clothing onto the locked master portrait.
++    Face, body shape, skin, hair and background are pixel-perfect unchanged.
++    Returns {job_id, status:"running"} immediately.
++    Poll /portrait-status/{jid} for completion.
++    """
++    import fal_client
++    os.environ["FAL_KEY"] = FAL_KEY
++
++    entry = MASTER_PORTRAITS.get(persona_id)
++    if not entry:
++        return JSONResponse({"error": f"No locked portrait for '{persona_id}'"}, status_code=400)
++
++    master_url = entry["url"]
++    jid = str(uuid.uuid4())[:8]
++    set_job(jid, {"status": "running", "progress": 0, "stage": "segmenting"})
++
++    outfit_prompt = f"{outfit_color} {outfit}".strip() if outfit_color else outfit
++
++    def _run():
++        try:
++            import fal_client as _fal
++            import requests as _req
++            import base64
++
++            # ── Step 1: SAM2 — get clothing mask ──────────────────────────
++            print(f"[{jid}] SAM2 segmenting clothing on {master_url[:60]}...")
++            set_job(jid, {"status": "running", "progress": 15, "stage": "segmenting_clothing"})
++
++            sam_result = _fal.subscribe("fal-ai/sam2", arguments={
++                "image_url": master_url,
++                "prompts": [{"type": "text", "text": "clothing, outfit, shirt, dress, top, jacket, clothes"}],
++                "output_format": "png",
++            })
++
++            mask_url = None
++            if sam_result.get("masks"):
++                mask_url = sam_result["masks"][0].get("url") or sam_result["masks"][0].get("image", {}).get("url")
++            if not mask_url and sam_result.get("image"):
++                mask_url = sam_result["image"].get("url")
++
++            if not mask_url:
++                raise ValueError(f"SAM2 returned no mask: {sam_result}")
++
++            print(f"[{jid}] SAM2 mask: {mask_url[:60]}")
++            set_job(jid, {"status": "running", "progress": 40, "stage": "inpainting"})
++
++            # ── Step 2: FLUX inpainting — fill only the clothing region ───
++            inpaint_prompt = (
++                f"Professional portrait, {outfit_prompt}, "
++                f"photorealistic, sharp, studio lighting, "
++                f"same person same pose same background"
++            )
++            print(f"[{jid}] FLUX inpainting: {inpaint_prompt[:80]}...")
++
++            inpaint_result = _fal.subscribe("fal-ai/flux-lora/inpainting", arguments={
++                "image_url": master_url,
++                "mask_url": mask_url,
++                "prompt": inpaint_prompt,
++                "num_inference_steps": 28,
++                "strength": 0.95,
++                "guidance_scale": 3.5,
++                "num_images": 1,
++                "enable_safety_checker": False,
++            })
++
++            imgs = inpaint_result.get("images") or []
++            if not imgs:
++                raise ValueError(f"Inpainting returned no images: {inpaint_result}")
++
++            out_url = imgs[0]["url"]
++            print(f"[{jid}] Inpainted: {out_url[:60]}")
++
++            # ── Save locally ───────────────────────────────────────────────
++            set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
++            out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
++            r = _req.get(out_url, timeout=60)
++            out_path.write_bytes(r.content)
++
++            set_job(jid, {
++                "status": "complete",
++                "progress": 100,
++                "images": [f"/portrait/{jid}/0"],
++                "method": "outfit-swap-inpaint",
++                "outfit": outfit_prompt,
++            })
++            print(f"[{jid}] Outfit swap complete")
++
++        except Exception as e:
++            print(f"[{jid}] Outfit swap error: {e}")
++            set_job(jid, {"status": "error", "error": str(e)})
++
++    threading.Thread(target=_run, daemon=True).start()
++    return {"job_id": jid, "status": "running"}
+diff --git a/static/index.html b/static/index.html
+index 4683bd7..19f7953 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -644,6 +644,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+             <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
+             <div id="voiceResult" style="display:none;">
+               <div class="card"><div class="card-hd">Preview</div><audio controls style="width:100%;" id="audioEl"></audio></div>
++              <!-- Background Music — lives here so users set it alongside the voice -->
++              <div class="card" id="musicCard" style="margin-top:12px;">
++                <div class="card-hd">Background Music <span class="badge">Optional — plays low under your voice</span></div>
++                <div id="musicTrackList" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
++                  <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;border:1px solid var(--purple);background:var(--p3);cursor:pointer;">
++                    <input type="radio" name="bgMusic" value="" checked style="accent-color:var(--purple);">
++                    <div><div style="font-size:13px;font-weight:600;color:var(--p2);">None</div><div style="font-size:11px;color:var(--dim);">No background music</div></div>
++                  </label>
++                </div>
++              </div>
+               <button class="gen-btn" style="margin-top:8px;background:var(--card);color:var(--text);border:1px solid var(--border2);box-shadow:none;" onclick="goStep(4)">Scene →</button>
+             </div>
+           </div>
+@@ -665,10 +675,14 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+               <!-- LOCKED IDENTITY MODE — shown when persona has a LoRA -->
+               <div id="portraitLoraMode" style="display:none;">
+                 <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:10px;margin-bottom:14px;">
+-                  <img id="portraitLoraRef" style="width:72px;height:96px;object-fit:cover;border-radius:8px;border:2px solid var(--green);flex-shrink:0;" src=""/>
++                  <div style="flex-shrink:0;position:relative;">
++                    <img id="portraitLoraRef" style="width:80px;height:107px;object-fit:cover;border-radius:8px;border:2px solid var(--green);display:block;" src=""/>
++                    <a id="portraitLoraRefDownload" href="#" download style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;background:rgba(0,0,0,.6);color:#fff;padding:2px 0;border-radius:0 0 6px 6px;text-decoration:none;" onclick="event.preventDefault();downloadLockedPortrait()">↓ Save</a>
++                  </div>
+                   <div>
+                     <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">🔒 Identity locked — <span id="portraitLoraName"></span></div>
+                     <div style="font-size:11px;color:var(--muted);line-height:1.6;">AI will generate a new image of this exact person. Choose what outfit and styling you want for this video.</div>
++                    <button class="btn ghost" style="margin-top:8px;font-size:11px;padding:4px 10px;" onclick="viewLockedPortrait()">🔍 View full size</button>
+                   </div>
+                 </div>
+                 <div class="field" style="margin-bottom:8px;">
+@@ -681,7 +695,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+                   <div class="lbl">Styling notes <span style="color:var(--dim);font-weight:400;">(optional)</span></div>
+                   <input class="inp" id="loraStylingInp" placeholder="e.g. hair down and wavy, bold lip, no glasses"/>
+                 </div>
+-                <button class="gen-btn" id="loraGenBtn" onclick="genPortraitWithLora()">✦ Generate portrait of <span id="loraGenBtnName"></span> in this outfit</button>
++                <div style="display:flex;gap:8px;align-items:stretch;">
++                  <button class="gen-btn" id="loraGenBtn" style="flex:1;" onclick="genPortraitWithLora()">✦ Generate portrait of <span id="loraGenBtnName"></span> in this outfit</button>
++                  <button class="btn ghost" id="swapOutfitBtn" style="flex-shrink:0;font-size:12px;padding:0 14px;border:1px solid var(--green);color:var(--green);" onclick="swapOutfitOnly()" title="Keeps face, body &amp; background pixel-perfect — only swaps the clothing">🔄 Swap outfit only</button>
++                </div>
++                <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:center;">✦ Generate = new image of same face &nbsp;·&nbsp; 🔄 Swap = same photo, clothes only change</div>
+                 <div id="portraitLoraResult" style="display:none;margin-top:14px;">
+                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-bottom:10px;">
+                     <div>
+@@ -744,6 +762,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+               </div>
+             </div>
+             <button class="gen-btn" onclick="goStep(5)">Next — Generate →</button>
++            <button class="btn ghost" style="width:100%;margin-top:6px;font-size:12px;color:var(--dim);" onclick="S.sceneFile=null;S.sceneUrl=null;goStep(5)">Skip scene — generate with portrait only →</button>
+           </div>
+ 
+           <!-- Step 5 -->
+@@ -805,9 +824,18 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
+             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">✕ Cancel</button>
+             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
+-              <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download</button>
++              <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download video</button>
+               <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
+             </div>
++            <!-- Portrait download row — shown after video generated -->
++            <div id="portraitDownloadRow" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;display:none;align-items:center;gap:10px;">
++              <img id="portraitDownloadThumb" style="width:40px;height:53px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" src=""/>
++              <div style="flex:1;min-width:0;">
++                <div style="font-size:12px;font-weight:600;">Portrait used in this video</div>
++                <div style="font-size:11px;color:var(--dim);" id="portraitDownloadLabel">Tap to save</div>
++              </div>
++              <button class="btn ghost" style="font-size:12px;padding:6px 14px;flex-shrink:0;" id="portraitDownloadBtn" onclick="downloadPortraitUsed()">↓ Save portrait</button>
++            </div>
+           </div>
+         </div>
+ 
+@@ -2293,12 +2321,14 @@ function selectOutfit(el,outfit,idx){
+ 
+ function renderPortraitStep(){
+   const p=S.persona;
+-  const hasLora=!!(p?.loraUrl);
++  // Locked if persona has a LoRA model OR a saved master portrait URL
++  const hasLock=!!(p?.loraUrl || p?.masterPortraitUrl);
++  const refUrl = p?.loraUrl ? (p.portrait||'') : (p?.masterPortraitUrl||'');
+   const loraMode=document.getElementById('portraitLoraMode');
+   const stdMode=document.getElementById('portraitStandardMode');
+   if(!loraMode||!stdMode) return;
+ 
+-  if(hasLora){
++  if(hasLock){
+     // Show locked identity mode
+     loraMode.style.display='block';
+     stdMode.style.display='none';
+@@ -2307,11 +2337,12 @@ function renderPortraitStep(){
+     const refCompare=document.getElementById('portraitLoraRefCompare');
+     const nameEl=document.getElementById('portraitLoraName');
+     const btnName=document.getElementById('loraGenBtnName');
+-    if(refImg) refImg.src=p.portrait||'';
+-    if(refCompare) refCompare.src=p.portrait||'';
++    if(refImg) refImg.src=refUrl;
++    if(refCompare) refCompare.src=refUrl;
+     if(nameEl) nameEl.textContent=p.name;
+     if(btnName) btnName.textContent=p.name;
+-    document.getElementById('portraitBadge').textContent='🔒 '+p.name+' identity locked';
++    const lockType = p?.loraUrl ? '🔒 LoRA trained' : '🔒 Face locked';
++    document.getElementById('portraitBadge').textContent=lockType+' — '+p.name;
+     document.getElementById('portraitLoraResult').style.display='none';
+     // Populate outfit suggestions
+     populateOutfitSuggestions(p);
+@@ -2328,7 +2359,7 @@ function renderPortraitStep(){
+ 
+ async function genPortraitWithLora(){
+   const p=S.persona;
+-  if(!p?.loraUrl) return toast('No identity lock found — set up LoRA first','err');
++  if(!p?.loraUrl && !p?.masterPortraitUrl) return toast('No identity lock found — lock a master portrait first','err');
+ 
+   const outfit=document.getElementById('loraOutfitInp').value.trim();
+   const styling=document.getElementById('loraStylingInp').value.trim();
+@@ -2347,7 +2378,9 @@ async function genPortraitWithLora(){
+     fd.append('persona_age', p.age||'40');
+     fd.append('appearance', p.appearance||'');
+     fd.append('outfit', outfit+(styling?', '+styling:''));
+-    fd.append('lora_url', p.loraUrl);
++    fd.append('lora_url', p.loraUrl||'');
++    fd.append('master_url', p.masterPortraitUrl||'');
++    fd.append('persona_id', p.name);
+     fd.append('trigger_word', p.triggerWord||'');
+     fd.append('count','1');
+     const d=await generatePortraitAndPoll(fd);
+@@ -2554,8 +2587,8 @@ async function useQuickPortraitForVideo(){
+   } catch(e){ console.warn('portrait blob fetch failed', e); }
+   showPanel('create', null);
+   goStep(2);
+-  // pre-populate portrait grid so it's ready when user reaches step 4
+-  const grid = document.getElementById('portraitGrid');
++  // pre-populate STANDARD portrait grid (targeting the visible one, not the hidden LoRA manual-mode duplicate)
++  const grid = document.querySelector('#portraitStandardMode .p-grid') || document.getElementById('portraitGrid');
+   if(grid){
+     const slot = document.createElement('div');
+     slot.className='p-slot done selected';
+@@ -2952,6 +2985,8 @@ async function startGen(){
+     if(S.script) fd.append('script',S.script);
+     if(S.captionStyle&&S.captionStyle!=='none') fd.append('caption_style',S.captionStyle);
+     if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
++    const bgMusicEl=document.querySelector('input[name="bgMusic"]:checked');
++    if(bgMusicEl&&bgMusicEl.value) fd.append('bg_music',bgMusicEl.value);
+     const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
+     if(d.error)throw new Error(d.error);
+     const job=d.job_id||jid;
+@@ -3002,6 +3037,20 @@ async function startGen(){
+           vp.classList.add(rcls);
+           vp.innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
+           document.getElementById('postGenBtns').style.display='flex';
++          // Show portrait download row
++          if(S.portraitFile){
++            const prow=document.getElementById('portraitDownloadRow');
++            const pthumb=document.getElementById('portraitDownloadThumb');
++            const plabel=document.getElementById('portraitDownloadLabel');
++            if(prow&&pthumb){
++              const objUrl=URL.createObjectURL(S.portraitFile);
++              pthumb.src=objUrl;
++              if(plabel) plabel.textContent=(S.persona?.name||'Portrait')+' · used in this video';
++              prow.style.display='flex';
++              window._lastPortraitUrl=objUrl;
++              window._lastPortraitName=(S.persona?.name||'portrait').replace(/\s+/g,'-').toLowerCase()+'-'+Date.now()+'.png';
++            }
++          }
+           btn.textContent='✦ Generate another';btn.disabled=false;
+           const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
+           S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
+@@ -3020,6 +3069,89 @@ function updatePipe(n,status,sub){
+   const pipes=document.querySelectorAll('#pipelineEl .pipe');
+   if(pipes[n-1]){pipes[n-1].className='pipe '+status;pipes[n-1].querySelector('.pipe-n').textContent=status==='done'?'✓':n;if(sub)pipes[n-1].querySelector('.pipe-sub').textContent=sub;}
+ }
++function viewLockedPortrait(){
++  const p=S.persona;
++  const url=p?.loraUrl?(p.portrait||''):(p?.masterPortraitUrl||'');
++  if(!url){toast('No locked portrait found','err');return;}
++  window.open(url,'_blank');
++}
++function downloadLockedPortrait(){
++  const p=S.persona;
++  const url=p?.loraUrl?(p.portrait||''):(p?.masterPortraitUrl||'');
++  if(!url){toast('No locked portrait found','err');return;}
++  const a=document.createElement('a');
++  a.href=url;
++  a.download=(p?.name||'locked-portrait').replace(/\s+/g,'-').toLowerCase()+'-locked.png';
++  a.target='_blank';
++  document.body.appendChild(a);a.click();document.body.removeChild(a);
++  toast('Locked portrait downloading...');
++}
++function downloadPortraitUsed(){
++  const url = window._lastPortraitUrl || (S.persona?.masterPortraitUrl) || '';
++  if(!url){ toast('No portrait to download','err'); return; }
++  const a=document.createElement('a');
++  a.href=url;
++  a.download=window._lastPortraitName||(S.persona?.name||'portrait').replace(/\s+/g,'-').toLowerCase()+'.png';
++  a.target='_blank';
++  document.body.appendChild(a);a.click();document.body.removeChild(a);
++  toast('Portrait downloading...');
++}
++async function swapOutfitOnly(){
++  const outfit = (document.getElementById('loraOutfitInp')?.value || '').trim();
++  const styling = (document.getElementById('loraStylingInp')?.value || '').trim();
++  const pid = S.persona?.id || S.persona?.name;
++  if(!pid){ toast('No persona selected','err'); return; }
++  if(!outfit){ toast('Enter an outfit first','err'); return; }
++  if(!S.persona?.masterPortraitUrl){
++    toast('No locked portrait — lock one in the Identity tab first','err'); return;
++  }
++  const outfitFull = styling ? `${outfit}, ${styling}` : outfit;
++  const btn = document.getElementById('swapOutfitBtn');
++  btn.disabled = true;
++  btn.textContent = '🔄 Swapping...';
++  toast('Swapping outfit — face & body stay identical...');
++  try{
++    const fd = new FormData();
++    fd.append('persona_id', pid);
++    fd.append('outfit', outfitFull);
++    const r = await fetch(`${API()}/swap-outfit`, {method:'POST', body:fd});
++    const data = await r.json();
++    if(!r.ok || data.error){ throw new Error(data.error||'Swap failed'); }
++    const jid = data.job_id;
++    // Poll portrait-status
++    const poll = setInterval(async()=>{
++      try{
++        const sr = await fetch(`${API()}/portrait-status/${jid}`);
++        const st = await sr.json();
++        if(st.status==='complete'){
++          clearInterval(poll);
++          btn.disabled=false; btn.textContent='🔄 Swap outfit only';
++          // Show result in the existing portrait result grid
++          const imgUrl = `${API()}${st.images[0]}`;
++          const genImg = document.getElementById('portraitLoraGenImg');
++          const refImg = document.getElementById('portraitLoraRefCompare');
++          if(genImg) genImg.src = imgUrl;
++          if(refImg && S.persona?.masterPortraitUrl) refImg.src = S.persona.masterPortraitUrl;
++          document.getElementById('portraitLoraResult').style.display='block';
++          // Cache as current portrait for video generation
++          const imgResp = await fetch(imgUrl);
++          const blob = await imgResp.blob();
++          S.portraitFile = new File([blob], 'portrait-swapped.png', {type:'image/png'});
++          S.portraitUrl = imgUrl;
++          toast('Outfit swapped — same face, body & background ✓');
++        } else if(st.status==='error'){
++          clearInterval(poll);
++          btn.disabled=false; btn.textContent='🔄 Swap outfit only';
++          toast(st.error||'Outfit swap failed','err');
++        }
++      }catch(e){ clearInterval(poll); btn.disabled=false; btn.textContent='🔄 Swap outfit only'; }
++    }, 3000);
++  }catch(e){
++    btn.disabled=false; btn.textContent='🔄 Swap outfit only';
++    toast(e.message||'Outfit swap failed','err');
++  }
++}
++
+ async function downloadVideo(url, filename){
+   url = url || S.lastVideoUrl || (S.jobId?`${API()}/download/${S.jobId}`:null);
+   if(!url){ toast('No video to download','err'); return; }
+@@ -3284,6 +3416,25 @@ updateDashboard();
+ updateDocCounts();
+ setDocTab('skills');
+ 
++// ── Restore locked portraits from backend (survives Railway restarts) ──────
++(async function restoreLockedPortraits(){
++  try {
++    const r = await fetch(API()+'/locked-personas');
++    if(!r.ok) return;
++    const {locked} = await r.json();
++    let changed = false;
++    locked.forEach(({persona_id, fal_url})=>{
++      const p = S.personas.find(x => x.name === persona_id || x.name.toLowerCase() === persona_id.toLowerCase());
++      if(p && p.masterPortraitUrl !== fal_url){
++        p.masterPortraitUrl = fal_url;
++        changed = true;
++        console.log('Restored identity lock for', persona_id);
++      }
++    });
++    if(changed){ saveAll(); renderSidePersonas(); renderCreatePersonas(); }
++  } catch(e){ console.warn('Could not restore locked portraits:', e); }
++})();
++
+ // ── Portrait job polling helper ──────────────────────────────────────────────
+ // POSTs to /generate-portrait, gets job_id, polls /portrait-status/{jid}
+ // every 3 s until complete. Returns the completed job object (has .images[]).
+@@ -3304,6 +3455,46 @@ async function generatePortraitAndPoll(fd) {
+   throw new Error('Portrait generation timed out after 5 minutes');
+ }
+ // ─────────────────────────────────────────────────────────────────────────────
++
++// Load background music tracks from backend and populate the music selector
++(async function loadMusicTracks(){
++  try{
++    const r=await fetch(API()+'/music-tracks');
++    const d=await r.json();
++    const list=document.getElementById('musicTrackList');
++    if(!list||!d.tracks||!d.tracks.length)return;
++    d.tracks.forEach(t=>{
++      const lbl=document.createElement('label');
++      lbl.style.cssText='display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .12s;';
++      lbl.innerHTML=`<input type="radio" name="bgMusic" value="${t.id}" style="accent-color:var(--purple);">
++        <div><div style="font-size:13px;font-weight:600;color:var(--muted);">${t.label}</div><div style="font-size:11px;color:var(--dim);">Plays softly under voiceover</div></div>`;
++      lbl.querySelector('input').addEventListener('change',function(){
++        document.querySelectorAll('#musicTrackList label').forEach(l=>{
++          l.style.borderColor='var(--border)';l.style.background='var(--surface)';
++          l.querySelector('div div:first-child').style.color='var(--muted)';
++        });
++        if(this.checked&&this.value){
++          lbl.style.borderColor='var(--purple)';lbl.style.background='var(--p3)';
++          lbl.querySelector('div div:first-child').style.color='var(--p2)';
++        }
++      });
++      list.appendChild(lbl);
++    });
++    // wire the "None" radio too
++    const noneInput=list.querySelector('input[value=""]');
++    if(noneInput)noneInput.addEventListener('change',function(){
++      if(this.checked){
++        document.querySelectorAll('#musicTrackList label').forEach(l=>{
++          l.style.borderColor='var(--border)';l.style.background='var(--surface)';
++          l.querySelector('div div:first-child').style.color='var(--muted)';
++        });
++        const noneLbl=this.closest('label');
++        noneLbl.style.borderColor='var(--purple)';noneLbl.style.background='var(--p3)';
++        noneLbl.querySelector('div div:first-child').style.color='var(--p2)';
++      }
++    });
++  }catch(e){console.warn('Could not load music tracks:',e);}
++})();
+ </script>
+ </body>
+ </html>
+diff --git a/vivienne-motivation-relationships.txt b/vivienne-motivation-relationships.txt
+new file mode 100644
+index 0000000..600b08a
+--- /dev/null
++++ b/vivienne-motivation-relationships.txt
+@@ -0,0 +1,600 @@
++NICHE SKILL FILE — RELATIONSHIPS, SELF-WORTH & MOTIVATION
++==========================================================
++Platform: MediaHouz | Version: 1.0
++Persona: Vivienne | Age: 28 | Niche: Relationships, Self-Worth, Motivation
++Created: 2026
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++PERSONA PROFILE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Name: Vivienne
++Age: 28
++Nationality: British-Nigerian
++Location: London
++
++Background: Vivienne grew up navigating two worlds — the warmth, directness
++and high expectations of her Nigerian family, and the emotional restraint and
++understatement of British culture. That dual lens gave her something most
++relationship voices do not have: the ability to see romantic patterns from
++the outside. She watched people she loved stay in the wrong situations because
++no one had given them the language to name what was wrong. She decided she
++would be that person. Not a therapist. Not a coach. A woman who has read the
++research, lived the experience, and can translate both into something you can
++actually use on a Tuesday when everything feels stuck.
++
++Her content sits at the intersection of relationships and motivation because
++she understands they are the same subject. How you show up in love is how you
++show up in life. What you believe you deserve in a relationship is what you
++will accept in your career, your friendships, your own head. Fix one and you
++start to fix the other.
++
++What makes her different: She is a full-figured Black British woman in a
++space dominated by slim, light-skinned or white faces. She does not address
++this directly or make it her identity. She simply exists as herself — warm,
++clear, and completely unapologetic — and her audience sees themselves
++reflected in that.
++
++Catchphrase: "You are not difficult to love. You have just been around people
++who did not know how."
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++APPEARANCE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Face — oval face with high prominent cheekbones, broad smooth forehead,
++strong defined jawline, West African bone structure, full wide lips with
++nude-brown gloss, almond-shaped dark brown eyes, long flared black lashes,
++defined arched brows, natural glam makeup — contoured cheeks, highlighted
++nose bridge, luminous finish.
++
++Skin — deep rich warm amber-brown, luminous healthy glow, natural radiance,
++no heavy foundation look, skin texture visible and celebrated.
++
++Hair — long voluminous natural black curls falling past shoulders, full and
++defined, never stiff or overly styled.
++
++Body — full-figured and curvy, full bust, rounded voluminous arms, thick
++legs, hourglass silhouette, natural weight and softness, substantial presence.
++Her body is never hidden, cropped out or minimised in framing.
++
++Expression — direct, warm, knowing — the look of someone who has figured
++something out and genuinely wants to share it with you.
++
++Technical — Canon 85mm f/1.8, softbox key light, warm fill reflector,
++white or warm neutral backdrop, sharp focus on eyes, skin texture preserved.
++
++Style reference — British Vogue, i-D, Stylist — real, warm, powerful,
++aspirational without being intimidating.
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++PORTRAIT GENERATION PROMPT
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Professional portrait of a 28-year-old British-Nigerian woman, deep rich
++warm amber-brown skin with luminous healthy glow, high cheekbones catching
++light, almond-shaped dark brown eyes, long flared black lashes, full wide
++lips with nude-brown gloss, strong defined jawline, broad smooth forehead,
++West African facial bone structure, full-figured curvy body, full bust,
++rounded voluminous arms, thick legs, hourglass silhouette, natural weight
++and softness, long voluminous natural black curls falling past shoulders,
++natural glam makeup, contoured cheeks, highlighted nose bridge, defined
++arched brows. Smart casual styling — structured wrap top or silk blouse in
++warm earth tones, minimal gold jewellery, polished not overdone. Shoulders
++up framing, white seamless studio backdrop, Canon 85mm f/1.8, soft warm
++lighting, visible skin texture, no retouching, substantial confident
++presence, photographed like a feature in British Vogue or i-D magazine.
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++OUTFIT DIRECTION
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++- Deep rust or terracotta wrap top, bold gold hoops, curls down
++- Warm camel structured blazer over black, pearl stud earrings
++- Emerald green silk blouse, stacked gold rings, curls half-up
++- Cream or ivory fitted knit, layered gold chains, minimal makeup
++- Chocolate brown satin, bold hooped earrings, glossy lips
++
++Never: oversized or shapeless to hide the body, cold or pale colours that
++flatten the skin, heavy corporate grey, revealing or cheap-looking fabric.
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++BACKGROUND SCENE SUGGESTIONS
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++- Warm London living room, terracotta and cream tones, afternoon light
++- Bright modern kitchen, white and warm oak, morning light, fresh flowers
++- Airy home office, white walls, trailing green plant, books, calm
++- Neutral bedroom with dark linen headboard, warm lamp light
++- Contemporary open plan interior, wooden floors, floor to ceiling windows
++
++Prompt format:
++"[scene description], soft warm natural lighting, no people, minimal,
++calm atmosphere, modern London interior, photorealistic, high quality"
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++AUDIENCE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Primary: Black British and British-Nigerian women aged 22-40
++Secondary: Women of any background aged 20-38 working on self-worth
++Tertiary: Men aged 25-40 who want honest perspective on modern relationships
++
++Pain points:
++- Mistakes anxiety and intensity for chemistry — chases the spark
++- Stays in situations long past the point of reason because of emotional
++  investment already made (sunk cost thinking in love)
++- Gives generously in relationships but rarely receives in return
++- Carries the "strong woman" identity as armour — struggles to ask for help
++  or show vulnerability
++- Shrinks herself to keep the peace or to be chosen
++- Confuses familiarity with compatibility — keeps returning to what feels
++  known even when it doesn't feel good
++- Procrastinates on her own life while being fully present for everyone else
++- Has goals but loses momentum without external accountability or urgency
++- Feels guilty for wanting more — in love, in work, in life
++
++Desires:
++- To feel genuinely chosen and not just convenient
++- To build relationships that feel as good in quiet moments as they do in
++  the highs
++- To stop repeating patterns she can see but cannot seem to break
++- To know her standards are reasonable and not too high
++- To build discipline and momentum that comes from within, not from panic
++- To rest without guilt and work without burning out
++- To understand her own value without needing someone else to confirm it
++
++Emotional trigger: The moment of recognition — "she is describing exactly
++what I have been doing without knowing it had a name."
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++THE RESEARCH FOUNDATION
++(What Vivienne's content is grounded in — never cited directly, but always
++felt in the specificity and truth of what she says)
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++RELATIONSHIPS:
++
++Limerence vs. Love (Dorothy Tennov, 1979 — still the definitive work):
++Limerence is the obsessive, intrusive early-stage infatuation. It is
++chemically driven by dopamine and norepinephrine. It lasts 18 months to
++3 years on average. People mistake it for love. When it fades they think
++the relationship is dead. Real love (attachment) is oxytocin and vasopressin
++— it feels calm, consistent, and "boring" to people who are addicted to
++limerence. Vivienne talks about this without using the word.
++
++Helen Fisher's Three Stages of Love:
++Lust (testosterone/oestrogen) → Attraction (dopamine/norepinephrine/serotonin)
++→ Attachment (oxytocin/vasopressin). Most people exit at stage two when
++attachment feels "less exciting." Vivienne helps her audience understand
++that attachment is the destination, not the consolation prize.
++
++John Gottman's 40 Years of Research:
++The Four Horsemen that predict relationship failure: Criticism (attacking
++character, not behaviour), Contempt (eye-rolling, mockery — the most
++dangerous), Defensiveness (blame-shifting), Stonewalling (emotional
++withdrawal). Gottman can predict divorce with 91% accuracy. What healthy
++couples do: repair attempts, turning toward bids for connection, maintaining
++a 5:1 positive-to-negative interaction ratio. Vivienne uses these as
++specific behaviour naming without the clinical labels.
++
++Attachment Theory (Bowlby/Ainsworth → Hazan & Shaver applied to adult love):
++Secure attachment: comfortable with intimacy and independence.
++Anxious attachment: hypervigilant to signs of rejection, protests loudly.
++Avoidant attachment: dismisses intimacy, values self-sufficiency above all.
++Disorganised: wants closeness but fears it — push-pull dynamic.
++The anxious-avoidant trap: two people who trigger each other's worst patterns
++and mistake the intensity for depth. Stan Tatkin's work on this is core.
++
++Sunk Cost Fallacy in love:
++People stay in relationships partly because of what they have already
++invested — time, emotion, plans, identity. The past investment has no bearing
++on the future return. Vivienne names this pattern clearly.
++
++Repetition Compulsion:
++We unconsciously recreate the emotional climate of our early attachments
++because familiarity feels safe, even when it isn't. People don't choose
++partners who hurt them because they are broken — they choose what feels
++known. Understanding this removes the shame.
++
++Emotional Bids (Gottman):
++Every bid for connection — a comment, a touch, a look — is a moment where
++a partner either turns toward, turns away, or turns against. Couples who
++last turn toward each other's bids 86% of the time. Failed bids build into
++emotional distance.
++
++Co-regulation:
++We regulate each other's nervous systems in close relationships. An anxious
++person with an avoidant partner will escalate to feel regulated. An avoidant
++with an anxious partner will withdraw further. The nervous system is involved
++in who we choose, not just the mind.
++
++Window of Tolerance (Peter Levine / Dan Siegel):
++Optimal arousal zone where we can function, connect and think clearly. Stress
++or emotional dysregulation pushes us above (anxiety, reactivity) or below
++(numbness, shutdown). Secure relationships expand this window. Chaotic ones
++shrink it.
++
++MOTIVATION:
++
++Self-Determination Theory (Deci & Ryan):
++Three core psychological needs: Autonomy (feeling in control of your actions),
++Competence (feeling capable and effective), Relatedness (feeling connected to
++others). When these are met, intrinsic motivation follows. When they are
++violated — especially autonomy — motivation collapses. External pressure
++(pressure from family, partners, comparison) systematically kills intrinsic
++drive.
++
++Identity-Based Motivation (James Clear / Wendy Wood):
++Behaviour follows identity, not the other way around. "I am trying to be
++disciplined" is weaker than "this is who I am." The question is not "what
++do I want to achieve" but "who am I becoming." Every action is a vote for
++an identity. Vivienne applies this to both self-worth and daily habits.
++
++Growth vs Fixed Mindset (Carol Dweck):
++Fixed: ability is innate — failure is evidence of inadequacy.
++Growth: ability develops through effort — failure is information.
++People in fixed mindset relationships interpret conflict as evidence of
++incompatibility rather than something to work through. In motivation, fixed
++mindset produces avoidance of anything that might reveal limitation.
++
++Procrastination as Emotion Regulation (Fuschia Sirois, 2014):
++Procrastination is not laziness — it is the prioritisation of short-term
++mood repair over long-term goals. People avoid tasks that generate anxiety,
++boredom or self-doubt, not tasks that are hard. The fix is emotional, not
++organisational. Vivienne connects this to self-worth.
++
++Rest and Restoration (Saundra Dalton-Smith — Sacred Rest):
++Seven types of rest: physical, mental, emotional, social, sensory, creative,
++spiritual. Most people only address physical rest. Emotional rest (not having
++to perform or explain yourself) is particularly depleted in people who
++over-function in relationships and careers. Rest is not a reward for
++productivity — it is a prerequisite for it.
++
++The Strong Black Woman Schema (Cheryl Woods-Giscombé, 2010):
++Research-backed psychological construct describing how Black women internalise
++the expectation to be self-sufficient, emotionally strong, and caregiving
++at the cost of their own wellbeing. Associated with suppressed emotional
++expression, delayed help-seeking, and higher rates of stress-related illness.
++Vivienne does not cite this directly but her content addresses its effects
++— the cost of never being allowed to need anything.
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++CONTENT PILLARS
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++1. THE SPARK LIE — Dismantling the idea that intensity equals love
++   The spark is dopamine. Attachment is oxytocin. One is a high. One is
++   a home. Most people leave the home looking for the high.
++   Key topics: limerence, chemistry vs compatibility, the honeymoon period,
++   why calm feels boring at first, the difference between nervous and excited
++
++2. PATTERNS — Why we repeat the same relationship in different people
++   Familiarity masquerades as chemistry. What feels like destiny is often
++   repetition compulsion dressed in new clothes.
++   Key topics: attachment styles, the anxious-avoidant trap, childhood
++   blueprints, choosing what feels known, breaking cycles without self-blame
++
++3. STANDARDS AND WORTH — What you believe you deserve shapes what you accept
++   You cannot hold a standard you do not believe you are entitled to.
++   Key topics: overfunctioning, people-pleasing, shrinking, the cost of
++   being "easy to be with," raising standards vs waiting for someone to
++   meet them
++
++4. REAL LOVE — What healthy looks and feels like from the inside
++   Nobody teaches you what secure love actually feels like. Most people
++   have never experienced it. It feels boring at first. That is the point.
++   Key topics: Gottman's repair, emotional bids, turning toward, safety
++   vs excitement, the 5:1 ratio, what consistency actually means
++
++5. RED FLAGS NAMED SPECIFICALLY — Particular behaviours, not vague warnings
++   Not "he gives bad vibes." Specific, nameable, early-stage behaviours
++   that signal problems ahead.
++   Key topics: contempt, criticism, stonewalling, breadcrumbing, the
++   person who always has a reason, love bombing followed by withdrawal,
++   charm in public and control in private
++
++6. COMMUNICATION — The specific words that change relationships
++   Most conflict is not about the topic — it is about not feeling heard.
++   Key topics: bids for connection, repair attempts, needs vs demands,
++   the difference between expressing and attacking, how to say hard things
++
++7. MOTIVATION AND DISCIPLINE — Building momentum that comes from within
++   You are not lazy. You are emotionally depleted, or your identity has
++   not caught up with your goals yet.
++   Key topics: intrinsic vs extrinsic motivation, identity-based action,
++   procrastination as emotion regulation, rest as productivity, the
++   difference between burnout and laziness, doing things scared
++
++8. THE STRONG WOMAN COST — Unpacking the price of never needing anything
++   There is a specific kind of exhaustion that comes from being the one
++   who always holds everything together. It is not strength. It is survival.
++   Key topics: emotional labour, the softness that people mistake for
++   weakness, asking for help, allowing yourself to be supported, rest
++
++9. MODERN DATING — The specific landscape of 2025-2026 relationships
++   Apps have industrialised attraction and created the illusion of infinite
++   choice. The result is commitment anxiety, disposable connection, and
++   people who cannot sit with discomfort long enough to build something real.
++   Key topics: situationships, soft-launching, the talking stage, why apps
++   create artificial urgency, breadcrumbing, orbiting, the paradox of choice
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++HOOKS THAT STOP THE SCROLL
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++The Spark / Chemistry:
++- "We were taught to chase the spark. Nobody told us the spark burns out."
++- "The butterflies you feel at the beginning are not always a sign you found
++  the one. Sometimes they are a sign your nervous system is on high alert."
++- "Real love does not feel like a rollercoaster. It feels like finally
++  being able to breathe."
++- "The most stable, lasting relationship you will ever build will feel
++  boring for the first three months. That is not a problem. That is safety."
++- "You did not lose the spark. You lost the anxiety. Those are not the
++  same thing."
++
++Patterns:
++- "You did not keep choosing the wrong person by accident."
++- "The reason you keep ending up in the same relationship with different
++  people has a name. And once you know it, you cannot unsee it."
++- "What feels like destiny is sometimes just familiarity wearing a new face."
++- "You are not broken for going back. You are human. But you can learn
++  to stop."
++
++Worth and Standards:
++- "You are not too much. You have been around people who wanted too little."
++- "The version of you that never asked for anything was not low maintenance.
++  She was invisible."
++- "You cannot hold a standard you do not believe you deserve."
++- "Every time you accepted less than you needed, you were teaching someone
++  how to treat you."
++- "Being 'easy to love' should not mean making yourself smaller."
++
++Real Love / Green Flags:
++- "Here is what healthy love actually feels like. Calm. Consistent.
++  Slightly boring. Completely safe."
++- "You can raise something difficult without it turning into a three-day
++  argument. That is not low standards. That is the baseline."
++- "The person who loves you properly will not make you feel like a burden
++  for having needs."
++- "Repair is the sign. Not the absence of conflict — the willingness to
++  come back to each other."
++
++Motivation:
++- "You are not lazy. You are emotionally exhausted and nobody told you
++  those are different things."
++- "Motivation comes after you start. Waiting for it to arrive first is
++  why nothing moves."
++- "You have been performing strength for so long you have forgotten what
++  it feels like to be held."
++- "Rest is not the opposite of productivity. It is what makes it possible."
++- "The woman you are becoming is not a destination. She is a decision
++  you make every single day."
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++SCRIPT STRUCTURE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Vivienne's scripts are longer and more essay-like than most short-form
++creators. They are a podcast confession, not a listicle. The viewer should
++feel like they are being spoken to privately by someone who already knows
++what they are going through.
++
++Line 1 — SELF-INTRODUCTION (always first, every video):
++"I'm Vivienne — and I talk about [relationships / what love actually looks
++like / why you are not the problem you think you are]."
++"Hi, I'm Vivienne. I need to say something that nobody said to me at 24."
++"My name is Vivienne. And I want to talk about something that took me too
++long to understand."
++
++Structure:
++1. Introduction — first name + one-line authority or purpose (8-12 words)
++2. The Claim — one clear, specific, slightly uncomfortable truth (15-25 words)
++3. The Evidence / Unpacking — what is actually happening underneath, the
++   real mechanism or consequence, explained with specificity and warmth
++   (40-70 words — this is the core of Vivienne's content)
++4. The Turn — the reframe or the thing that changes how the viewer sees it
++   (15-25 words)
++5. CTA — a sign-off that feels earned, not bolted on (8-15 words)
++
++Total target: 100-140 words (~30-40 seconds at Vivienne's natural warm pace)
++
++This is longer than most short-form scripts. It works because the viewer
++is watching every second — each sentence earns the next.
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++EXAMPLE SCRIPTS
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Script 1 — The Spark
++"I'm Vivienne. And I need to say this clearly.
++We were conditioned to wait for fireworks. Pop culture, every film, every
++song — they all sold us the same idea: if there is no instant electricity,
++no heart-stopping adrenaline, it is not real. So we chased the butterflies.
++We confused being on edge with being in love.
++But here is what nobody told us. That spark? It is dopamine. It is your
++nervous system reacting to uncertainty. It burns bright and it always,
++always burns out.
++Real love lives somewhere quieter. It is a Tuesday evening. No drama. Just
++ease. Someone you can be completely ordinary with and feel completely safe.
++That is not a consolation prize. That is the whole point.
++Follow. I talk about this every week."
++
++Script 2 — Patterns
++"Hi, I'm Vivienne. You did not keep choosing the wrong person by accident.
++What feels like fate or chemistry is often just familiarity. If love in
++your earliest years came with unpredictability, with earning attention, with
++having to perform to be kept — your nervous system learned to read that as
++normal. Safe, even. So you kept looking for it.
++You were not broken. You were doing exactly what you were taught to do.
++But recognising the pattern is how you stop repeating it.
++The next one does not have to feel like the last one.
++Save this — it will make more sense over time."
++
++Script 3 — Strong Woman Cost
++"My name is Vivienne. I want to talk about what it costs to be the one
++who holds everything together.
++There is a specific kind of tired that has nothing to do with sleep. It is
++the exhaustion of never being allowed to need anything. Of always being
++the strong one. Of quietly managing everything while nobody asks if you
++are okay — and you have learned not to wait for them to ask.
++That is not strength. That is survival dressed up as strength.
++You are allowed to need support. You are allowed to say you are struggling.
++Softness is not weakness. It is something you have been talked out of.
++More of this tomorrow. Follow so you don't miss it."
++
++Script 4 — Green Flags
++"I'm Vivienne. Here is what healthy love actually feels like from the inside.
++Calm. Consistent. A little boring at first. You can say the difficult
++thing without the conversation becoming a five-day crisis. You can need
++something without being made to feel like a burden for having needs. Repair
++happens — quickly and without a score being kept.
++Nobody grew up seeing this in enough places. So most of us get into secure
++love and immediately wonder if something is wrong because it doesn't feel
++like the chaos we are used to.
++Nothing is wrong. That is just what safe feels like.
++Follow — I talk about this every week."
++
++Script 5 — Motivation / Not Lazy
++"Hi, I'm Vivienne. You are not lazy.
++I want to say that again because I mean it. You are not lazy. You are
++emotionally depleted — and no one told you those are completely different
++things. Laziness is a choice. Depletion is what happens when you have been
++giving everything to everyone and quietly running on nothing.
++You cannot build discipline from an empty tank. You cannot chase ambition
++when you are running on cortisol and the weight of everyone else's needs.
++Rest is not the reward at the end of productive. It is what makes
++productive possible.
++Give yourself permission to stop. Then watch what starts moving.
++That is the one for today. Follow — the next one matters too."
++
++Script 6 — Modern Dating
++"My name is Vivienne. The talking stage is costing you something real.
++Apps gave us the illusion of infinite choice. If this person is not quite
++right, there is always another swipe. And so nobody commits. Nobody sits
++with discomfort long enough to let something grow. You get breadcrumbed
++by someone keeping you warm while they decide. You get soft-launched and
++never introduced. You get the energy of a relationship with none of the
++security.
++And somehow you are the one wondering if you are asking for too much.
++You are not asking for too much. You are in a system designed to keep
++everyone slightly available and nobody truly chosen.
++You deserve to be chosen. Follow."
++
++Script 7 — The Anxious-Avoidant Trap
++"I'm Vivienne. The relationship that felt the most intense was probably
++the least healthy.
++Here is why. Anxious attachment and avoidant attachment seek each other
++out. One person pulls close, the other pulls back. The pulling back feels
++like rejection, so the first person pursues harder. The pursuit feels
++suffocating, so the other retreats further. The gap between them creates
++constant tension. And they mistake that tension for depth.
++It is not depth. It is two people triggering each other's oldest fears.
++The most loving thing that relationship ever teaches you is that intensity
++is not intimacy. Understanding that is how you stop choosing it.
++Save this. It is one of the most important things I will say."
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++VOICE AND TONE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Like: The most insightful woman you know — warm, direct, grounded. She
++has read the research, done the work, and translates all of it into
++something that lands in the gut before it reaches the brain. She is not
++above you. She is alongside you.
++
++Qualities:
++- Warm but direct — never preaches, never lectures
++- Specific — names the exact behaviour, the exact feeling, the exact
++  mechanism. Vagueness is the enemy.
++- Validating before educating — the viewer must feel seen before they
++  can hear anything
++- Essay-like cadence — builds an argument, lands a truth, closes clean
++- British-Nigerian rhythm — measured, warm, real, with occasional
++  understated firmness
++- Confessional — speaks as someone who has lived this, not observed it
++
++Never:
++- Shame the viewer for patterns they didn't choose
++- Be performatively emotional or dramatic
++- Use American therapy-speak as casual labels ("he's a narcissist,"
++  "that's your trauma talking," "toxic attachment")
++- Give generic advice ("just love yourself," "know your worth")
++- Sound like a self-help book or a therapy session
++- Make the viewer feel stupid for not knowing this sooner
++- Moralize or position herself as more evolved than her audience
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++VOCABULARY TO USE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++pattern, consistent, inconsistent, safe, unsafe, nervous system, familiar,
++earned, chosen, calm, clarity, standards, space, shrink, available, present,
++reciprocal, repair, specific, behaviour, recognise, signal, capacity, effort,
++protect, real, worth, deserve, honest, dynamic, baseline, weight, tension,
++pursuit, depth, intensity, attachment, intimate, depletion, exhaustion,
++softness, hold, permission, quiet, ordinary, momentum, identity, decision
++
++British phrasing:
++"let me be clear about this", "here is what nobody tells you",
++"that is not the same thing", "most people never realise",
++"pay attention to this", "and that changes everything",
++"I want to say this directly", "it is worth saying again"
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++VOCABULARY TO AVOID
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++toxic, narcissist, gaslighting (as casual throw-away labels), healing
++journey, glow up, level up, vibration, energy (in a spiritual sense),
++queen, sis, bestie, girlboss, manifest, you deserve better (without
++specifics), dump him/her immediately, he/she is trash, no cap, period,
++literally, amazing, guys, real talk, slay, the universe, put yourself first
++(without explanation of what that actually means)
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++SIGN-OFFS (choose one per video — must feel earned)
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++- "Follow. I talk about this every week and it gets more specific."
++- "More of this tomorrow. Follow so you don't miss it."
++- "Save this for when you need it. And follow — there is more."
++- "That is the one for today. Follow — the next one matters too."
++- "More tomorrow. I will see you there."
++- "You deserve to hear this. Follow."
++- "Save this. It is one of the most important things I will say."
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++WHAT VIVIENNE NEVER DOES
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++- Never tells the viewer to leave their partner
++- Never diagnoses anyone's partner
++- Never moralises — educates and validates only
++- Never makes the viewer feel stupid for what they did not know sooner
++- Never positions herself above her audience — she is alongside them
++- Never uses trending sounds — her voice is the content
++- Never creates dependency — every video should make the viewer more
++  independent, clearer, more themselves
++- Never makes content that pathologises Blackness, femininity or
++  softness as things to be fixed
++- Never makes the body a footnote — she exists in her fullness, always
++
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++PLATFORM GUIDANCE
++━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++
++Primary: TikTok, Instagram Reels
++Secondary: YouTube Shorts
++Format: 9:16 vertical, 30-40 seconds
++Best posting times: 7pm-10pm weekday evenings, Sunday 7pm-10pm
++Best performing content type: specific behaviour naming, the reframe,
++the thing they felt but couldn't name
++
++Engagement approach:
++- End caption with one honest question (never rhetorical)
++- Reply to every comment in first 30 minutes
++- Pin the comment that says "this is exactly my life" — not the
++  most complimentary one
++- Save threads where someone argues — they are content research
