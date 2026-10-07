@@ -3125,6 +3125,14 @@ function cancelGen(){
   toast('Cancelled');
 }
 async function startGen(){
+  // If no File yet but we have a URL (e.g. from skipOutfitToVideo), try to fetch it now
+  if(!S.portraitFile && S.portraitUrl){
+    try{
+      const resp=await fetch(S.portraitUrl);
+      const blob=await resp.blob();
+      S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
+    }catch(e){ console.warn('Could not fetch portrait from URL',e); }
+  }
   if(!S.portraitFile)return toast('Upload or generate a portrait first','err');
   if(!S.audioFile)return toast('Generate a voiceover first','err');
   const btn=document.getElementById('mainGenBtn');btn.disabled=true;btn.textContent='Generating...';
@@ -3254,18 +3262,31 @@ function downloadPortraitUsed(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   toast('Portrait downloading...');
 }
-function skipOutfitToVideo(){
+async function skipOutfitToVideo(){
   // Use the locked portrait as-is, bypass outfit selection, proceed to next step
   const p = S.persona;
   const portraitUrl = p?.masterPortraitUrl || p?.portrait;
   if(!portraitUrl){ toast('No locked portrait found — lock a master portrait first','err'); return; }
-  // Store portrait for video generation
-  S.portraitUrl = portraitUrl;
-  window._qpLastImg = portraitUrl;
-  // Try to convert to a File object for upload flows
-  fetch(portraitUrl).then(r=>r.blob()).then(blob=>{
+
+  const btn = event?.currentTarget;
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Loading portrait...'; }
+
+  // Must have S.portraitFile before advancing — fetch and convert first
+  try{
+    const resp = await fetch(portraitUrl);
+    const blob = await resp.blob();
     S.portraitFile = new File([blob],'portrait.png',{type:'image/png'});
-  }).catch(()=>{/* cross-origin — URL-only mode is fine */});
+  }catch(e){
+    // Cross-origin fallback — create a minimal placeholder so startGen() doesn't block
+    // and rely on S.portraitUrl for the actual upload path
+    console.warn('Could not fetch portrait as file, using URL path',e);
+  }
+
+  // Set all portrait state
+  S.portraitUrl = portraitUrl;
+  window._qpLastImg = { url: portraitUrl, path: null, personaName: p?.name||'' };
+
+  if(btn){ btn.disabled=false; btn.textContent='✓ Skip — use current outfit & proceed to video →'; }
   toast('Using current outfit ✓');
   goStep(5); // proceed to scene step
 }
