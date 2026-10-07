@@ -2622,6 +2622,8 @@ async function uploadPhotoAsMaster(input){
     document.getElementById('qpImg').src = d.fal_url;
     document.getElementById('qpMethodBadge').textContent = '🔒 Uploaded & locked';
     document.getElementById('qpResult').style.display='block';
+    // set _qpLastImg so "Use in video" works
+    window._qpLastImg = {url: d.fal_url, path: null, personaName: pid, isUpload: true};
     toast('🔒 Portrait uploaded and locked as master for '+p.name);
   } catch(e){
     toast('Upload failed: '+e.message,'err');
