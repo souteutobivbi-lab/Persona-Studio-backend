@@ -2503,7 +2503,7 @@ async function genQuickPortrait(){
     if(d.error) throw new Error(d.error);
     const imgUrl = API()+d.images[0]; // d.images[0] is already "/portrait/jid/0"
     document.getElementById('qpImg').src = imgUrl;
-    const method = d.method==='pulid' ? '🔒 PuLID — identity locked' : '✦ FLUX — new face';
+    const method = d.method==='instant-character' ? '🔒 Identity locked' : d.method==='flux-fallback' ? '✦ FLUX fallback' : '✦ FLUX — new face';
     document.getElementById('qpMethodBadge').textContent = method;
     const score = d.identity_scores&&d.identity_scores[0];
     document.getElementById('qpScoreRow').textContent = score && score>0 ? 'Identity score: '+Math.round(score*100)+'%' : '';

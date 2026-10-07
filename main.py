@@ -346,21 +346,37 @@ async def generate_portrait(
             img_path = OUTPUT_DIR / f"{jid}_portrait_{i}.png"
 
             if ref_url:
-                # ── PuLID: inject master face identity into the generated image ──
-                # One call, no retry loop. Identity is baked in by the model itself.
-                print(f"[{jid}] PuLID generation {i} with master: {ref_url[:60]}...")
-                result = fal_client.subscribe("fal-ai/pulid", arguments={
-                    "prompt": prompt,
-                    "reference_images": [{"image_url": ref_url}],
-                    "num_inference_steps": 12,
-                    "guidance_scale": 1.5,
-                    "image_size": "portrait_4_3",
-                    "enable_safety_checker": False
-                })
-                img_url = result["images"][0]["url"]
-                method = "pulid"
+                # ── instant-character: face-locked scene portrait ──
+                # fal.ai's own recommended model for consistent character generation.
+                # Takes a single reference face URL + prompt, follows scene descriptions.
+                # Falls back to FLUX Dev if the model errors (bad params, unavailable).
+                print(f"[{jid}] instant-character generation {i} with master: {ref_url[:60]}...")
+                try:
+                    result = fal_client.subscribe("fal-ai/instant-character", arguments={
+                        "prompt": prompt,
+                        "image_url": ref_url,
+                        "scale": 0.8,               # face identity strength (0–2)
+                        "guidance_scale": 3.5,
+                        "num_inference_steps": 28,
+                        "image_size": "portrait_4_3",
+                        "num_images": 1
+                    })
+                    img_url = result["images"][0]["url"]
+                    method = "instant-character"
+                except Exception as ic_err:
+                    print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
+                    result = fal_client.subscribe("fal-ai/flux/dev", arguments={
+                        "prompt": prompt,
+                        "image_size": "portrait_4_3",
+                        "num_inference_steps": 28,
+                        "guidance_scale": 3.5,
+                        "num_images": 1,
+                        "enable_safety_checker": False
+                    })
+                    img_url = result["images"][0]["url"]
+                    method = "flux-fallback"
             else:
-                # ── FLUX Dev: better prompt following for seated/scene portraits ──
+                # ── FLUX Dev: no master yet, generate baseline seated portrait ──
                 print(f"[{jid}] FLUX Dev generation {i} (no master portrait set)")
                 result = fal_client.subscribe("fal-ai/flux/dev", arguments={
                     "prompt": prompt,
