@@ -1,5 +1,5 @@
 diff --git a/main.py b/main.py
-index 207f8b5..4dfb9c2 100644
+index 207f8b5..e487923 100644
 --- a/main.py
 +++ b/main.py
 @@ -71,6 +71,16 @@ static_path = Path(__file__).parent / "static"
@@ -19,17 +19,76 @@ index 207f8b5..4dfb9c2 100644
  @app.post("/parse-skill")
  async def parse_skill(skill_text: str = Form(...)):
      from groq import Groq
-@@ -132,20 +142,23 @@ async def generate_script(
-         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style."
-     response = client.chat.completions.create(
-         model="qwen/qwen3.8-27b",
+@@ -127,25 +137,84 @@ async def generate_script(
+ ):
+     from groq import Groq
+     client = Groq(api_key=GROQ_KEY)
+-    skill_section = ""
++
++    # Detect Vivienne-style skill vs generic — look for structure markers
++    has_vivienne_structure = False
++    script_examples = ""
++    structure_rules = ""
+     if skill_context:
+-        skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style."
+-    response = client.chat.completions.create(
+-        model="qwen/qwen3.8-27b",
 -        messages=[{"role": "user", "content": f"""Write 5 different 15-second talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
-+        messages=[{"role": "user", "content": f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
++        sc = skill_context
++        has_vivienne_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
++                                   or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
++        # Extract script structure section
++        if "SCRIPT STRUCTURE" in sc:
++            start = sc.find("SCRIPT STRUCTURE")
++            end = sc.find("━━━", start + 20)
++            structure_rules = sc[start:end].strip() if end > start else sc[start:start+800]
++        # Extract example scripts section
++        if "EXAMPLE SCRIPTS" in sc:
++            start = sc.find("EXAMPLE SCRIPTS")
++            end = sc.find("━━━", start + 20)
++            script_examples = sc[start:end].strip() if end > start else sc[start:start+2000]
++        # Extract sign-offs
++        signoffs = ""
++        if "SIGN-OFFS" in sc:
++            start = sc.find("SIGN-OFFS")
++            end = sc.find("━━━", start + 20)
++            signoffs = sc[start:end].strip() if end > start else ""
++
++    if has_vivienne_structure:
++        # Full Vivienne-spec prompt: 100-140 words, 5-part structure
++        prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
++Topic: {topic}
++
++{structure_rules}
++
++{script_examples}
++
++CRITICAL RULES — follow exactly:
++1. Each script MUST be 100-140 words. Count carefully. Do not submit anything under 90 words.
++2. Follow the 5-part structure every time:
++   - Opening line: first name introduction ("I'm {persona_name}..." or "My name is {persona_name}...")
++   - The Claim: one clear, specific uncomfortable truth (15-25 words)
++   - The Unpacking: real mechanism explained with specificity (40-70 words)
++   - The Turn: reframe that changes how the viewer sees it (15-25 words)
++   - CTA: one of the sign-offs from the skill — earned, not tacked on
++3. Podcast confession style — essay-like, not a listicle
++4. Warm, direct, British cadence — measured, real, understated firmness
++5. No hashtags, no emojis, no stage directions, no filler
++6. Each of the 5 must cover a different angle of the topic with a different opening emotion
++7. Never shame the viewer. Validate before educating.
++
++{signoffs}
++
++Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
++["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
++        max_tok = 2000
++    else:
++        # Generic shorter scripts for other personas
++        skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
++        prompt = f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
  Topic: {topic}{skill_section}
  
-+STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable, the kind of thing that makes a viewer stop scrolling and feel seen. Think: a real conversation, not a sales pitch.
-+
- Rules for each script:
+-Rules for each script:
 -- Maximum 40 words each
 -- Different hook for each script
 -- Conversational, warm, authoritative
@@ -38,22 +97,39 @@ index 207f8b5..4dfb9c2 100644
 -- Each script must feel distinct — different angle, different hook, different energy
 -
 -Return ONLY a JSON array of 5 script strings, nothing else. Example format:
-+- 30–45 words (15–20 seconds when spoken)
-+- Each script must open with a different emotional hook (a confession, a painful truth, a bold claim, a question that cuts deep, a shared secret)
-+- Warm, direct, British cadence — never American-corporate
-+- End with either a quiet insight, a lingering question, or a gentle challenge to the viewer
-+- No hashtags, no emojis, no stage directions, no filler phrases like "Hey guys" or "So today"
-+- Each of the 5 must feel like a completely different moment — different emotion, different angle, different energy
-+- The viewer should feel like {persona_name} is speaking directly to them, not performing for them
-+
-+Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels. Example format:
- ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""}],
+-["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""}],
 -        max_tokens=600, temperature=0.85
-+        max_tokens=800, temperature=0.92
++STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable. A real conversation, not a sales pitch.
++
++Rules:
++- 45-80 words each (comfortable speaking pace)
++- Open with a different emotional hook each time
++- Warm, direct, British cadence
++- End with a quiet insight or gentle challenge
++- No hashtags, no emojis, no stage directions, no filler
++- Each must feel like a completely different moment
++
++Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
++["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
++        max_tok = 1200
++
++    response = client.chat.completions.create(
++        model="qwen/qwen3-32b",
++        messages=[{"role": "user", "content": prompt}],
++        max_tokens=max_tok, temperature=0.88
      )
      raw = response.choices[0].message.content.strip()
      try:
-@@ -267,9 +280,27 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
+@@ -155,6 +224,8 @@ Return ONLY a JSON array of 5 script strings, nothing else. Example format:
+             scripts = [scripts]
+     except:
+         scripts = [raw]
++    # Filter out any scripts under 40 words (malformed outputs)
++    scripts = [s for s in scripts if len(s.split()) >= 40] or scripts
+     return {"scripts": scripts, "script": scripts[0] if scripts else "", "words": len(scripts[0].split()) if scripts else 0}
+ 
+ @app.post("/generate-voice")
+@@ -267,9 +338,27 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
          print(f"Face similarity error (skipping): {e}")
          return -1.0
  
@@ -84,7 +160,7 @@ index 207f8b5..4dfb9c2 100644
  
  @app.post("/set-master-portrait")
  async def set_master_portrait(
-@@ -286,7 +317,8 @@ async def set_master_portrait(
+@@ -286,7 +375,8 @@ async def set_master_portrait(
      # Upload to fal CDN for persistence
      fal_url = fal_client.upload_file(str(master_path))
      MASTER_PORTRAITS[persona_id] = {"local": str(master_path), "url": fal_url}
@@ -94,7 +170,7 @@ index 207f8b5..4dfb9c2 100644
      return {"status": "ok", "persona_id": persona_id, "fal_url": fal_url}
  
  @app.post("/get-master-portrait")
-@@ -297,6 +329,27 @@ async def get_master_portrait(persona_id: str = Form(...)):
+@@ -297,6 +387,27 @@ async def get_master_portrait(persona_id: str = Form(...)):
          return JSONResponse({"error": "No master portrait set for this persona"}, status_code=404)
      return {"persona_id": persona_id, "fal_url": entry["url"], "has_master": True}
  
@@ -122,7 +198,7 @@ index 207f8b5..4dfb9c2 100644
  @app.post("/generate-portrait")
  async def generate_portrait(
      persona_name: str = Form(...),
-@@ -351,25 +404,24 @@ async def generate_portrait(
+@@ -351,25 +462,24 @@ async def generate_portrait(
                  })
  
                  if ref_url:
@@ -163,7 +239,7 @@ index 207f8b5..4dfb9c2 100644
                          result = _fal.subscribe("fal-ai/flux/dev", arguments={
                              "prompt": prompt,
                              "image_size": "portrait_4_3",
-@@ -489,7 +541,8 @@ async def generate_video(
+@@ -489,7 +599,8 @@ async def generate_video(
      portrait: UploadFile = File(...),
      audio: UploadFile = File(...),
      scene: Optional[UploadFile] = File(None),
@@ -173,7 +249,7 @@ index 207f8b5..4dfb9c2 100644
  ):
      jid = job_id or str(uuid.uuid4())[:8]
      set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
-@@ -501,10 +554,14 @@ async def generate_video(
+@@ -501,10 +612,14 @@ async def generate_video(
      if scene and scene.filename:
          scene_path = UPLOAD_DIR / f"{jid}_scene.png"
          scene_path.write_bytes(await scene.read())
@@ -190,7 +266,7 @@ index 207f8b5..4dfb9c2 100644
      try:
          import fal_client
          from PIL import Image
-@@ -557,22 +614,42 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+@@ -557,22 +672,42 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
          urllib.request.urlretrieve(output_url, raw_path)
          print(f"[{jid}] Downloaded.")
  
@@ -247,7 +323,7 @@ index 207f8b5..4dfb9c2 100644
          print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
          if ret.returncode != 0:
              print(f"[{jid}] ffmpeg stderr: {ret.stderr.decode()[:500]}")
-@@ -615,3 +692,110 @@ async def download_video(job_id: str):
+@@ -615,3 +750,110 @@ async def download_video(job_id: str):
      return JSONResponse({"error": "not ready"}, status_code=404)
  
  
