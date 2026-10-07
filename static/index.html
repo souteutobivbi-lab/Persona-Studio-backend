@@ -686,7 +686,10 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   </div>
                 </div>
                 <div class="field" style="margin-bottom:8px;">
-                  <div class="lbl">Choose outfit for this video</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="lbl" style="margin:0;">Choose outfit for this video</div>
+                    <button class="btn ghost" style="font-size:10px;padding:3px 9px;color:var(--dim);" onclick="populateOutfitSuggestions(S.persona,true)" title="Refresh suggestions">🔄 Refresh</button>
+                  </div>
                   <div id="outfitSuggestions" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
                   <input class="inp" id="loraOutfitInp" placeholder="e.g. cream cashmere blazer, pearl earrings, minimal makeup"/>
                   <div style="font-size:10px;color:var(--dim);margin-top:4px;">Select from suggestions above or type your own</div>
@@ -700,6 +703,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <button class="btn ghost" id="swapOutfitBtn" style="flex-shrink:0;font-size:12px;padding:0 14px;border:1px solid var(--green);color:var(--green);" onclick="swapOutfitOnly()" title="Keeps face, body &amp; background pixel-perfect — only swaps the clothing">🔄 Swap outfit only</button>
                 </div>
                 <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:center;">✦ Generate = new image of same face &nbsp;·&nbsp; 🔄 Swap = same photo, clothes only change</div>
+                <button class="btn ghost" style="width:100%;margin-top:10px;font-size:12px;color:var(--dim);border-color:var(--border);" onclick="skipOutfitToVideo()" title="Proceed to video using the existing locked portrait, no outfit change needed">✓ Skip — use current outfit &amp; proceed to video →</button>
                 <div id="portraitLoraResult" style="display:none;margin-top:14px;">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-bottom:10px;">
                     <div>
@@ -826,6 +830,33 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
               <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download video</button>
               <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
+            </div>
+            <!-- Social description panel — auto-generated after video -->
+            <div id="videoDescPanel" style="display:none;margin-top:10px;">
+              <div class="card" style="padding:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                  <div class="card-hd" style="margin:0;">📋 Social media captions</div>
+                  <span id="videoDescSpinner" style="font-size:11px;color:var(--amber);">Generating...</span>
+                </div>
+                <!-- TikTok -->
+                <div style="margin-bottom:10px;">
+                  <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">TikTok</div>
+                  <div id="descTikTok" style="font-size:12px;line-height:1.6;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;white-space:pre-wrap;min-height:40px;"></div>
+                  <button onclick="copyDesc('descTikTok','tiktokCopyBtn')" id="tiktokCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">📋 Copy</button>
+                </div>
+                <!-- Instagram -->
+                <div style="margin-bottom:10px;">
+                  <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Instagram</div>
+                  <div id="descInstagram" style="font-size:12px;line-height:1.6;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;white-space:pre-wrap;min-height:40px;"></div>
+                  <button onclick="copyDesc('descInstagram','instaCopyBtn')" id="instaCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">📋 Copy</button>
+                </div>
+                <!-- YouTube Shorts -->
+                <div>
+                  <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">YouTube Shorts</div>
+                  <div id="descYoutube" style="font-size:12px;line-height:1.6;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;white-space:pre-wrap;min-height:40px;"></div>
+                  <button onclick="copyDesc('descYoutube','ytCopyBtn')" id="ytCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">📋 Copy</button>
+                </div>
+              </div>
             </div>
             <!-- Portrait download row — shown after video generated -->
             <div id="portraitDownloadRow" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;display:none;align-items:center;gap:10px;">
@@ -2256,15 +2287,18 @@ function uploadPortrait(input){
     grid.children[0].classList.add('selected');document.getElementById('portraitBadge').textContent='✓';toast('Portrait uploaded');
   };reader.readAsDataURL(file);
 }
-async function populateOutfitSuggestions(p){
+async function populateOutfitSuggestions(p, forceRefresh){
   const el=document.getElementById('outfitSuggestions');
-  if(!el) return;
+  if(!el||!p) return;
 
-  // Show loading state
+  // Show loading state briefly
   el.innerHTML=`<div style="font-size:11px;color:var(--dim);">⟳ Loading outfit suggestions...</div>`;
 
-  // Try skill file outfits first
-  let outfits=window._skillOutfits||[];
+  // If refreshing, bump counter so defaultOutfits shuffles
+  if(forceRefresh) window._outfitRefreshCount=(window._outfitRefreshCount||0)+1;
+
+  // Try skill file outfits first (unless refreshing)
+  let outfits=(!forceRefresh && window._skillOutfits)||[];
 
   // If skill has outfits — use them
   if(outfits.length>=3){
@@ -2272,35 +2306,98 @@ async function populateOutfitSuggestions(p){
     return;
   }
 
-  // Otherwise generate 5 via Groq
-  try{
-    const fd=new FormData();
-    fd.append('persona_name', p.name||'persona');
-    fd.append('persona_age', p.age||'40');
-    fd.append('niche', p.niche||'general');
-    fd.append('style_context', p.appearance||'');
-    const r=await fetch(`${API()}/generate-outfits`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.outfits&&d.outfits.length) renderOutfitChips(d.outfits);
-    else renderOutfitChips(defaultOutfits(p));
-  }catch(e){
-    renderOutfitChips(defaultOutfits(p));
-  }
+  // Use persona-aware defaults immediately (no backend call needed)
+  renderOutfitChips(defaultOutfits(p));
+}
+
+function defaultOutfitsShuffle(p){
+  // Returns shuffled pool so Refresh gives variety
+  const pool=defaultOutfitPool(p);
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  window._outfitRefreshCount=(window._outfitRefreshCount||0)+1;
+  return pool.slice(0,5);
 }
 
 function defaultOutfits(p){
-  // Niche-aware fallback outfits
+  // On refresh (count > 0), shuffle the pool for variety
+  if(window._outfitRefreshCount>0){
+    const pool=defaultOutfitPool(p);
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    return pool.slice(0,5);
+  }
+  return defaultOutfitPool(p).slice(0,5);
+}
+
+function defaultOutfitPool(p){
+  // Persona-specific outfits take priority
+  const name=(p?.name||'').toLowerCase();
   const niche=(p?.niche||'').toLowerCase();
+  const appearance=(p?.appearance||'').toLowerCase();
+
+  // Vivienne — signature burnt orange bodycon + alternatives
+  if(name.includes('vivienne')){
+    return [
+      'Burnt orange bodycon midi dress, short sleeves, gold hoop earrings, gold pendant necklace, wide gold cuff bracelet, long voluminous natural black curls',
+      'Deep rust satin wrap dress, statement gold earrings, strappy heels, sleek updo',
+      'Terracotta off-shoulder fitted dress, stacked gold bangles, bold lip, natural curls down',
+      'Cream fitted blazer dress, pearl and gold earrings, nude heels, minimal make-up, hair in loose waves',
+      'Chocolate brown bodycon dress, large gold hoops, warm bronzed makeup, voluminous hair',
+      'Warm caramel silk blouse, tailored wide-leg trousers, gold jewellery, sophisticated updo',
+      'Deep burgundy fitted midi dress, gold chain necklace, bold earrings, polished makeup',
+    ];
+  }
+
+  // Niche-aware outfits
   if(niche.includes('wealth')||niche.includes('finance')){
-    return ['Black tailored blazer, diamond necklace, dark top','Cream structured blazer, pearl earrings, ivory blouse','Charcoal power suit, minimal gold jewellery','Navy double-breasted blazer, silk shirt, understated watch','White blazer, black top, sleek updo'];
+    return [
+      'Black tailored blazer, diamond necklace, dark silk top, sleek updo',
+      'Cream structured blazer, pearl earrings, ivory blouse, classic heel',
+      'Charcoal power suit, minimal gold jewellery, confident posture',
+      'Navy double-breasted blazer, silk shirt, understated gold watch',
+      'White blazer, black fitted top, sleek updo, simple gold earrings',
+      'Midnight blue blazer dress, pearl necklace, nude heels, clean look',
+      'Burgundy tailored jacket, black top, gold cufflinks, refined style',
+    ];
   } else if(niche.includes('interior')||niche.includes('design')||niche.includes('luxury')){
-    return ['Cream silk blouse, tortoiseshell glasses, delicate gold necklace','Camel structured blazer, minimal jewellery, elegant updo','Deep teal blazer, pearl earrings, refined makeup','Ivory fine knit, gold earrings, effortless styling','Burgundy silk top, understated necklace, natural makeup'];
+    return [
+      'Cream silk blouse, tortoiseshell glasses, delicate gold necklace, refined updo',
+      'Camel structured blazer, minimal jewellery, elegant updo, soft blush',
+      'Deep teal blazer, pearl earrings, refined makeup, polished look',
+      'Ivory fine knit, gold earrings, effortless styling, warm expression',
+      'Burgundy silk top, understated necklace, natural makeup, confident gaze',
+      'Sage green wrap dress, gold earrings, minimalist accessories, fresh look',
+      'Stone grey blazer dress, delicate chain necklace, subtle makeup, professional poise',
+    ];
   } else if(niche.includes('property')||niche.includes('builder')){
-    return ['Dark navy jacket, open collar shirt, no tie','Charcoal blazer, quality checked shirt, practical styling','Dark suit jacket, white shirt, confident posture','Navy overcoat, smart casual shirt, grounded look','Dark jacket, crew neck, understated and earned'];
+    return [
+      'Dark navy jacket, open collar shirt, no tie, grounded look',
+      'Charcoal blazer, quality checked shirt, practical styling',
+      'Dark suit jacket, white shirt, confident posture, minimal accessories',
+      'Navy overcoat, smart casual shirt, experienced and grounded',
+      'Dark jacket, crew neck, understated and earned look',
+      'Slate grey blazer, dark trousers, clean shirt, builder-exec style',
+      'Charcoal overcoat, navy sweater, self-made confidence',
+    ];
   } else if(niche.includes('health')||niche.includes('wellness')){
-    return ['Clean white linen shirt, natural minimal look','Sage green top, fresh natural makeup, calm styling','Cream athleisure top, dewy skin, natural hair','Soft grey knit, understated earrings, warm expression','White and cream layers, clean and vital appearance'];
+    return [
+      'Clean white linen shirt, natural minimal makeup, fresh look',
+      'Sage green top, fresh natural makeup, calm and vital styling',
+      'Cream athleisure top, dewy skin, natural hair, warm glow',
+      'Soft grey knit, understated earrings, warm open expression',
+      'White and cream layers, clean vital appearance, natural texture',
+      'Pale lavender blouse, fresh bare skin, minimal jewellery',
+      'Moss green linen set, gold stud earrings, natural confidence',
+    ];
   } else {
-    return ['Classic black blazer, minimal jewellery, refined look','Cream structured top, elegant styling, natural makeup','Navy blazer, silk shirt, professional composure','Charcoal knit, gold earrings, understated confidence','White blouse, tailored jacket, polished appearance'];
+    return [
+      'Classic black blazer, minimal jewellery, refined composed look',
+      'Cream structured top, elegant styling, natural makeup',
+      'Navy blazer, silk shirt, professional composure, gold earrings',
+      'Charcoal knit, gold stud earrings, understated confidence',
+      'White blouse, tailored jacket, polished and approachable appearance',
+      'Cobalt blue wrap dress, simple gold necklace, clean makeup',
+      'Warm taupe blazer, fitted top, minimal jewellery, bright presence',
+    ];
   }
 }
 
@@ -2359,7 +2456,8 @@ function renderPortraitStep(){
     const lockType = p?.loraUrl ? '🔒 LoRA trained' : '🔒 Face locked';
     document.getElementById('portraitBadge').textContent=lockType+' — '+p.name;
     document.getElementById('portraitLoraResult').style.display='none';
-    // Populate outfit suggestions
+    // Populate outfit suggestions (reset shuffle count so initial load is ordered)
+    window._outfitRefreshCount=0;
     populateOutfitSuggestions(p);
   } else {
     // Show standard mode
@@ -3111,6 +3209,9 @@ async function startGen(){
           btn.textContent='✦ Generate another';btn.disabled=false;
           const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
           S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
+          // Auto-generate social media descriptions from the active script
+          const activeScript = (document.getElementById('scriptBox')?.innerText || document.getElementById('qsScript')?.innerText || '').trim();
+          generateVideoDescription(activeScript, S.persona?.name||'', S.niche||'');
         }
         if(sd.status==='error'){
           clearInterval(pollIv);pollIv=null;
@@ -3153,18 +3254,38 @@ function downloadPortraitUsed(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   toast('Portrait downloading...');
 }
+function skipOutfitToVideo(){
+  // Use the locked portrait as-is, bypass outfit selection, proceed to next step
+  const p = S.persona;
+  const portraitUrl = p?.masterPortraitUrl || p?.portrait;
+  if(!portraitUrl){ toast('No locked portrait found — lock a master portrait first','err'); return; }
+  // Store portrait for video generation
+  S.portraitUrl = portraitUrl;
+  window._qpLastImg = portraitUrl;
+  // Try to convert to a File object for upload flows
+  fetch(portraitUrl).then(r=>r.blob()).then(blob=>{
+    S.portraitFile = new File([blob],'portrait.png',{type:'image/png'});
+  }).catch(()=>{/* cross-origin — URL-only mode is fine */});
+  toast('Using current outfit ✓');
+  goStep(5); // proceed to scene step
+}
+
 async function swapOutfitOnly(){
   const outfit = (document.getElementById('loraOutfitInp')?.value || '').trim();
   const styling = (document.getElementById('loraStylingInp')?.value || '').trim();
-  // In the video flow, the QP dropdown drives persona selection — fall back to it
-  const qpPid = document.getElementById('qpPersonaSelect')?.value;
-  const activePersName = S.persona?.name || qpPid;
-  const activePerObj = S.personas?.find(x=>x.name===activePersName) || S.persona;
+  // Resolve active persona: S.persona (portrait step) takes priority when it has a master portrait.
+  // Fall back to QP dropdown selection if S.persona is missing or has no locked portrait.
+  let activePerObj = (S.persona?.masterPortraitUrl) ? S.persona : null;
+  if(!activePerObj){
+    const qpPid = document.getElementById('qpPersonaSelect')?.value;
+    if(qpPid) activePerObj = S.personas?.find(x=>x.name===qpPid);
+    if(!activePerObj) activePerObj = S.persona; // last resort
+  }
   const pid = activePerObj?.id || activePerObj?.name;
   if(!pid){ toast('No persona selected','err'); return; }
   if(!outfit){ toast('Enter an outfit first','err'); return; }
   if(!activePerObj?.masterPortraitUrl){
-    toast('No locked portrait for '+pid+' — upload one via "Upload as master portrait" first','err'); return;
+    toast('No locked portrait for '+(activePerObj?.name||pid)+' — lock a portrait first via "Upload as master portrait"','err'); return;
   }
   const outfitFull = styling ? `${outfit}, ${styling}` : outfit;
   const btn = document.getElementById('swapOutfitBtn');
@@ -3210,6 +3331,47 @@ async function swapOutfitOnly(){
   }catch(e){
     btn.disabled=false; btn.textContent='🔄 Swap outfit only';
     toast(e.message||'Outfit swap failed','err');
+  }
+}
+
+function copyDesc(elId, btnId){
+  const text = document.getElementById(elId)?.innerText || '';
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById(btnId);
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.style.color = 'var(--green)';
+    setTimeout(()=>{ btn.textContent=orig; btn.style.color=''; }, 2000);
+  }).catch(()=> toast('Copy failed — select text manually','err'));
+}
+
+async function generateVideoDescription(script, personaName, niche){
+  const panel = document.getElementById('videoDescPanel');
+  const spinner = document.getElementById('videoDescSpinner');
+  if(!panel) return;
+  // Clear previous content
+  ['descTikTok','descInstagram','descYoutube'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = '';
+  });
+  panel.style.display = 'block';
+  if(spinner) spinner.style.display = 'inline';
+  try {
+    const fd = new FormData();
+    fd.append('script', script || '');
+    fd.append('persona_name', personaName || 'Persona');
+    fd.append('niche', niche || 'Lifestyle');
+    const r = await fetch(API()+'/generate-description', {method:'POST', body:fd});
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    if(d.tiktok)    document.getElementById('descTikTok').textContent    = d.tiktok;
+    if(d.instagram) document.getElementById('descInstagram').textContent = d.instagram;
+    if(d.youtube)   document.getElementById('descYoutube').textContent   = d.youtube;
+    if(spinner) spinner.style.display = 'none';
+  } catch(e){
+    if(spinner){ spinner.textContent = 'Failed — try regenerating'; spinner.style.color='var(--red)'; }
+    console.warn('Description generation failed:', e);
   }
 }
 
