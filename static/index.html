@@ -2541,14 +2541,17 @@ async function lockQuickPortraitAsMaster(){
   }
 }
 
-function useQuickPortraitForVideo(){
+async function useQuickPortraitForVideo(){
   if(!window._qpLastImg) return;
   const {url, personaName} = window._qpLastImg;
   const p = S.personas.find(x=>x.name===personaName);
   if(p) selectPersona(p);
   S.portraitUrl = url;
   S.portraitPath = window._qpLastImg.path;
-  fetch(url).then(r=>r.blob()).then(blob=>{S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});});
+  try {
+    const blob = await fetch(url).then(r=>r.blob());
+    S.portraitFile = new File([blob],'portrait.png',{type:'image/png'});
+  } catch(e){ console.warn('portrait blob fetch failed', e); }
   showPanel('create', null);
   goStep(4);
   // show portrait in the scene step
