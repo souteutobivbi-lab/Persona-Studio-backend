@@ -1,0 +1,189 @@
+From 15fa05e44a0959346ccb1784496cbe33fdd44d89 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 11:56:31 +0100
+Subject: [PATCH] fix: persist locked portraits to disk, restore on restart
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+main.py:
+- PORTRAITS_FILE = /app/master_portraits.json — loaded on startup
+- load_master_portraits() / save_master_portraits() helpers
+- set_master_portrait now calls save_master_portraits() immediately
+- GET /locked-personas — list all locked personas with fal URLs
+- DELETE /locked-personas/{persona_id} — remove a lock
+
+static/index.html:
+- On init: fetch /locked-personas and restore masterPortraitUrl to
+  matching personas (backend is source of truth, survives restarts)
+- renderPortraitStep: show locked UI when masterPortraitUrl set,
+  not only when loraUrl set. Shows reference photo in comparison panel
+- genPortraitWithLora: works with masterPortraitUrl fallback, not
+  only loraUrl. Sends master_url + persona_id to portrait endpoint
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py           | 48 +++++++++++++++++++++++++++++++++++++++++++----
+ static/index.html | 38 ++++++++++++++++++++++++++++++-------
+ 2 files changed, 75 insertions(+), 11 deletions(-)
+
+diff --git a/main.py b/main.py
+index 7778d42..8fde6c8 100644
+--- a/main.py
++++ b/main.py
+@@ -270,9 +270,27 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
+         print(f"Face similarity error (skipping): {e}")
+         return -1.0
+ 
+-# In-memory master portrait store  {persona_id: fal_cdn_url}
+-# Using fal CDN URLs so they survive Railway container restarts
+-MASTER_PORTRAITS: dict = {}  # persona_id → {"local": path, "url": fal_url}
++# Persistent master portrait store — survives Railway restarts
++# Saved to /app/master_portraits.json; fal CDN URLs are permanent
++PORTRAITS_FILE = Path("/app/master_portraits.json")
++
++def load_master_portraits() -> dict:
++    try:
++        if PORTRAITS_FILE.exists():
++            data = json.loads(PORTRAITS_FILE.read_text())
++            print(f"Loaded {len(data)} locked portraits from disk: {list(data.keys())}")
++            return data
++    except Exception as e:
++        print(f"Warning: could not load master portraits: {e}")
++    return {}
++
++def save_master_portraits(portraits: dict):
++    try:
++        PORTRAITS_FILE.write_text(json.dumps(portraits, indent=2))
++    except Exception as e:
++        print(f"Warning: could not save master portraits: {e}")
++
++MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id → {"local": path, "url": fal_url}
+ 
+ @app.post("/set-master-portrait")
+ async def set_master_portrait(
+@@ -289,7 +307,8 @@ async def set_master_portrait(
+     # Upload to fal CDN for persistence
+     fal_url = fal_client.upload_file(str(master_path))
+     MASTER_PORTRAITS[persona_id] = {"local": str(master_path), "url": fal_url}
+-    print(f"Master portrait set for {persona_id}: {fal_url}")
++    save_master_portraits(MASTER_PORTRAITS)
++    print(f"[LOCKED] Master portrait saved for '{persona_id}': {fal_url}")
+     return {"status": "ok", "persona_id": persona_id, "fal_url": fal_url}
+ 
+ @app.post("/get-master-portrait")
+@@ -300,6 +319,27 @@ async def get_master_portrait(persona_id: str = Form(...)):
+         return JSONResponse({"error": "No master portrait set for this persona"}, status_code=404)
+     return {"persona_id": persona_id, "fal_url": entry["url"], "has_master": True}
+ 
++@app.get("/locked-personas")
++async def list_locked_personas():
++    """Return all personas that have a locked master portrait."""
++    return {
++        "locked": [
++            {"persona_id": pid, "fal_url": entry["url"]}
++            for pid, entry in MASTER_PORTRAITS.items()
++        ],
++        "count": len(MASTER_PORTRAITS)
++    }
++
++@app.delete("/locked-personas/{persona_id}")
++async def delete_locked_persona(persona_id: str):
++    """Remove identity lock for a persona."""
++    if persona_id not in MASTER_PORTRAITS:
++        return JSONResponse({"error": "Not found"}, status_code=404)
++    del MASTER_PORTRAITS[persona_id]
++    save_master_portraits(MASTER_PORTRAITS)
++    print(f"[UNLOCKED] Removed identity lock for '{persona_id}'")
++    return {"status": "ok", "persona_id": persona_id}
++
+ @app.post("/generate-portrait")
+ async def generate_portrait(
+     persona_name: str = Form(...),
+diff --git a/static/index.html b/static/index.html
+index 7bf2044..767f680 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -2294,12 +2294,14 @@ function selectOutfit(el,outfit,idx){
+ 
+ function renderPortraitStep(){
+   const p=S.persona;
+-  const hasLora=!!(p?.loraUrl);
++  // Locked if persona has a LoRA model OR a saved master portrait URL
++  const hasLock=!!(p?.loraUrl || p?.masterPortraitUrl);
++  const refUrl = p?.loraUrl ? (p.portrait||'') : (p?.masterPortraitUrl||'');
+   const loraMode=document.getElementById('portraitLoraMode');
+   const stdMode=document.getElementById('portraitStandardMode');
+   if(!loraMode||!stdMode) return;
+ 
+-  if(hasLora){
++  if(hasLock){
+     // Show locked identity mode
+     loraMode.style.display='block';
+     stdMode.style.display='none';
+@@ -2308,11 +2310,12 @@ function renderPortraitStep(){
+     const refCompare=document.getElementById('portraitLoraRefCompare');
+     const nameEl=document.getElementById('portraitLoraName');
+     const btnName=document.getElementById('loraGenBtnName');
+-    if(refImg) refImg.src=p.portrait||'';
+-    if(refCompare) refCompare.src=p.portrait||'';
++    if(refImg) refImg.src=refUrl;
++    if(refCompare) refCompare.src=refUrl;
+     if(nameEl) nameEl.textContent=p.name;
+     if(btnName) btnName.textContent=p.name;
+-    document.getElementById('portraitBadge').textContent='🔒 '+p.name+' identity locked';
++    const lockType = p?.loraUrl ? '🔒 LoRA trained' : '🔒 Face locked';
++    document.getElementById('portraitBadge').textContent=lockType+' — '+p.name;
+     document.getElementById('portraitLoraResult').style.display='none';
+     // Populate outfit suggestions
+     populateOutfitSuggestions(p);
+@@ -2329,7 +2332,7 @@ function renderPortraitStep(){
+ 
+ async function genPortraitWithLora(){
+   const p=S.persona;
+-  if(!p?.loraUrl) return toast('No identity lock found — set up LoRA first','err');
++  if(!p?.loraUrl && !p?.masterPortraitUrl) return toast('No identity lock found — lock a master portrait first','err');
+ 
+   const outfit=document.getElementById('loraOutfitInp').value.trim();
+   const styling=document.getElementById('loraStylingInp').value.trim();
+@@ -2348,7 +2351,9 @@ async function genPortraitWithLora(){
+     fd.append('persona_age', p.age||'40');
+     fd.append('appearance', p.appearance||'');
+     fd.append('outfit', outfit+(styling?', '+styling:''));
+-    fd.append('lora_url', p.loraUrl);
++    fd.append('lora_url', p.loraUrl||'');
++    fd.append('master_url', p.masterPortraitUrl||'');
++    fd.append('persona_id', p.name);
+     fd.append('trigger_word', p.triggerWord||'');
+     fd.append('count','1');
+     const d=await generatePortraitAndPoll(fd);
+@@ -3285,6 +3290,25 @@ updateDashboard();
+ updateDocCounts();
+ setDocTab('skills');
+ 
++// ── Restore locked portraits from backend (survives Railway restarts) ──────
++(async function restoreLockedPortraits(){
++  try {
++    const r = await fetch(API()+'/locked-personas');
++    if(!r.ok) return;
++    const {locked} = await r.json();
++    let changed = false;
++    locked.forEach(({persona_id, fal_url})=>{
++      const p = S.personas.find(x => x.name === persona_id || x.name.toLowerCase() === persona_id.toLowerCase());
++      if(p && p.masterPortraitUrl !== fal_url){
++        p.masterPortraitUrl = fal_url;
++        changed = true;
++        console.log('Restored identity lock for', persona_id);
++      }
++    });
++    if(changed){ saveAll(); renderSidePersonas(); renderCreatePersonas(); }
++  } catch(e){ console.warn('Could not restore locked portraits:', e); }
++})();
++
+ // ── Portrait job polling helper ──────────────────────────────────────────────
+ // POSTs to /generate-portrait, gets job_id, polls /portrait-status/{jid}
+ // every 3 s until complete. Returns the completed job object (has .images[]).
+-- 
+2.43.0
+

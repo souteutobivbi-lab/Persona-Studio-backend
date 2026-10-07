@@ -1,0 +1,512 @@
+From a77f36fb441124b275a180a0f4ca40bf3b45b408 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 10:58:44 +0100
+Subject: [PATCH 1/4] fix: 9:16 video, instant-character retry, portrait grid,
+ podcast scripts
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+main.py:
+- ffmpeg: scale=-2:1280,crop=720:1280 → true 9:16 (720×1280) output
+  (was wrong: scaling to 448×448 then tiny pad)
+- instant-character: retry up to 2× with 90s timeout each (was 45s,
+  1 attempt — too aggressive, caused most FLUX fallbacks)
+- Script prompt: emotional podcast-confession style, 30-45 words,
+  intimate/vulnerable, not sales-pitch; 5 distinct emotional angles
+
+static/index.html:
+- Portrait grid: querySelector('#portraitStandardMode .p-grid') to
+  target visible grid — there are 2 elements with id=portraitGrid,
+  getElementById was hitting the hidden LoRA-manual-mode one
+- Scene step: "Skip scene → generate with portrait only" ghost button
+  so scene is fully optional without blocking
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py           | 79 +++++++++++++++++++++++++++++------------------
+ static/index.html |  5 +--
+ 2 files changed, 52 insertions(+), 32 deletions(-)
+
+diff --git a/main.py b/main.py
+index 207f8b5..13d3164 100644
+--- a/main.py
++++ b/main.py
+@@ -132,20 +132,23 @@ async def generate_script(
+         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style."
+     response = client.chat.completions.create(
+         model="qwen/qwen3.8-27b",
+-        messages=[{"role": "user", "content": f"""Write 5 different 15-second talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
++        messages=[{"role": "user", "content": f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
+ Topic: {topic}{skill_section}
+ 
++STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable, the kind of thing that makes a viewer stop scrolling and feel seen. Think: a real conversation, not a sales pitch.
++
+ Rules for each script:
+-- Maximum 40 words each
+-- Different hook for each script
+-- Conversational, warm, authoritative
+-- End with soft CTA or persona sign-off
+-- No hashtags, no emojis, no stage directions
+-- Each script must feel distinct — different angle, different hook, different energy
+-
+-Return ONLY a JSON array of 5 script strings, nothing else. Example format:
++- 30–45 words (15–20 seconds when spoken)
++- Each script must open with a different emotional hook (a confession, a painful truth, a bold claim, a question that cuts deep, a shared secret)
++- Warm, direct, British cadence — never American-corporate
++- End with either a quiet insight, a lingering question, or a gentle challenge to the viewer
++- No hashtags, no emojis, no stage directions, no filler phrases like "Hey guys" or "So today"
++- Each of the 5 must feel like a completely different moment — different emotion, different angle, different energy
++- The viewer should feel like {persona_name} is speaking directly to them, not performing for them
++
++Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels. Example format:
+ ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""}],
+-        max_tokens=600, temperature=0.85
++        max_tokens=800, temperature=0.92
+     )
+     raw = response.choices[0].message.content.strip()
+     try:
+@@ -354,20 +357,32 @@ async def generate_portrait(
+                     print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
+                     try:
+                         import concurrent.futures as _cf
+-                        _ex = _cf.ThreadPoolExecutor(max_workers=1)
+-                        _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
+-                            "prompt": prompt,
+-                            "image_url": ref_url,
+-                            "scale": 0.8,
+-                            "guidance_scale": 3.5,
+-                            "num_inference_steps": 28,
+-                            "image_size": "portrait_4_3",
+-                            "num_images": 1
+-                        })
+-                        _ex.shutdown(wait=False)
+-                        result = _fut.result(timeout=45)
+-                        img_url = result["images"][0]["url"]
+-                        _method = "instant-character"
++                        # Try instant-character up to 2 times with 90s timeout each
++                        ic_success = False
++                        for _attempt in range(2):
++                            try:
++                                _ex = _cf.ThreadPoolExecutor(max_workers=1)
++                                _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
++                                    "prompt": prompt,
++                                    "image_url": ref_url,
++                                    "scale": 0.85,
++                                    "guidance_scale": 3.5,
++                                    "num_inference_steps": 28,
++                                    "image_size": "portrait_4_3",
++                                    "num_images": 1
++                                })
++                                _ex.shutdown(wait=False)
++                                result = _fut.result(timeout=90)
++                                img_url = result["images"][0]["url"]
++                                _method = "instant-character"
++                                ic_success = True
++                                break
++                            except Exception as _ic_err:
++                                print(f"[{jid}] instant-character attempt {_attempt+1} failed: {_ic_err}")
++                        if not ic_success:
++                            ic_err = Exception("instant-character failed after 2 attempts")
++                            raise ic_err
++                        img_url = img_url  # already set above
+                     except Exception as ic_err:
+                         print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
+                         result = _fal.subscribe("fal-ai/flux/dev", arguments={
+@@ -561,16 +576,20 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None):
+         # flashtalk outputs 768x448 landscape — scale up and pad to 9:16
+         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
+         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
++        # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
++        # scale to height 1280 then center-crop to 720 wide.
+         ret = subprocess.run([
+             "ffmpeg", "-i", raw_path,
+             "-vf", (
+-                "scale=448:448:force_original_aspect_ratio=decrease,"
+-                "pad=448:768:(ow-iw)/2:(oh-ih)/2:black,"
+-                "noise=alls=15:allf=t+u,"
+-                "unsharp=5:5:1.8:5:5:0.0,"
+-                "eq=contrast=1.06:brightness=-0.02:saturation=0.92"
++                "scale=-2:1280,"
++                "crop=720:1280,"
++                "noise=alls=10:allf=t+u,"
++                "unsharp=5:5:1.5:5:5:0.0,"
++                "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
+             ),
+-            "-c:v", "libx264", "-crf", "17", "-c:a", "copy",
++            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
++            "-c:a", "aac", "-b:a", "128k",
++            "-movflags", "+faststart",
+             final_path, "-y"
+         ], capture_output=True)
+         print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
+diff --git a/static/index.html b/static/index.html
+index 4683bd7..7bf2044 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -744,6 +744,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
+               </div>
+             </div>
+             <button class="gen-btn" onclick="goStep(5)">Next — Generate →</button>
++            <button class="btn ghost" style="width:100%;margin-top:6px;font-size:12px;color:var(--dim);" onclick="S.sceneFile=null;S.sceneUrl=null;goStep(5)">Skip scene — generate with portrait only →</button>
+           </div>
+ 
+           <!-- Step 5 -->
+@@ -2554,8 +2555,8 @@ async function useQuickPortraitForVideo(){
+   } catch(e){ console.warn('portrait blob fetch failed', e); }
+   showPanel('create', null);
+   goStep(2);
+-  // pre-populate portrait grid so it's ready when user reaches step 4
+-  const grid = document.getElementById('portraitGrid');
++  // pre-populate STANDARD portrait grid (targeting the visible one, not the hidden LoRA manual-mode duplicate)
++  const grid = document.querySelector('#portraitStandardMode .p-grid') || document.getElementById('portraitGrid');
+   if(grid){
+     const slot = document.createElement('div');
+     slot.className='p-slot done selected';
+-- 
+2.43.0
+
+
+From 70e19a6a745fb03dc437dd805d4761b2f08b8498 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 11:09:08 +0100
+Subject: [PATCH 2/4] fix: remove ThreadPoolExecutor timeout wrapper on
+ instant-character
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Both 90s attempts were hitting concurrent.futures.TimeoutError (empty
+error string). Portrait generation runs in a daemon thread already so
+there is no Railway HTTP timeout risk — fal.subscribe can block as long
+as the model needs. Stripped the executor wrapper entirely and call
+fal.subscribe directly. Added repr() to error log so silent exceptions
+(TimeoutError, etc.) print their type.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py | 43 +++++++++++++++----------------------------
+ 1 file changed, 15 insertions(+), 28 deletions(-)
+
+diff --git a/main.py b/main.py
+index 13d3164..a214e8f 100644
+--- a/main.py
++++ b/main.py
+@@ -355,36 +355,23 @@ async def generate_portrait(
+ 
+                 if ref_url:
+                     print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
++                    # We are already in a background daemon thread — no Railway timeout risk.
++                    # Call fal.subscribe directly; no artificial timeout wrapper needed.
+                     try:
+-                        import concurrent.futures as _cf
+-                        # Try instant-character up to 2 times with 90s timeout each
+-                        ic_success = False
+-                        for _attempt in range(2):
+-                            try:
+-                                _ex = _cf.ThreadPoolExecutor(max_workers=1)
+-                                _fut = _ex.submit(_fal.subscribe, "fal-ai/instant-character", arguments={
+-                                    "prompt": prompt,
+-                                    "image_url": ref_url,
+-                                    "scale": 0.85,
+-                                    "guidance_scale": 3.5,
+-                                    "num_inference_steps": 28,
+-                                    "image_size": "portrait_4_3",
+-                                    "num_images": 1
+-                                })
+-                                _ex.shutdown(wait=False)
+-                                result = _fut.result(timeout=90)
+-                                img_url = result["images"][0]["url"]
+-                                _method = "instant-character"
+-                                ic_success = True
+-                                break
+-                            except Exception as _ic_err:
+-                                print(f"[{jid}] instant-character attempt {_attempt+1} failed: {_ic_err}")
+-                        if not ic_success:
+-                            ic_err = Exception("instant-character failed after 2 attempts")
+-                            raise ic_err
+-                        img_url = img_url  # already set above
++                        result = _fal.subscribe("fal-ai/instant-character", arguments={
++                            "prompt": prompt,
++                            "image_url": ref_url,
++                            "scale": 0.85,
++                            "guidance_scale": 3.5,
++                            "num_inference_steps": 28,
++                            "image_size": "portrait_4_3",
++                            "num_images": 1
++                        })
++                        img_url = result["images"][0]["url"]
++                        _method = "instant-character"
++                        print(f"[{jid}] instant-character {i} done: {img_url[:60]}")
+                     except Exception as ic_err:
+-                        print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
++                        print(f"[{jid}] instant-character failed ({ic_err!r}), falling back to FLUX Dev")
+                         result = _fal.subscribe("fal-ai/flux/dev", arguments={
+                             "prompt": prompt,
+                             "image_size": "portrait_4_3",
+-- 
+2.43.0
+
+
+From 455bae693f0ec1c820597eeac730af0f87705c85 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 11:11:06 +0100
+Subject: [PATCH 3/4] fix: switch face-lock from instant-character to
+ fal-ai/pulid
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+instant-character was stalling for 5+ minutes before timing out.
+PuLID (fal-ai/pulid) is the proven face-consistency model — faster,
+stable, designed exactly for locked-identity portrait generation.
+
+Params: face_image_url (not image_url), style_strength=20 (face fidelity
+priority), num_inference_steps=20. Result shape handled for both images[]
+and image{} response formats.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py | 30 +++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/main.py b/main.py
+index a214e8f..7778d42 100644
+--- a/main.py
++++ b/main.py
+@@ -354,24 +354,24 @@ async def generate_portrait(
+                 })
+ 
+                 if ref_url:
+-                    print(f"[{jid}] instant-character {i} master: {ref_url[:60]}...")
+-                    # We are already in a background daemon thread — no Railway timeout risk.
+-                    # Call fal.subscribe directly; no artificial timeout wrapper needed.
++                    print(f"[{jid}] PuLID {i} master: {ref_url[:60]}...")
++                    # fal-ai/pulid is the proven face-lock model (instant-character stalls)
+                     try:
+-                        result = _fal.subscribe("fal-ai/instant-character", arguments={
++                        result = _fal.subscribe("fal-ai/pulid", arguments={
+                             "prompt": prompt,
+-                            "image_url": ref_url,
+-                            "scale": 0.85,
+-                            "guidance_scale": 3.5,
+-                            "num_inference_steps": 28,
+-                            "image_size": "portrait_4_3",
+-                            "num_images": 1
++                            "face_image_url": ref_url,
++                            "num_inference_steps": 20,
++                            "style_strength": 20,
++                            "num_images": 1,
+                         })
+-                        img_url = result["images"][0]["url"]
+-                        _method = "instant-character"
+-                        print(f"[{jid}] instant-character {i} done: {img_url[:60]}")
+-                    except Exception as ic_err:
+-                        print(f"[{jid}] instant-character failed ({ic_err!r}), falling back to FLUX Dev")
++                        imgs = result.get("images") or result.get("image") or []
++                        if isinstance(imgs, dict):
++                            imgs = [imgs]
++                        img_url = imgs[0]["url"]
++                        _method = "pulid"
++                        print(f"[{jid}] PuLID {i} done: {img_url[:60]}")
++                    except Exception as pulid_err:
++                        print(f"[{jid}] PuLID failed ({pulid_err!r}), falling back to FLUX Dev")
+                         result = _fal.subscribe("fal-ai/flux/dev", arguments={
+                             "prompt": prompt,
+                             "image_size": "portrait_4_3",
+-- 
+2.43.0
+
+
+From 15fa05e44a0959346ccb1784496cbe33fdd44d89 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 7 Oct 2026 11:56:31 +0100
+Subject: [PATCH 4/4] fix: persist locked portraits to disk, restore on restart
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+main.py:
+- PORTRAITS_FILE = /app/master_portraits.json — loaded on startup
+- load_master_portraits() / save_master_portraits() helpers
+- set_master_portrait now calls save_master_portraits() immediately
+- GET /locked-personas — list all locked personas with fal URLs
+- DELETE /locked-personas/{persona_id} — remove a lock
+
+static/index.html:
+- On init: fetch /locked-personas and restore masterPortraitUrl to
+  matching personas (backend is source of truth, survives restarts)
+- renderPortraitStep: show locked UI when masterPortraitUrl set,
+  not only when loraUrl set. Shows reference photo in comparison panel
+- genPortraitWithLora: works with masterPortraitUrl fallback, not
+  only loraUrl. Sends master_url + persona_id to portrait endpoint
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ms6XhBCwEJ8HKRuTQiTHFS
+---
+ main.py           | 48 +++++++++++++++++++++++++++++++++++++++++++----
+ static/index.html | 38 ++++++++++++++++++++++++++++++-------
+ 2 files changed, 75 insertions(+), 11 deletions(-)
+
+diff --git a/main.py b/main.py
+index 7778d42..8fde6c8 100644
+--- a/main.py
++++ b/main.py
+@@ -270,9 +270,27 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
+         print(f"Face similarity error (skipping): {e}")
+         return -1.0
+ 
+-# In-memory master portrait store  {persona_id: fal_cdn_url}
+-# Using fal CDN URLs so they survive Railway container restarts
+-MASTER_PORTRAITS: dict = {}  # persona_id → {"local": path, "url": fal_url}
++# Persistent master portrait store — survives Railway restarts
++# Saved to /app/master_portraits.json; fal CDN URLs are permanent
++PORTRAITS_FILE = Path("/app/master_portraits.json")
++
++def load_master_portraits() -> dict:
++    try:
++        if PORTRAITS_FILE.exists():
++            data = json.loads(PORTRAITS_FILE.read_text())
++            print(f"Loaded {len(data)} locked portraits from disk: {list(data.keys())}")
++            return data
++    except Exception as e:
++        print(f"Warning: could not load master portraits: {e}")
++    return {}
++
++def save_master_portraits(portraits: dict):
++    try:
++        PORTRAITS_FILE.write_text(json.dumps(portraits, indent=2))
++    except Exception as e:
++        print(f"Warning: could not save master portraits: {e}")
++
++MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id → {"local": path, "url": fal_url}
+ 
+ @app.post("/set-master-portrait")
+ async def set_master_portrait(
+@@ -289,7 +307,8 @@ async def set_master_portrait(
+     # Upload to fal CDN for persistence
+     fal_url = fal_client.upload_file(str(master_path))
+     MASTER_PORTRAITS[persona_id] = {"local": str(master_path), "url": fal_url}
+-    print(f"Master portrait set for {persona_id}: {fal_url}")
++    save_master_portraits(MASTER_PORTRAITS)
++    print(f"[LOCKED] Master portrait saved for '{persona_id}': {fal_url}")
+     return {"status": "ok", "persona_id": persona_id, "fal_url": fal_url}
+ 
+ @app.post("/get-master-portrait")
+@@ -300,6 +319,27 @@ async def get_master_portrait(persona_id: str = Form(...)):
+         return JSONResponse({"error": "No master portrait set for this persona"}, status_code=404)
+     return {"persona_id": persona_id, "fal_url": entry["url"], "has_master": True}
+ 
++@app.get("/locked-personas")
++async def list_locked_personas():
++    """Return all personas that have a locked master portrait."""
++    return {
++        "locked": [
++            {"persona_id": pid, "fal_url": entry["url"]}
++            for pid, entry in MASTER_PORTRAITS.items()
++        ],
++        "count": len(MASTER_PORTRAITS)
++    }
++
++@app.delete("/locked-personas/{persona_id}")
++async def delete_locked_persona(persona_id: str):
++    """Remove identity lock for a persona."""
++    if persona_id not in MASTER_PORTRAITS:
++        return JSONResponse({"error": "Not found"}, status_code=404)
++    del MASTER_PORTRAITS[persona_id]
++    save_master_portraits(MASTER_PORTRAITS)
++    print(f"[UNLOCKED] Removed identity lock for '{persona_id}'")
++    return {"status": "ok", "persona_id": persona_id}
++
+ @app.post("/generate-portrait")
+ async def generate_portrait(
+     persona_name: str = Form(...),
+diff --git a/static/index.html b/static/index.html
+index 7bf2044..767f680 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -2294,12 +2294,14 @@ function selectOutfit(el,outfit,idx){
+ 
+ function renderPortraitStep(){
+   const p=S.persona;
+-  const hasLora=!!(p?.loraUrl);
++  // Locked if persona has a LoRA model OR a saved master portrait URL
++  const hasLock=!!(p?.loraUrl || p?.masterPortraitUrl);
++  const refUrl = p?.loraUrl ? (p.portrait||'') : (p?.masterPortraitUrl||'');
+   const loraMode=document.getElementById('portraitLoraMode');
+   const stdMode=document.getElementById('portraitStandardMode');
+   if(!loraMode||!stdMode) return;
+ 
+-  if(hasLora){
++  if(hasLock){
+     // Show locked identity mode
+     loraMode.style.display='block';
+     stdMode.style.display='none';
+@@ -2308,11 +2310,12 @@ function renderPortraitStep(){
+     const refCompare=document.getElementById('portraitLoraRefCompare');
+     const nameEl=document.getElementById('portraitLoraName');
+     const btnName=document.getElementById('loraGenBtnName');
+-    if(refImg) refImg.src=p.portrait||'';
+-    if(refCompare) refCompare.src=p.portrait||'';
++    if(refImg) refImg.src=refUrl;
++    if(refCompare) refCompare.src=refUrl;
+     if(nameEl) nameEl.textContent=p.name;
+     if(btnName) btnName.textContent=p.name;
+-    document.getElementById('portraitBadge').textContent='🔒 '+p.name+' identity locked';
++    const lockType = p?.loraUrl ? '🔒 LoRA trained' : '🔒 Face locked';
++    document.getElementById('portraitBadge').textContent=lockType+' — '+p.name;
+     document.getElementById('portraitLoraResult').style.display='none';
+     // Populate outfit suggestions
+     populateOutfitSuggestions(p);
+@@ -2329,7 +2332,7 @@ function renderPortraitStep(){
+ 
+ async function genPortraitWithLora(){
+   const p=S.persona;
+-  if(!p?.loraUrl) return toast('No identity lock found — set up LoRA first','err');
++  if(!p?.loraUrl && !p?.masterPortraitUrl) return toast('No identity lock found — lock a master portrait first','err');
+ 
+   const outfit=document.getElementById('loraOutfitInp').value.trim();
+   const styling=document.getElementById('loraStylingInp').value.trim();
+@@ -2348,7 +2351,9 @@ async function genPortraitWithLora(){
+     fd.append('persona_age', p.age||'40');
+     fd.append('appearance', p.appearance||'');
+     fd.append('outfit', outfit+(styling?', '+styling:''));
+-    fd.append('lora_url', p.loraUrl);
++    fd.append('lora_url', p.loraUrl||'');
++    fd.append('master_url', p.masterPortraitUrl||'');
++    fd.append('persona_id', p.name);
+     fd.append('trigger_word', p.triggerWord||'');
+     fd.append('count','1');
+     const d=await generatePortraitAndPoll(fd);
+@@ -3285,6 +3290,25 @@ updateDashboard();
+ updateDocCounts();
+ setDocTab('skills');
+ 
++// ── Restore locked portraits from backend (survives Railway restarts) ──────
++(async function restoreLockedPortraits(){
++  try {
++    const r = await fetch(API()+'/locked-personas');
++    if(!r.ok) return;
++    const {locked} = await r.json();
++    let changed = false;
++    locked.forEach(({persona_id, fal_url})=>{
++      const p = S.personas.find(x => x.name === persona_id || x.name.toLowerCase() === persona_id.toLowerCase());
++      if(p && p.masterPortraitUrl !== fal_url){
++        p.masterPortraitUrl = fal_url;
++        changed = true;
++        console.log('Restored identity lock for', persona_id);
++      }
++    });
++    if(changed){ saveAll(); renderSidePersonas(); renderCreatePersonas(); }
++  } catch(e){ console.warn('Could not restore locked portraits:', e); }
++})();
++
+ // ── Portrait job polling helper ──────────────────────────────────────────────
+ // POSTs to /generate-portrait, gets job_id, polls /portrait-status/{jid}
+ // every 3 s until complete. Returns the completed job object (has .images[]).
+-- 
+2.43.0
+
