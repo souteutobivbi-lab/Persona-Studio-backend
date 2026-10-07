@@ -341,28 +341,32 @@ async def generate_portrait(
     images = []
     identity_scores = []
 
-    try:
+    loop = asyncio.get_event_loop()
+
+    def _run_fal_generation():
+        """Blocking fal calls — run in thread pool so FastAPI doesn't time out."""
+        _imgs = []
+        _scores = []
+        _method = "flux"
+
         for i in range(min(count, 4)):
             img_path = OUTPUT_DIR / f"{jid}_portrait_{i}.png"
 
             if ref_url:
                 # ── instant-character: face-locked scene portrait ──
-                # fal.ai's own recommended model for consistent character generation.
-                # Takes a single reference face URL + prompt, follows scene descriptions.
-                # Falls back to FLUX Dev if the model errors (bad params, unavailable).
                 print(f"[{jid}] instant-character generation {i} with master: {ref_url[:60]}...")
                 try:
                     result = fal_client.subscribe("fal-ai/instant-character", arguments={
                         "prompt": prompt,
                         "image_url": ref_url,
-                        "scale": 0.8,               # face identity strength (0–2)
+                        "scale": 0.8,
                         "guidance_scale": 3.5,
                         "num_inference_steps": 28,
                         "image_size": "portrait_4_3",
                         "num_images": 1
                     })
                     img_url = result["images"][0]["url"]
-                    method = "instant-character"
+                    _method = "instant-character"
                 except Exception as ic_err:
                     print(f"[{jid}] instant-character failed ({ic_err}), falling back to FLUX Dev")
                     result = fal_client.subscribe("fal-ai/flux/dev", arguments={
@@ -374,7 +378,7 @@ async def generate_portrait(
                         "enable_safety_checker": False
                     })
                     img_url = result["images"][0]["url"]
-                    method = "flux-fallback"
+                    _method = "flux-fallback"
             else:
                 # ── FLUX Dev: no master yet, generate baseline seated portrait ──
                 print(f"[{jid}] FLUX Dev generation {i} (no master portrait set)")
@@ -387,21 +391,25 @@ async def generate_portrait(
                     "enable_safety_checker": False
                 })
                 img_url = result["images"][0]["url"]
-                method = "flux"
+                _method = "flux"
 
-            async with httpx.AsyncClient(timeout=30) as client:
-                r = await client.get(img_url)
+            import requests as _req
+            r = _req.get(img_url, timeout=60)
             img_path.write_bytes(r.content)
 
-            # Quality check only — no retry, no extra cost
             score = -1.0
             if ref_url:
                 master_local = MASTER_PORTRAITS.get(persona_id, {}).get("local")
                 if master_local and Path(master_local).exists():
                     score = get_face_similarity(str(img_path), master_local)
 
-            images.append(f"/portrait/{jid}/{i}")
-            identity_scores.append(round(score, 3) if score >= 0 else None)
+            _imgs.append(f"/portrait/{jid}/{i}")
+            _scores.append(round(score, 3) if score >= 0 else None)
+
+        return _imgs, _scores, _method
+
+    try:
+        images, identity_scores, method = await loop.run_in_executor(None, _run_fal_generation)
 
         return {
             "job_id": jid,
@@ -409,7 +417,7 @@ async def generate_portrait(
             "images": images,
             "prompt_ids": images,
             "identity_scores": identity_scores,
-            "method": "pulid" if ref_url else "flux",
+            "method": method,
             "master_used": bool(ref_url)
         }
     except Exception as e:
