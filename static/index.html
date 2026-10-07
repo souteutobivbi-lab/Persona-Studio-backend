@@ -2545,7 +2545,7 @@ async function useQuickPortraitForVideo(){
   if(!window._qpLastImg) return;
   const {url, personaName} = window._qpLastImg;
   const p = S.personas.find(x=>x.name===personaName);
-  if(p) selectPersona(p);
+  if(p) { S.persona = p; }
   S.portraitUrl = url;
   S.portraitPath = window._qpLastImg.path;
   try {
