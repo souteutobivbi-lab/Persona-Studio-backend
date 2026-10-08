@@ -974,6 +974,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
 
+          <!-- Persona selector for LoRA -->
+          <div class="g2" style="margin-bottom:12px;">
+            <div class="field">
+              <div class="lbl">Persona</div>
+              <select class="inp" id="loraPersonaSelect" onchange="loraPersonaChanged()">
+                <option value="">— select persona —</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Pathway selector -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="loraPathwaySelector">
             <div id="pathwayA-btn" onclick="selectLoraPathway('A')" style="cursor:pointer;padding:12px 10px;border-radius:10px;border:2px solid var(--purple);background:var(--p3);text-align:center;">
@@ -1640,7 +1650,7 @@ function showPanel(id,navEl){
   if(id==='create'){loadVoices();renderCreatePersonas();}
   if(id==='history')renderHistory();
   if(id==='docs')renderDocs();
-  if(id==='portraits'){initPortraitsPanel();showIdStage(1);populateQpPersonaSelect();}
+  if(id==='portraits'){initPortraitsPanel();showIdStage(1);populateQpPersonaSelect();populateLoraPersonaSelect();}
 }
 
 function populateQpPersonaSelect(){
@@ -1660,6 +1670,40 @@ function populateQpPersonaSelect(){
     sel.value = S.persona.name;
     qpPersonaChanged();
   }
+}
+
+function populateLoraPersonaSelect(){
+  const sel = document.getElementById('loraPersonaSelect');
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— select persona —</option>';
+  S.personas.forEach(p=>{
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name + (p.loraUrl ? ' 🔒 LoRA trained' : p.masterPortraitUrl ? ' 🖼 master set' : '');
+    sel.appendChild(opt);
+  });
+  if(current) sel.value = current;
+  if(!sel.value && S.persona){
+    sel.value = S.persona.name;
+    loraPersonaChanged();
+  }
+}
+
+function loraPersonaChanged(){
+  const sel = document.getElementById('loraPersonaSelect');
+  const pid = sel.value;
+  if(!pid) return;
+  const p = S.personas.find(x => x.name === pid);
+  if(!p) return;
+  // Set ID.personaName so all downstream LoRA functions know which persona
+  ID.personaName = p.name;
+  // Auto-fill trigger word fields with persona name slug
+  const slug = p.name.toLowerCase().replace(/\s+/g,'_') + '_v1';
+  const tw1 = document.getElementById('loraTriggerWord');
+  const tw2 = document.getElementById('bLoraTriggerWord');
+  if(tw1 && !tw1.value) tw1.value = p.loraUrl ? (p.loraTriggerWord||slug) : slug;
+  if(tw2 && !tw2.value) tw2.value = p.loraUrl ? (p.loraTriggerWord||slug) : slug;
 }
 
 // ── PERSONA SIDEBAR ────────────────────────────────────
@@ -2761,6 +2805,7 @@ async function lockQuickPortraitAsMaster(){
     const lb = document.getElementById('qpLockBtn');
     lb.textContent = '✅ Master portrait updated — click to replace';
     populateQpPersonaSelect(); // refresh dropdown lock indicators
+    populateLoraPersonaSelect();
     qpPersonaChanged(); // refresh status banner
     toast('🔒 Master portrait locked — all future portraits will use this face');
   } catch(e){
@@ -2914,8 +2959,11 @@ async function trainLoraFromFrames(){
   if(!triggerWord) return toast('Enter a trigger word first','err');
   if(_uploadedFrames.length < 5) return toast('Upload at least 5 images','err');
 
-  const p = (S.persona?.name ? S.personas?.find(x=>x.name===S.persona.name) : null) || S.persona;
-  if(!p) return toast('Select a persona first','err');
+  const loraPid = document.getElementById('loraPersonaSelect')?.value;
+  const p = (loraPid ? S.personas?.find(x=>x.name===loraPid) : null)
+         || (S.persona?.name ? S.personas?.find(x=>x.name===S.persona.name) : null)
+         || S.persona;
+  if(!p) return toast('Select a persona in the dropdown above first','err');
 
   document.getElementById('bLoraTrainingStatus').style.display='block';
   document.getElementById('bLoraStatusText').textContent='Uploading images…';
@@ -3307,8 +3355,10 @@ async function testLoraGeneration(){
 // Stage 5 — Lock to persona
 function lockIdentityToPersona(){
   if(!ID.loraUrl) return toast('Train LoRA first','err');
-  const pp=S.personas.find(p=>p.name===ID.personaName);
-  if(!pp) return toast('Persona not found','err');
+  const loraPid = document.getElementById('loraPersonaSelect')?.value;
+  const nameToFind = ID.personaName || loraPid;
+  const pp=S.personas.find(p=>p.name===nameToFind);
+  if(!pp) return toast('Select a persona in the dropdown above first','err');
   pp.loraUrl=ID.loraUrl;
   pp.triggerWord=ID.triggerWord;
   pp.portrait=ID.masterUrl;
