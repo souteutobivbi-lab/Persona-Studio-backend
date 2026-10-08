@@ -826,18 +826,18 @@ async def swap_outfit(
             set_job(jid, {"status": "running", "progress": 20, "stage": "generating"})
 
             img2img_prompt = (
-                f"person wearing {outfit_prompt}, "
-                f"photorealistic portrait, same face, same background, same pose, "
-                f"same lighting, same hair, upper body shot, high quality"
+                f"wearing {outfit_prompt}, "
+                f"photorealistic portrait, identical face, identical hair, "
+                f"same background, same pose, same lighting, upper body shot, high quality"
             )
             print(f"[{jid}] FLUX img2img swap: {img2img_prompt[:80]}...")
 
             result = _fal.subscribe("fal-ai/flux/dev/image-to-image", arguments={
                 "image_url": fresh_url,
                 "prompt": img2img_prompt,
-                "strength": 0.55,
+                "strength": 0.75,
                 "num_inference_steps": 28,
-                "guidance_scale": 3.5,
+                "guidance_scale": 4.5,
                 "num_images": 1,
                 "enable_safety_checker": False,
             })
