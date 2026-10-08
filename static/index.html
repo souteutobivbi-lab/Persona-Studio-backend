@@ -2684,6 +2684,8 @@ async function lockQuickPortraitAsMaster(){
     // Set as the persona's avatar if none exists
     if(!p.portrait) p.portrait = d.fal_url;
     saveAll();
+    // Keep S.persona in sync with the array item so swapOutfitOnly etc. see masterPortraitUrl
+    if(S.persona?.name === p.name) S.persona = p;
     const lb = document.getElementById('qpLockBtn');
     lb.textContent = '✅ Master portrait updated — click to replace';
     populateQpPersonaSelect(); // refresh dropdown lock indicators
@@ -2714,6 +2716,8 @@ async function uploadPhotoAsMaster(input){
     if(!p.savedPortraits.includes(d.fal_url)) p.savedPortraits.unshift(d.fal_url);
     if(!p.portrait) p.portrait = d.fal_url;
     saveAll();
+    // Keep S.persona in sync with the array item so swapOutfitOnly etc. see masterPortraitUrl
+    if(S.persona?.name === p.name) S.persona = p;
     populateQpPersonaSelect();
     qpPersonaChanged();
     // show preview
@@ -3306,13 +3310,19 @@ async function skipOutfitToVideo(){
 async function swapOutfitOnly(){
   const outfit = (document.getElementById('loraOutfitInp')?.value || '').trim();
   const styling = (document.getElementById('loraStylingInp')?.value || '').trim();
-  // Resolve active persona: S.persona (portrait step) takes priority when it has a master portrait.
-  // Fall back to QP dropdown selection if S.persona is missing or has no locked portrait.
-  let activePerObj = (S.persona?.masterPortraitUrl) ? S.persona : null;
-  if(!activePerObj){
+  // Always resolve persona fresh from S.personas[] — S.persona may be a stale deserialized
+  // copy from localStorage that was set before masterPortraitUrl was saved on the array item.
+  const freshFromArray = S.persona?.name
+    ? S.personas?.find(x => x.name === S.persona.name)
+    : null;
+  let activePerObj = freshFromArray || S.persona || null;
+  // If the resolved persona still has no masterPortraitUrl, try the QP dropdown
+  if(!activePerObj?.masterPortraitUrl){
     const qpPid = document.getElementById('qpPersonaSelect')?.value;
-    if(qpPid) activePerObj = S.personas?.find(x=>x.name===qpPid);
-    if(!activePerObj) activePerObj = S.persona; // last resort
+    if(qpPid){
+      const qpFresh = S.personas?.find(x => x.name === qpPid);
+      if(qpFresh?.masterPortraitUrl) activePerObj = qpFresh;
+    }
   }
   const pid = activePerObj?.id || activePerObj?.name;
   if(!pid){ toast('No persona selected','err'); return; }
