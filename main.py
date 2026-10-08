@@ -834,8 +834,8 @@ async def swap_outfit(
             result = _fal.subscribe("fal-ai/pulid", arguments={
                 "reference_images": [{"image_url": fresh_url}],
                 "prompt": pulid_prompt,
-                "num_inference_steps": 20,
-                "guidance_scale": 4.0,
+                "num_inference_steps": 12,
+                "guidance_scale": 1.5,
                 "num_images": 1,
                 "image_size": {"width": 512, "height": 768},
                 "enable_safety_checker": False,
