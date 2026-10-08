@@ -826,10 +826,13 @@ async def swap_outfit(
             seg_arr = np.array(seg_rgba)
             person_alpha = seg_arr[:, :, 3]  # 0=background, 255=person
 
-            # Clothing mask: person pixels below the top 32% of image height
+            # Clothing mask: person pixels below the top 42% of image height
+            # Also zero out bottom 10% to protect hands/lap area
             clothing_mask = person_alpha.copy()
-            cut = int(h * 0.42)
-            clothing_mask[:cut, :] = 0  # zero out head/face area
+            cut_top = int(h * 0.42)
+            cut_bot = int(h * 0.90)
+            clothing_mask[:cut_top, :] = 0   # zero out head/face/neck
+            clothing_mask[cut_bot:, :] = 0   # zero out hands/lap at bottom
 
             # Slight dilation so no clothing edge is missed
             from PIL import ImageFilter
@@ -847,8 +850,8 @@ async def swap_outfit(
             # ── 4. SDXL inpainting — only masked clothing pixels change ───
             set_job(jid, {"status": "running", "progress": 35, "stage": "inpainting"})
             inpaint_prompt = (
-                f"woman wearing {outfit_prompt}, "
-                f"same body size, same pose, same proportions, same skin tone, "
+                f"{outfit_prompt}, "
+                f"same slim body size, same pose, same proportions, same skin tone, "
                 f"photorealistic, sharp focus, studio lighting, high quality"
             )
             print(f"[{jid}] Inpainting: {inpaint_prompt[:80]}...")
@@ -859,7 +862,7 @@ async def swap_outfit(
                 "prompt":     inpaint_prompt,
                 "num_inference_steps": 28,
                 "guidance_scale": 3.5,
-                "strength":   0.80,
+                "strength":   0.90,
                 "num_images": 1,
                 "enable_safety_checker": False,
             })
