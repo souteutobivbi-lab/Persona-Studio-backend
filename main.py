@@ -799,99 +799,87 @@ async def swap_outfit(
             import fal_client as _fal
             import requests as _req
             import tempfile, pathlib
-            import numpy as np
-            from PIL import Image
-            from rembg import remove
 
-            # ── 1. Download master portrait ────────────────────────────────
-            set_job(jid, {"status": "running", "progress": 5, "stage": "downloading"})
-            print(f"[{jid}] Fetching master portrait from {master_url[:60]}...")
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
+
+            # ── Step 1: Download master portrait & upload to fal.ai ───────
+            # CDN URLs expire, so always re-upload for a fresh URL
+            set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
+            print(f"[{jid}] Fetching master portrait...")
             tmp_portrait = tmp_dir / "portrait.png"
             img_resp = _req.get(master_url, timeout=30)
             img_resp.raise_for_status()
             tmp_portrait.write_bytes(img_resp.content)
+            portrait_fal_url = _fal.upload_file(str(tmp_portrait))
+            print(f"[{jid}] Portrait uploaded → {portrait_fal_url[:60]}")
 
-            # ── 2. Build clothing mask with rembg ──────────────────────────
-            # rembg returns RGBA where alpha channel = person segmentation
-            # We then zero-out the top 32% (face/neck/head) so only the
-            # clothing body region is white (= inpaint zone).
-            set_job(jid, {"status": "running", "progress": 15, "stage": "masking"})
-            print(f"[{jid}] Building clothing mask...")
-            orig_img = Image.open(tmp_portrait).convert("RGB")
-            w, h = orig_img.size
-
-            # Get person segmentation
-            seg_rgba = remove(orig_img)  # RGBA
-            seg_arr = np.array(seg_rgba)
-            person_alpha = seg_arr[:, :, 3]  # 0=background, 255=person
-
-            # Clothing mask: person pixels below the top 42% of image height
-            # Also zero out bottom 10% to protect hands/lap area
-            clothing_mask = person_alpha.copy()
-            cut_top = int(h * 0.42)
-            cut_bot = int(h * 0.90)
-            clothing_mask[:cut_top, :] = 0   # zero out head/face/neck
-            clothing_mask[cut_bot:, :] = 0   # zero out hands/lap at bottom
-
-            # Slight dilation so no clothing edge is missed
-            from PIL import ImageFilter
-            mask_img = Image.fromarray(clothing_mask, mode="L")
-            mask_img = mask_img.filter(ImageFilter.MaxFilter(9))  # dilate 4px
-            tmp_mask = tmp_dir / "mask.png"
-            mask_img.save(tmp_mask)
-
-            # ── 3. Upload portrait + mask to fal.ai ───────────────────────
-            set_job(jid, {"status": "running", "progress": 25, "stage": "uploading"})
-            fresh_url  = _fal.upload_file(str(tmp_portrait))
-            mask_url_f = _fal.upload_file(str(tmp_mask))
-            print(f"[{jid}] Uploaded portrait={fresh_url[:50]} mask={mask_url_f[:50]}")
-
-            # ── 4. SDXL inpainting — only masked clothing pixels change ───
-            set_job(jid, {"status": "running", "progress": 35, "stage": "inpainting"})
-            inpaint_prompt = (
-                f"{outfit_prompt}, "
-                f"same slim body size, same pose, same proportions, same skin tone, "
-                f"photorealistic, sharp focus, studio lighting, high quality"
+            # ── Step 2: Generate flat-lay garment image from text prompt ──
+            # FASHN needs a real garment image, not a text prompt.
+            # We generate one with FLUX Dev using a flat-lay product photo style.
+            set_job(jid, {"status": "running", "progress": 20, "stage": "generating_garment"})
+            garment_gen_prompt = (
+                f"flat-lay product photo of {outfit_prompt}, "
+                f"isolated on pure white background, fashion editorial, "
+                f"professional clothing photography, no model, no person, "
+                f"centered, high detail, sharp focus"
             )
-            print(f"[{jid}] Inpainting: {inpaint_prompt[:80]}...")
-
-            result = _fal.subscribe("fal-ai/flux-general/inpainting", arguments={
-                "image_url":  fresh_url,
-                "mask_url":   mask_url_f,
-                "prompt":     inpaint_prompt,
+            print(f"[{jid}] Generating garment image: {garment_gen_prompt[:80]}...")
+            garment_result = _fal.subscribe("fal-ai/flux/dev", arguments={
+                "prompt": garment_gen_prompt,
                 "num_inference_steps": 28,
                 "guidance_scale": 3.5,
-                "strength":   0.90,
                 "num_images": 1,
+                "image_size": {"width": 768, "height": 1024},
                 "enable_safety_checker": False,
+            })
+            garment_imgs = garment_result.get("images") or []
+            if not garment_imgs:
+                raise ValueError(f"FLUX garment generation returned no images: {garment_result}")
+            garment_url = garment_imgs[0]["url"]
+            print(f"[{jid}] Garment image generated → {garment_url[:60]}")
+
+            # ── Step 3: FASHN v1.6 Virtual Try-On ─────────────────────────
+            # Takes the person photo + garment image and composites them.
+            # Preserves pose, body proportions and background.
+            set_job(jid, {"status": "running", "progress": 50, "stage": "tryon"})
+            print(f"[{jid}] Running FASHN v1.6 try-on...")
+            tryon_result = _fal.subscribe("fal-ai/fashn/tryon/v1.6", arguments={
+                "model_image":        portrait_fal_url,
+                "garment_image":      garment_url,
+                "category":           "auto",
+                "mode":               "quality",
+                "garment_photo_type": "flat-lay",
+                "segmentation_free":  True,
+                "num_samples":        1,
             })
             set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
 
-            imgs = result.get("images") or []
-            if not imgs:
-                raise ValueError(f"Inpainting returned no images: {result}")
+            tryon_imgs = tryon_result.get("images") or []
+            if not tryon_imgs:
+                raise ValueError(f"FASHN try-on returned no images: {tryon_result}")
+            out_url = tryon_imgs[0]["url"] if isinstance(tryon_imgs[0], dict) else tryon_imgs[0]
+            print(f"[{jid}] Try-on result → {str(out_url)[:60]}")
 
-            out_url = imgs[0]["url"]
-            print(f"[{jid}] Inpaint result: {out_url[:60]}")
-
-            # ── 5. Save output ─────────────────────────────────────────────
+            # ── Step 4: Save output ────────────────────────────────────────
             out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
             r = _req.get(out_url, timeout=60)
             out_path.write_bytes(r.content)
 
-            # Clean up temp files
-            for f in tmp_dir.iterdir(): f.unlink()
-            tmp_dir.rmdir()
+            # Clean up
+            for f in tmp_dir.iterdir():
+                try: f.unlink()
+                except: pass
+            try: tmp_dir.rmdir()
+            except: pass
 
             set_job(jid, {
                 "status": "complete",
                 "progress": 100,
                 "images": [f"/portrait/{jid}/0"],
-                "method": "outfit-swap-inpaint",
+                "method": "outfit-swap-fashn-tryon",
                 "outfit": outfit_prompt,
             })
-            print(f"[{jid}] Outfit swap complete")
+            print(f"[{jid}] Outfit swap complete via FASHN v1.6")
 
         except Exception as e:
             print(f"[{jid}] Outfit swap error: {e}")
