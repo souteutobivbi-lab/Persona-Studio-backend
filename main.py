@@ -800,12 +800,28 @@ async def swap_outfit(
             import requests as _req
             import base64
 
+            # ── Re-upload master portrait to fal.ai to get a fresh URL ────
+            # Stored URLs may have expired; always re-upload to guarantee freshness
+            set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
+            print(f"[{jid}] Fetching master portrait from {master_url[:60]}...")
+            try:
+                img_resp = _req.get(master_url, timeout=30)
+                img_resp.raise_for_status()
+                import io
+                img_bytes = io.BytesIO(img_resp.content)
+                img_bytes.name = "portrait.png"
+                fresh_url = _fal.upload(img_bytes, content_type="image/png")
+                print(f"[{jid}] Re-uploaded portrait → {fresh_url[:60]}")
+            except Exception as upload_err:
+                print(f"[{jid}] Re-upload failed, using original URL: {upload_err}")
+                fresh_url = master_url
+
             # ── Step 1: SAM2 — get clothing mask ──────────────────────────
-            print(f"[{jid}] SAM2 segmenting clothing on {master_url[:60]}...")
+            print(f"[{jid}] SAM2 segmenting clothing on {fresh_url[:60]}...")
             set_job(jid, {"status": "running", "progress": 15, "stage": "segmenting_clothing"})
 
             sam_result = _fal.subscribe("fal-ai/sam2", arguments={
-                "image_url": master_url,
+                "image_url": fresh_url,
                 "prompts": [{"type": "text", "text": "clothing, outfit, shirt, dress, top, jacket, clothes"}],
                 "output_format": "png",
             })
@@ -831,7 +847,7 @@ async def swap_outfit(
             print(f"[{jid}] FLUX inpainting: {inpaint_prompt[:80]}...")
 
             inpaint_result = _fal.subscribe("fal-ai/flux-lora/inpainting", arguments={
-                "image_url": master_url,
+                "image_url": fresh_url,
                 "mask_url": mask_url,
                 "prompt": inpaint_prompt,
                 "num_inference_steps": 28,
