@@ -819,53 +819,35 @@ async def swap_outfit(
                 try: tmp_portrait.unlink()
                 except: pass
 
-            # ── Step 1: SAM2 — get clothing mask ──────────────────────────
-            print(f"[{jid}] SAM2 segmenting clothing on {fresh_url[:60]}...")
-            set_job(jid, {"status": "running", "progress": 15, "stage": "segmenting_clothing"})
+            # ── Use PuLID to regenerate with new outfit (face-locked) ─────
+            # PuLID is already proven in this codebase — it locks the face identity
+            # and generates a fresh image with the new outfit description.
+            set_job(jid, {"status": "running", "progress": 20, "stage": "generating"})
 
-            sam_result = _fal.subscribe("fal-ai/sam2", arguments={
-                "image_url": fresh_url,
-                "prompts": [{"type": "text", "text": "clothing, outfit, shirt, dress, top, jacket, clothes"}],
-                "output_format": "png",
-            })
-
-            mask_url = None
-            if sam_result.get("masks"):
-                mask_url = sam_result["masks"][0].get("url") or sam_result["masks"][0].get("image", {}).get("url")
-            if not mask_url and sam_result.get("image"):
-                mask_url = sam_result["image"].get("url")
-
-            if not mask_url:
-                raise ValueError(f"SAM2 returned no mask: {sam_result}")
-
-            print(f"[{jid}] SAM2 mask: {mask_url[:60]}")
-            set_job(jid, {"status": "running", "progress": 40, "stage": "inpainting"})
-
-            # ── Step 2: FLUX inpainting — fill only the clothing region ───
-            inpaint_prompt = (
-                f"Professional portrait, {outfit_prompt}, "
-                f"photorealistic, sharp, studio lighting, "
-                f"same person same pose same background"
+            pulid_prompt = (
+                f"Professional portrait photo, {outfit_prompt}, "
+                f"photorealistic, sharp focus, studio lighting, "
+                f"same background, same pose, upper body shot"
             )
-            print(f"[{jid}] FLUX inpainting: {inpaint_prompt[:80]}...")
+            print(f"[{jid}] PuLID swap: {pulid_prompt[:80]}...")
 
-            inpaint_result = _fal.subscribe("fal-ai/flux-lora/inpainting", arguments={
-                "image_url": fresh_url,
-                "mask_url": mask_url,
-                "prompt": inpaint_prompt,
-                "num_inference_steps": 28,
-                "strength": 0.95,
-                "guidance_scale": 3.5,
+            result = _fal.subscribe("fal-ai/pulid", arguments={
+                "reference_images": [{"image_url": fresh_url}],
+                "prompt": pulid_prompt,
+                "num_inference_steps": 20,
+                "guidance_scale": 4.0,
                 "num_images": 1,
+                "image_size": {"width": 512, "height": 768},
                 "enable_safety_checker": False,
             })
+            set_job(jid, {"status": "running", "progress": 80, "stage": "saving"})
 
-            imgs = inpaint_result.get("images") or []
+            imgs = result.get("images") or []
             if not imgs:
-                raise ValueError(f"Inpainting returned no images: {inpaint_result}")
+                raise ValueError(f"PuLID returned no images: {result}")
 
             out_url = imgs[0]["url"]
-            print(f"[{jid}] Inpainted: {out_url[:60]}")
+            print(f"[{jid}] PuLID swap result: {out_url[:60]}")
 
             # ── Save locally ───────────────────────────────────────────────
             set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
@@ -877,7 +859,7 @@ async def swap_outfit(
                 "status": "complete",
                 "progress": 100,
                 "images": [f"/portrait/{jid}/0"],
-                "method": "outfit-swap-inpaint",
+                "method": "outfit-swap-pulid",
                 "outfit": outfit_prompt,
             })
             print(f"[{jid}] Outfit swap complete")
