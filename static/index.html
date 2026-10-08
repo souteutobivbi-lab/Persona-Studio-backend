@@ -2935,27 +2935,48 @@ async function trainLoraFromFrames(){
 
 async function pollLoraJob(jid, p, triggerWord, statusElId){
   const statusEl = document.getElementById(statusElId);
+  // Find the parent status box and its spinner (sibling of statusEl)
+  const statusBox = statusEl ? statusEl.closest('[style*="border-radius:9px"]') : null;
+  const spinner   = statusBox ? statusBox.querySelector('[style*="animation"]') : null;
+
   for(let attempt=0; attempt<120; attempt++){
     await new Promise(r=>setTimeout(r,15000));
     try{
       const r = await fetch(API()+'/lora-job/'+jid);
       const d = await r.json();
       if(d.status==='complete'){
-        // save to persona
-        p.loraUrl = d.lora_url;
+        // Save LoRA URL to persona
+        p.loraUrl     = d.lora_url;
         p.triggerWord = triggerWord;
+        // Also sync to S.personas array
+        const idx = S.personas ? S.personas.findIndex(x=>x.name===p.name) : -1;
+        if(idx>-1){ S.personas[idx].loraUrl=d.lora_url; S.personas[idx].triggerWord=triggerWord; }
         saveAll();
-        if(statusEl) statusEl.textContent='✓ LoRA trained successfully!';
+
+        // Stop spinner, turn box green
+        if(spinner) spinner.style.display='none';
+        if(statusBox){
+          statusBox.style.background='var(--g2)';
+          statusBox.style.border='1px solid rgba(34,197,94,.2)';
+        }
+        if(statusEl){ statusEl.style.color='var(--green)'; statusEl.textContent='✓ LoRA trained — identity locked!'; }
+
+        // Re-enable the train button
+        const btn = document.getElementById('trainLoraFromFramesBtn');
+        if(btn){ btn.disabled=false; btn.textContent='✦ Re-train LoRA'; }
+
         toast('LoRA ready — outfit swap will now use this identity 🎉','ok');
         return;
       }
       if(d.status==='error') throw new Error(d.error||'Training failed');
       if(statusEl) statusEl.textContent=`Training… ${d.progress||0}% (${d.stage||'working'})`;
     }catch(e){
-      if(statusEl) statusEl.textContent='Checking…';
+      if(statusEl) statusEl.textContent='Checking status…';
     }
   }
   if(statusEl) statusEl.textContent='Training is taking longer than expected — check Railway logs';
+  const btn = document.getElementById('trainLoraFromFramesBtn');
+  if(btn) btn.disabled=false;
 }
 
 // Pre-fill from active persona when portraits panel opens
@@ -3541,6 +3562,10 @@ async function swapOutfitOnly(evt){
     fd.append('outfit', outfitFull);
     // Always send master_url so server can recover it if redeployed (Railway ephemeral memory)
     if(activePerObj.masterPortraitUrl) fd.append('master_url_override', activePerObj.masterPortraitUrl);
+    // Pass LoRA details if the persona has a trained LoRA — enables higher quality generation
+    if(activePerObj.loraUrl){ fd.append('lora_url', activePerObj.loraUrl); }
+    if(activePerObj.triggerWord){ fd.append('trigger_word', activePerObj.triggerWord); }
+    if(activePerObj.appearance){ fd.append('appearance', activePerObj.appearance); }
     const r = await fetch(`${API()}/swap-outfit`, {method:'POST', body:fd});
     const data = await r.json();
     if(!r.ok || data.error){ throw new Error(data.error||'Swap failed'); }

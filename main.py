@@ -886,10 +886,14 @@ async def swap_outfit(
     outfit: str = Form(...),
     outfit_color: str = Form(""),
     master_url_override: str = Form(""),
+    lora_url: str = Form(""),
+    trigger_word: str = Form(""),
+    appearance: str = Form(""),
 ):
     """
-    Inpaint new clothing onto the locked master portrait.
-    Face, body shape, skin, hair and background are pixel-perfect unchanged.
+    Swap outfit on the locked master portrait.
+    If lora_url is provided: use FLUX Dev + LoRA (generates entire image — best quality).
+    Otherwise: FASHN virtual try-on + smart composite fallback.
     Returns {job_id, status:"running"} immediately.
     Poll /portrait-status/{jid} for completion.
     """
@@ -905,9 +909,10 @@ async def swap_outfit(
     if not entry and master_url:
         MASTER_PORTRAITS[persona_id] = {"local": "", "url": master_url}
     jid = str(uuid.uuid4())[:8]
-    set_job(jid, {"status": "running", "progress": 0, "stage": "segmenting"})
+    set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
 
     outfit_prompt = f"{outfit_color} {outfit}".strip() if outfit_color else outfit
+    use_lora = bool(lora_url.strip())
 
     def _run():
         try:
@@ -918,6 +923,61 @@ async def swap_outfit(
             import numpy as np
 
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
+
+            # ══════════════════════════════════════════════════════════════
+            # PATHWAY A — LoRA + FLUX Dev (best quality, full regeneration)
+            # Used when the persona has a trained LoRA URL.
+            # ══════════════════════════════════════════════════════════════
+            if use_lora:
+                set_job(jid, {"status": "running", "progress": 10, "stage": "lora_generating"})
+                tw = trigger_word.strip() or "person"
+                # Build appearance description (first sentence, no outfit mention)
+                base_appearance = appearance.split(',')[0].strip() if appearance else "woman"
+                # Strip any outfit/clothing mentions from appearance
+                portrait_prompt = (
+                    f"{tw}, {base_appearance}, "
+                    f"wearing {outfit_prompt}, "
+                    f"same pose and expression as reference, "
+                    f"professional portrait photography, soft studio lighting, "
+                    f"photorealistic, 8k, high detail"
+                )
+                print(f"[{jid}] LoRA pathway — prompt: {portrait_prompt[:120]}...")
+                gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
+                    "prompt": portrait_prompt,
+                    "loras": [{"path": lora_url.strip(), "scale": 1.0}],
+                    "num_inference_steps": 35,
+                    "guidance_scale": 3.5,
+                    "num_images": 1,
+                    "image_size": {"width": 768, "height": 1024},
+                    "enable_safety_checker": False,
+                    "output_format": "png",
+                })
+                gen_imgs = gen_result.get("images") or []
+                if not gen_imgs:
+                    raise ValueError(f"LoRA generation returned no images: {gen_result}")
+                out_url = gen_imgs[0]["url"] if isinstance(gen_imgs[0], dict) else gen_imgs[0]
+                print(f"[{jid}] LoRA result → {str(out_url)[:60]}")
+
+                set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
+                out_bytes = _req.get(out_url, timeout=60).content
+                out_img = Image.open(io.BytesIO(out_bytes)).convert("RGB")
+                out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
+                out_img.save(str(out_path), "PNG")
+                print(f"[{jid}] LoRA result saved → {out_path}")
+
+                set_job(jid, {
+                    "status": "complete",
+                    "progress": 100,
+                    "images": [f"/portrait/{jid}/0"],
+                    "method": "outfit-swap-lora",
+                    "outfit": outfit_prompt,
+                })
+                print(f"[{jid}] Outfit swap complete (LoRA pathway)")
+                return  # ← done, skip FASHN pathway below
+
+            # ══════════════════════════════════════════════════════════════
+            # PATHWAY B — FASHN virtual try-on + smart composite (fallback)
+            # ══════════════════════════════════════════════════════════════
 
             # ── Step 1: Download master portrait & upload to fal.ai ───────
             set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
