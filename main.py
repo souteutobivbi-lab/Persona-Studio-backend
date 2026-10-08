@@ -173,7 +173,7 @@ Topic: {topic}
 {script_examples}
 
 CRITICAL RULES — follow exactly:
-1. Each script MUST be 100-140 words. Count carefully. Do not submit anything under 90 words.
+1. Each script MUST be 60-65 words. Count carefully. Do not go over 65 or under 58.
 2. Follow the 5-part structure every time:
    - Opening line: first name introduction ("I'm {persona_name}..." or "My name is {persona_name}...")
    - The Claim: one clear, specific uncomfortable truth (15-25 words)
@@ -190,7 +190,7 @@ CRITICAL RULES — follow exactly:
 
 Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
 ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
-        max_tok = 2000
+        max_tok = 900
     else:
         # Generic shorter scripts for other personas
         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
@@ -232,8 +232,8 @@ Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no la
             scripts = [scripts]
     except:
         scripts = [raw]
-    # Filter out any scripts under 40 words (malformed outputs)
-    scripts = [s for s in scripts if len(s.split()) >= 40] or scripts
+    # Filter out any scripts under 50 words (malformed outputs)
+    scripts = [s for s in scripts if len(s.split()) >= 50] or scripts
     return {"scripts": scripts, "script": scripts[0] if scripts else "", "words": len(scripts[0].split()) if scripts else 0}
 
 @app.post("/generate-voice")
