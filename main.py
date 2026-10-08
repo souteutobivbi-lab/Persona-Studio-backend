@@ -209,7 +209,7 @@ Rules:
 
 Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
 ["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
-        max_tok = 1200
+        max_tok = 900  # qwen3.8-27b OTPM limit is 1000; keep under it
 
     response = client.chat.completions.create(
         model="qwen/qwen3.8-27b",
@@ -842,6 +842,26 @@ async def train_lora_from_frames(
 
             print(f"[{jid}] LoRA trained → {str(lora_url)[:60]}")
 
+            # ── Persist LoRA weights permanently on our server ────────────
+            # fal CDN URLs expire in ~24h. Download and store locally so
+            # the weights survive restarts (Railway volume) or at least the
+            # current deployment lifetime.
+            import requests as _req2
+            LORA_DIR = Path("/app/loras")
+            LORA_DIR.mkdir(parents=True, exist_ok=True)
+            safe_pid = "".join(c for c in persona_id if c.isalnum() or c in "-_")
+            lora_local = LORA_DIR / f"{safe_pid}.safetensors"
+            try:
+                dl = _req2.get(lora_url, headers={"Authorization": f"Key {FAL_KEY}"}, timeout=180)
+                dl.raise_for_status()
+                lora_local.write_bytes(dl.content)
+                print(f"[{jid}] LoRA saved locally → {lora_local} ({len(dl.content)//1024}KB)")
+                # Use a self-hosted URL so it never expires
+                lora_serve_url = f"/lora-file/{safe_pid}"
+            except Exception as e:
+                print(f"[{jid}] Warning: could not save LoRA locally ({e}), using fal URL")
+                lora_serve_url = lora_url
+
             # Clean up
             for f in img_dir.iterdir():
                 try: f.unlink()
@@ -856,7 +876,7 @@ async def train_lora_from_frames(
             set_job(jid, {
                 "status":       "complete",
                 "progress":     100,
-                "lora_url":     lora_url,
+                "lora_url":     lora_serve_url,
                 "trigger_word": trigger_word,
                 "persona_id":   persona_id,
             })
@@ -876,6 +896,18 @@ async def get_lora_job(jid: str):
     if not job:
         return JSONResponse({"error": "Job not found"}, status_code=404)
     return job
+
+
+@app.get("/lora-file/{persona_id}")
+async def serve_lora_file(persona_id: str):
+    """Serve the locally-stored LoRA weights file."""
+    LORA_DIR = Path("/app/loras")
+    safe_pid = "".join(c for c in persona_id if c.isalnum() or c in "-_")
+    lora_path = LORA_DIR / f"{safe_pid}.safetensors"
+    if not lora_path.exists():
+        return JSONResponse({"error": f"LoRA file not found for '{persona_id}'"}, status_code=404)
+    return FileResponse(str(lora_path), media_type="application/octet-stream",
+                        filename=f"{safe_pid}.safetensors")
 
 
 # ---------------------------------------------------------------------------
@@ -934,20 +966,35 @@ async def swap_outfit(
                 # Build appearance description (first sentence, no outfit mention)
                 base_appearance = appearance.split(',')[0].strip() if appearance else "woman"
 
-                # fal CDN URLs require auth — download & re-upload to get a fresh accessible URL
+                # Resolve LoRA weights to a local file or re-upload to fal
                 raw_lora_url = lora_url.strip()
                 set_job(jid, {"status": "running", "progress": 12, "stage": "preparing_lora"})
-                print(f"[{jid}] Re-uploading LoRA weights so fal can access them...")
-                lora_resp = _req.get(
-                    raw_lora_url,
-                    headers={"Authorization": f"Key {FAL_KEY}"},
-                    timeout=120,
-                )
-                lora_resp.raise_for_status()
                 lora_tmp = tmp_dir / "lora_weights.safetensors"
-                lora_tmp.write_bytes(lora_resp.content)
+
+                if raw_lora_url.startswith("/lora-file/"):
+                    # Locally stored — read directly from disk
+                    pid_slug = raw_lora_url.split("/lora-file/")[-1]
+                    safe_slug = "".join(c for c in pid_slug if c.isalnum() or c in "-_")
+                    local_path = pathlib.Path("/app/loras") / f"{safe_slug}.safetensors"
+                    if not local_path.exists():
+                        raise ValueError(f"LoRA file not found locally at {local_path} — please retrain the LoRA")
+                    print(f"[{jid}] Using locally stored LoRA: {local_path}")
+                    import shutil
+                    shutil.copy(str(local_path), str(lora_tmp))
+                else:
+                    # fal CDN URL — download with auth header
+                    print(f"[{jid}] Downloading LoRA from fal CDN...")
+                    lora_resp = _req.get(
+                        raw_lora_url,
+                        headers={"Authorization": f"Key {FAL_KEY}"},
+                        timeout=120,
+                    )
+                    lora_resp.raise_for_status()
+                    lora_tmp.write_bytes(lora_resp.content)
+
+                print(f"[{jid}] Uploading LoRA weights to fal...")
                 fresh_lora_url = _fal.upload_file(str(lora_tmp))
-                print(f"[{jid}] LoRA re-uploaded → {fresh_lora_url[:60]}")
+                print(f"[{jid}] LoRA ready → {fresh_lora_url[:60]}")
 
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
