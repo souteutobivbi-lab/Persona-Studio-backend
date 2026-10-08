@@ -850,20 +850,14 @@ async def swap_outfit(
                 f"photorealistic portrait of a woman wearing {outfit_prompt}, "
                 f"professional photo, sharp focus, studio lighting, high quality"
             )
-            neg_prompt = (
-                "deformed, blurry, bad anatomy, disfigured, extra limbs, "
-                "watermark, text, low quality"
-            )
             print(f"[{jid}] Inpainting: {inpaint_prompt[:80]}...")
 
-            result = _fal.subscribe("fal-ai/stable-diffusion-xl/inpainting", arguments={
+            result = _fal.subscribe("fal-ai/flux/dev/fill", arguments={
                 "image_url":  fresh_url,
                 "mask_url":   mask_url_f,
                 "prompt":     inpaint_prompt,
-                "negative_prompt": neg_prompt,
-                "strength":   0.99,
-                "num_inference_steps": 30,
-                "guidance_scale": 7.5,
+                "num_inference_steps": 28,
+                "guidance_scale": 30,
                 "num_images": 1,
                 "enable_safety_checker": False,
             })
