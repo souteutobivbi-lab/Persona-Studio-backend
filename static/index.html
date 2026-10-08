@@ -971,13 +971,71 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
 
-          <!-- Stage indicator -->
-          <div style="display:flex;gap:0;margin-bottom:4px;">
+          <!-- Pathway selector -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="loraPathwaySelector">
+            <div id="pathwayA-btn" onclick="selectLoraPathway('A')" style="cursor:pointer;padding:12px 10px;border-radius:10px;border:2px solid var(--purple);background:var(--p3);text-align:center;">
+              <div style="font-size:13px;font-weight:700;color:var(--p2);margin-bottom:4px;">✦ Pathway A</div>
+              <div style="font-size:11px;color:var(--muted);line-height:1.5;">Generate master portrait<br>→ AI makes 9 angle variations<br>→ Train LoRA</div>
+            </div>
+            <div id="pathwayB-btn" onclick="selectLoraPathway('B')" style="cursor:pointer;padding:12px 10px;border-radius:10px;border:2px solid var(--border);background:var(--surface);text-align:center;">
+              <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">📹 Pathway B</div>
+              <div style="font-size:11px;color:var(--muted);line-height:1.5;">Upload 15 real video frames<br>→ Skip angle generation<br>→ Train LoRA directly</div>
+            </div>
+          </div>
+
+          <!-- Stage indicator (Pathway A) -->
+          <div id="pathwayA-stages" style="display:flex;gap:0;margin-bottom:4px;">
             <div class="id-stage on" id="idstage-1" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;border-bottom:2px solid var(--purple);color:var(--p2);cursor:pointer;" onclick="showIdStage(1)">1 · Master</div>
             <div class="id-stage" id="idstage-2" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(2)">2 · Angles</div>
             <div class="id-stage" id="idstage-3" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(3)">3 · Train LoRA</div>
             <div class="id-stage" id="idstage-4" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(4)">4 · Test</div>
             <div class="id-stage" id="idstage-5" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(5)">5 · Lock</div>
+          </div>
+
+          <!-- PATHWAY B: Upload real frames directly -->
+          <div id="pathwayB-panel" style="display:none;">
+            <div class="card">
+              <div class="card-hd">📹 Upload training images <span class="badge amber">10–20 images · Real video frames</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+                Upload frames extracted from your video — different expressions, same person. The LoRA will learn their face from real photos, no AI angle generation needed.
+              </div>
+
+              <!-- Drop zone -->
+              <label id="frameDropZone" style="display:block;border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px;"
+                onmouseenter="this.style.borderColor='var(--purple)'" onmouseleave="this.style.borderColor='var(--border)'">
+                <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Click to select images</div>
+                <div style="font-size:11px;color:var(--dim);">10–20 frames recommended · JPG or PNG · Same person, different expressions</div>
+                <input type="file" id="frameUploadInput" accept="image/*" multiple style="display:none;" onchange="handleFrameUpload(this)"/>
+              </label>
+
+              <!-- Frame previews -->
+              <div id="framePreviewGrid" style="display:none;margin-bottom:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;" id="frameCountLabel">0 images selected</div>
+                  <label style="font-size:11px;color:var(--p2);cursor:pointer;font-weight:600;">+ Add more <input type="file" accept="image/*" multiple style="display:none;" onchange="handleFrameUpload(this)"/></label>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;" id="frameThumbGrid"></div>
+              </div>
+
+              <div class="field" style="margin-bottom:12px;">
+                <div class="lbl">Trigger word</div>
+                <input class="inp" id="bLoraTriggerWord" placeholder="e.g. vivienne_v1" style="font-family:monospace;"/>
+                <div style="font-size:10px;color:var(--dim);margin-top:4px;">Lowercase, underscores, no spaces. Used in every outfit prompt to reproduce this face.</div>
+              </div>
+
+              <button class="gen-btn" id="trainLoraFromFramesBtn" onclick="trainLoraFromFrames()" style="opacity:.4;pointer-events:none;">✦ Train LoRA from uploaded frames</button>
+
+              <div id="bLoraTrainingStatus" style="display:none;margin-top:14px;">
+                <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--p3);border:1px solid rgba(124,58,237,.3);border-radius:9px;">
+                  <div style="width:20px;height:20px;border:2px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--p2);" id="bLoraStatusText">Training in progress…</div>
+                    <div style="font-size:11px;color:var(--dim);margin-top:2px;">This takes 15–25 minutes. You can leave this page — the LoRA will be saved when ready.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- STAGE 1: Master portrait -->
@@ -2775,6 +2833,129 @@ function showIdStage(n){
       tab.style.fontWeight=i<=n?'600':'500';
     }
   }
+}
+
+// ── Pathway selector ─────────────────────────────────────────────
+let _loraPathway = 'A';
+function selectLoraPathway(p){
+  _loraPathway = p;
+  const aBtn = document.getElementById('pathwayA-btn');
+  const bBtn = document.getElementById('pathwayB-btn');
+  const aStages = document.getElementById('pathwayA-stages');
+  const bPanel  = document.getElementById('pathwayB-panel');
+
+  // highlight selected
+  aBtn.style.borderColor = p==='A' ? 'var(--purple)' : 'var(--border)';
+  aBtn.style.background  = p==='A' ? 'var(--p3)'     : 'var(--surface)';
+  aBtn.querySelector('div').style.color = p==='A' ? 'var(--p2)' : 'var(--muted)';
+  bBtn.style.borderColor = p==='B' ? 'var(--purple)' : 'var(--border)';
+  bBtn.style.background  = p==='B' ? 'var(--p3)'     : 'var(--surface)';
+  bBtn.querySelector('div').style.color = p==='B' ? 'var(--p2)' : 'var(--muted)';
+
+  aStages.style.display = p==='A' ? 'flex' : 'none';
+  // hide all A stage panels when switching to B
+  for(let i=1;i<=5;i++){
+    const panel=document.getElementById('idpanel-'+i);
+    if(panel) panel.style.display = p==='A' && i===1 ? 'block' : 'none';
+  }
+  bPanel.style.display = p==='B' ? 'block' : 'none';
+  if(p==='A') showIdStage(1);
+}
+
+// ── Pathway B: frame upload & LoRA training ───────────────────────
+let _uploadedFrames = []; // array of File objects
+
+function handleFrameUpload(input){
+  const files = Array.from(input.files);
+  // merge, avoid duplicates by name
+  files.forEach(f=>{ if(!_uploadedFrames.find(x=>x.name===f.name)) _uploadedFrames.push(f); });
+  renderFramePreviews();
+  input.value=''; // reset so same file can be re-added if needed
+}
+
+function renderFramePreviews(){
+  const grid  = document.getElementById('frameThumbGrid');
+  const wrap  = document.getElementById('framePreviewGrid');
+  const label = document.getElementById('frameCountLabel');
+  const btn   = document.getElementById('trainLoraFromFramesBtn');
+  if(!grid) return;
+  label.textContent = `${_uploadedFrames.length} image${_uploadedFrames.length!==1?'s':''} selected`;
+  grid.innerHTML = '';
+  _uploadedFrames.forEach((f,i)=>{
+    const url = URL.createObjectURL(f);
+    const div = document.createElement('div');
+    div.style.cssText='position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);';
+    div.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;">
+      <button onclick="removeFrame(${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;font-size:10px;border-radius:4px;padding:1px 5px;cursor:pointer;">✕</button>`;
+    grid.appendChild(div);
+  });
+  wrap.style.display = _uploadedFrames.length ? 'block' : 'none';
+  btn.style.opacity = _uploadedFrames.length >= 5 ? '1' : '.4';
+  btn.style.pointerEvents = _uploadedFrames.length >= 5 ? 'auto' : 'none';
+}
+
+function removeFrame(i){
+  _uploadedFrames.splice(i,1);
+  renderFramePreviews();
+}
+
+async function trainLoraFromFrames(){
+  const triggerWord = document.getElementById('bLoraTriggerWord').value.trim();
+  if(!triggerWord) return toast('Enter a trigger word first','err');
+  if(_uploadedFrames.length < 5) return toast('Upload at least 5 images','err');
+
+  const p = getActivePersona();
+  if(!p) return toast('Select a persona first','err');
+
+  document.getElementById('bLoraTrainingStatus').style.display='block';
+  document.getElementById('bLoraStatusText').textContent='Uploading images…';
+  document.getElementById('trainLoraFromFramesBtn').disabled=true;
+
+  try {
+    const fd = new FormData();
+    fd.append('persona_id', p.name);
+    fd.append('trigger_word', triggerWord);
+    fd.append('appearance', p.appearance||'');
+    _uploadedFrames.forEach((f,i)=> fd.append('frames', f, f.name));
+
+    const res = await fetch(API()+'/train-lora-from-frames', {method:'POST', body:fd});
+    const d   = await res.json();
+    if(d.error) throw new Error(d.error);
+
+    document.getElementById('bLoraStatusText').textContent='Training in progress (15–25 min)… checking status…';
+
+    // Poll for completion
+    const jid = d.job_id;
+    await pollLoraJob(jid, p, triggerWord, 'bLoraStatusText');
+  } catch(e){
+    toast('Training error: '+e.message,'err');
+    document.getElementById('trainLoraFromFramesBtn').disabled=false;
+  }
+}
+
+async function pollLoraJob(jid, p, triggerWord, statusElId){
+  const statusEl = document.getElementById(statusElId);
+  for(let attempt=0; attempt<120; attempt++){
+    await new Promise(r=>setTimeout(r,15000));
+    try{
+      const r = await fetch(API()+'/lora-job/'+jid);
+      const d = await r.json();
+      if(d.status==='complete'){
+        // save to persona
+        p.loraUrl = d.lora_url;
+        p.triggerWord = triggerWord;
+        saveAll();
+        if(statusEl) statusEl.textContent='✓ LoRA trained successfully!';
+        toast('LoRA ready — outfit swap will now use this identity 🎉','ok');
+        return;
+      }
+      if(d.status==='error') throw new Error(d.error||'Training failed');
+      if(statusEl) statusEl.textContent=`Training… ${d.progress||0}% (${d.stage||'working'})`;
+    }catch(e){
+      if(statusEl) statusEl.textContent='Checking…';
+    }
+  }
+  if(statusEl) statusEl.textContent='Training is taking longer than expected — check Railway logs';
 }
 
 // Pre-fill from active persona when portraits panel opens

@@ -764,6 +764,121 @@ async def download_video(job_id: str):
 # Outfit swap — preserves face, body & background; replaces only clothing
 # Uses SAM2 for clothing segmentation mask + FLUX inpainting
 # ---------------------------------------------------------------------------
+# LoRA training from real uploaded frames (Pathway B)
+# ---------------------------------------------------------------------------
+
+@app.post("/train-lora-from-frames")
+async def train_lora_from_frames(
+    persona_id: str = Form(...),
+    trigger_word: str = Form(...),
+    appearance: str = Form(""),
+    frames: list[UploadFile] = File(...),
+):
+    if not frames:
+        return JSONResponse({"error": "No frames uploaded"}, status_code=400)
+    if len(frames) < 5:
+        return JSONResponse({"error": "Upload at least 5 images"}, status_code=400)
+
+    jid = str(uuid.uuid4())[:8]
+    set_job(jid, {"status": "running", "progress": 0, "stage": "uploading"})
+
+    # Read all frame bytes eagerly (before background thread)
+    frame_data = []
+    for f in frames:
+        data = await f.read()
+        frame_data.append((f.filename or f"frame_{len(frame_data)}.jpg", data))
+
+    def _run():
+        try:
+            import fal_client as _fal
+            import zipfile, tempfile, pathlib, io
+
+            tmp_dir = pathlib.Path(tempfile.mkdtemp())
+
+            # ── Write frames + captions to disk ──────────────────────────
+            set_job(jid, {"status": "running", "progress": 5, "stage": "preparing"})
+            caption = (
+                f"{trigger_word}, "
+                + (appearance.split(',')[0].strip() if appearance else "portrait of a person")
+                + ", natural expression, photorealistic"
+            )
+
+            img_dir = tmp_dir / "images"
+            img_dir.mkdir()
+            for fname, data in frame_data:
+                stem = pathlib.Path(fname).stem
+                (img_dir / fname).write_bytes(data)
+                (img_dir / f"{stem}.txt").write_text(caption)
+
+            # ── Zip everything up ─────────────────────────────────────────
+            zip_path = tmp_dir / "training.zip"
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for p in img_dir.iterdir():
+                    zf.write(p, p.name)
+
+            set_job(jid, {"status": "running", "progress": 15, "stage": "uploading_zip"})
+            zip_fal_url = _fal.upload_file(str(zip_path))
+            print(f"[{jid}] Training zip uploaded → {zip_fal_url[:60]}")
+
+            # ── Submit LoRA training job ──────────────────────────────────
+            set_job(jid, {"status": "running", "progress": 20, "stage": "training"})
+            print(f"[{jid}] Submitting LoRA training for '{trigger_word}' ({len(frame_data)} images)...")
+
+            result = _fal.subscribe("fal-ai/flux-lora-fast-training", arguments={
+                "images_data_url":   zip_fal_url,
+                "trigger_word":      trigger_word,
+                "steps":             1000,
+                "learning_rate":     4e-4,
+                "batch_size":        1,
+                "resolution":        "512,768,1024",
+                "caption_dropout_rate": 0.05,
+                "is_style":          False,
+            }, with_logs=True)
+
+            lora_file = result.get("diffusers_lora_file") or {}
+            lora_url  = lora_file.get("url") if isinstance(lora_file, dict) else lora_file
+            if not lora_url:
+                raise ValueError(f"LoRA training returned no weights: {result}")
+
+            print(f"[{jid}] LoRA trained → {str(lora_url)[:60]}")
+
+            # Clean up
+            for f in img_dir.iterdir():
+                try: f.unlink()
+                except: pass
+            try: img_dir.rmdir()
+            except: pass
+            try: zip_path.unlink()
+            except: pass
+            try: tmp_dir.rmdir()
+            except: pass
+
+            set_job(jid, {
+                "status":       "complete",
+                "progress":     100,
+                "lora_url":     lora_url,
+                "trigger_word": trigger_word,
+                "persona_id":   persona_id,
+            })
+            print(f"[{jid}] LoRA training complete")
+
+        except Exception as e:
+            print(f"[{jid}] LoRA training error: {e}")
+            set_job(jid, {"status": "error", "error": str(e)})
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"job_id": jid, "status": "running"}
+
+
+@app.get("/lora-job/{jid}")
+async def get_lora_job(jid: str):
+    job = get_job(jid)
+    if not job:
+        return JSONResponse({"error": "Job not found"}, status_code=404)
+    return job
+
+
+# ---------------------------------------------------------------------------
 
 @app.post("/swap-outfit")
 async def swap_outfit(
