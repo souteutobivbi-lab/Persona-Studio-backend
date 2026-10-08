@@ -770,6 +770,7 @@ async def swap_outfit(
     persona_id: str = Form(...),
     outfit: str = Form(...),
     outfit_color: str = Form(""),
+    master_url_override: str = Form(""),
 ):
     """
     Inpaint new clothing onto the locked master portrait.
@@ -781,10 +782,13 @@ async def swap_outfit(
     os.environ["FAL_KEY"] = FAL_KEY
 
     entry = MASTER_PORTRAITS.get(persona_id)
-    if not entry:
-        return JSONResponse({"error": f"No locked portrait for '{persona_id}'"}, status_code=400)
-
-    master_url = entry["url"]
+    # Accept master_url from the browser if server lost it (Railway ephemeral filesystem)
+    master_url = (entry or {}).get("url") or master_url_override.strip() or None
+    if not master_url:
+        return JSONResponse({"error": f"No locked portrait for '{persona_id}' — lock a master portrait first"}, status_code=400)
+    # Restore to in-memory dict so subsequent calls also work
+    if not entry and master_url:
+        MASTER_PORTRAITS[persona_id] = {"local": "", "url": master_url}
     jid = str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "segmenting"})
 

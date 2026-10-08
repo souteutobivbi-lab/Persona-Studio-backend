@@ -3315,20 +3315,34 @@ async function swapOutfitOnly(evt){
   if(evt){ evt.preventDefault(); evt.stopPropagation(); }
   const outfit = (document.getElementById('loraOutfitInp')?.value || '').trim();
   const styling = (document.getElementById('loraStylingInp')?.value || '').trim();
-  // Always resolve persona fresh from S.personas[] — S.persona may be a stale deserialized
-  // copy from localStorage that was set before masterPortraitUrl was saved on the array item.
-  const freshFromArray = S.persona?.name
-    ? S.personas?.find(x => x.name === S.persona.name)
-    : null;
-  let activePerObj = freshFromArray || S.persona || null;
-  // If the resolved persona still has no masterPortraitUrl, try the QP dropdown
+
+  // ── Resolve persona: try every source in priority order ──
+  // 1. Fresh lookup from S.personas[] by name (most reliable — array is always up to date)
+  let activePerObj = S.persona?.name
+    ? S.personas?.find(x => x.name === S.persona.name) || S.persona
+    : S.persona;
+
+  // 2. Try QP dropdown if still no masterPortraitUrl
   if(!activePerObj?.masterPortraitUrl){
     const qpPid = document.getElementById('qpPersonaSelect')?.value;
-    if(qpPid){
-      const qpFresh = S.personas?.find(x => x.name === qpPid);
-      if(qpFresh?.masterPortraitUrl) activePerObj = qpFresh;
-    }
+    if(qpPid) activePerObj = S.personas?.find(x => x.name === qpPid) || activePerObj;
   }
+
+  // 3. Last resort: pull masterPortraitUrl directly from persisted localStorage data
+  if(!activePerObj?.masterPortraitUrl){
+    try{
+      const saved = JSON.parse(localStorage.getItem('persona_v1')||'{}');
+      const savedP = (saved.personas||[]).find(x => x.name === activePerObj?.name);
+      if(savedP?.masterPortraitUrl){
+        activePerObj = {...activePerObj, ...savedP};
+        // Patch the live array so future calls also see it
+        const idx = S.personas?.findIndex(x=>x.name===activePerObj.name);
+        if(idx>=0){ Object.assign(S.personas[idx], savedP); activePerObj=S.personas[idx]; }
+        if(S.persona?.name===activePerObj.name) S.persona=activePerObj;
+      }
+    }catch(e){}
+  }
+
   const pid = activePerObj?.id || activePerObj?.name;
   if(!pid){ toast('No persona selected','err'); return; }
   if(!outfit){ toast('Enter an outfit first','err'); return; }
@@ -3344,6 +3358,8 @@ async function swapOutfitOnly(evt){
     const fd = new FormData();
     fd.append('persona_id', pid);
     fd.append('outfit', outfitFull);
+    // Always send master_url so server can recover it if redeployed (Railway ephemeral memory)
+    if(activePerObj.masterPortraitUrl) fd.append('master_url_override', activePerObj.masterPortraitUrl);
     const r = await fetch(`${API()}/swap-outfit`, {method:'POST', body:fd});
     const data = await r.json();
     if(!r.ok || data.error){ throw new Error(data.error||'Swap failed'); }
