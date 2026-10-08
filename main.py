@@ -849,15 +849,16 @@ async def train_lora_from_frames(
             import requests as _req2
             LORA_DIR = Path("/app/loras")
             LORA_DIR.mkdir(parents=True, exist_ok=True)
-            safe_pid = "".join(c for c in persona_id if c.isalnum() or c in "-_")
-            lora_local = LORA_DIR / f"{safe_pid}.safetensors"
+            # Name by trigger_word (unambiguous) not persona_id (can be wrong persona)
+            safe_trigger = "".join(c for c in trigger_word if c.isalnum() or c in "-_")
+            lora_local = LORA_DIR / f"{safe_trigger}.safetensors"
             try:
                 dl = _req2.get(lora_url, headers={"Authorization": f"Key {FAL_KEY}"}, timeout=180)
                 dl.raise_for_status()
                 lora_local.write_bytes(dl.content)
                 print(f"[{jid}] LoRA saved locally → {lora_local} ({len(dl.content)//1024}KB)")
                 # Use a self-hosted URL so it never expires
-                lora_serve_url = f"/lora-file/{safe_pid}"
+                lora_serve_url = f"/lora-file/{safe_trigger}"
             except Exception as e:
                 print(f"[{jid}] Warning: could not save LoRA locally ({e}), using fal URL")
                 lora_serve_url = lora_url
@@ -996,10 +997,19 @@ async def swap_outfit(
                 fresh_lora_url = _fal.upload_file(str(lora_tmp))
                 print(f"[{jid}] LoRA ready → {fresh_lora_url[:60]}")
 
+                # Upload master portrait as image reference so pose/props are preserved
+                set_job(jid, {"status": "running", "progress": 20, "stage": "uploading_reference"})
+                tmp_portrait = tmp_dir / "portrait.png"
+                img_resp = _req.get(master_url, timeout=30)
+                img_resp.raise_for_status()
+                tmp_portrait.write_bytes(img_resp.content)
+                portrait_ref_url = _fal.upload_file(str(tmp_portrait))
+                print(f"[{jid}] Portrait reference uploaded → {portrait_ref_url[:60]}")
+
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
                     f"wearing {outfit_prompt}, "
-                    f"same pose and expression as reference, "
+                    f"same pose, same background, same props and accessories as reference image, "
                     f"professional portrait photography, soft studio lighting, "
                     f"photorealistic, 8k, high detail"
                 )
@@ -1007,6 +1017,8 @@ async def swap_outfit(
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
                     "loras": [{"path": fresh_lora_url, "scale": 1.0}],
+                    "image_url": portrait_ref_url,
+                    "strength": 0.85,
                     "num_inference_steps": 35,
                     "guidance_scale": 3.5,
                     "num_images": 1,
