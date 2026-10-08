@@ -852,12 +852,13 @@ async def swap_outfit(
             )
             print(f"[{jid}] Inpainting: {inpaint_prompt[:80]}...")
 
-            result = _fal.subscribe("fal-ai/flux/dev/fill", arguments={
+            result = _fal.subscribe("fal-ai/flux-general/inpainting", arguments={
                 "image_url":  fresh_url,
                 "mask_url":   mask_url_f,
                 "prompt":     inpaint_prompt,
                 "num_inference_steps": 28,
-                "guidance_scale": 30,
+                "guidance_scale": 3.5,
+                "strength":   0.99,
                 "num_images": 1,
                 "enable_safety_checker": False,
             })
