@@ -819,35 +819,36 @@ async def swap_outfit(
                 try: tmp_portrait.unlink()
                 except: pass
 
-            # ── Use PuLID to regenerate with new outfit (face-locked) ─────
-            # PuLID is already proven in this codebase — it locks the face identity
-            # and generates a fresh image with the new outfit description.
+            # ── FLUX img2img — change ONLY the clothes, keep face/hair/bg ──
+            # Low strength (0.55) means 55% of steps change the image.
+            # At this level FLUX changes soft regions (fabric) but preserves
+            # hard-edged high-frequency details (face, eyes, hair).
             set_job(jid, {"status": "running", "progress": 20, "stage": "generating"})
 
-            pulid_prompt = (
-                f"Professional portrait photo, {outfit_prompt}, "
-                f"photorealistic, sharp focus, studio lighting, "
-                f"same background, same pose, upper body shot"
+            img2img_prompt = (
+                f"person wearing {outfit_prompt}, "
+                f"photorealistic portrait, same face, same background, same pose, "
+                f"same lighting, same hair, upper body shot, high quality"
             )
-            print(f"[{jid}] PuLID swap: {pulid_prompt[:80]}...")
+            print(f"[{jid}] FLUX img2img swap: {img2img_prompt[:80]}...")
 
-            result = _fal.subscribe("fal-ai/pulid", arguments={
-                "reference_images": [{"image_url": fresh_url}],
-                "prompt": pulid_prompt,
-                "num_inference_steps": 12,
-                "guidance_scale": 1.5,
+            result = _fal.subscribe("fal-ai/flux/dev/image-to-image", arguments={
+                "image_url": fresh_url,
+                "prompt": img2img_prompt,
+                "strength": 0.55,
+                "num_inference_steps": 28,
+                "guidance_scale": 3.5,
                 "num_images": 1,
-                "image_size": {"width": 512, "height": 768},
                 "enable_safety_checker": False,
             })
             set_job(jid, {"status": "running", "progress": 80, "stage": "saving"})
 
             imgs = result.get("images") or []
             if not imgs:
-                raise ValueError(f"PuLID returned no images: {result}")
+                raise ValueError(f"FLUX img2img returned no images: {result}")
 
             out_url = imgs[0]["url"]
-            print(f"[{jid}] PuLID swap result: {out_url[:60]}")
+            print(f"[{jid}] FLUX img2img result: {out_url[:60]}")
 
             # ── Save locally ───────────────────────────────────────────────
             set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
@@ -859,7 +860,7 @@ async def swap_outfit(
                 "status": "complete",
                 "progress": 100,
                 "images": [f"/portrait/{jid}/0"],
-                "method": "outfit-swap-pulid",
+                "method": "outfit-swap-flux-img2img",
                 "outfit": outfit_prompt,
             })
             print(f"[{jid}] Outfit swap complete")
