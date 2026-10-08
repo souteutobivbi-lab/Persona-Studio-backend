@@ -204,58 +204,65 @@ async def generate_script(
             signoffs = sc[start:end].strip() if end > start else ""
 
     if has_vivienne_structure:
-        # Full Vivienne-spec prompt: 60-65 words, 5-part structure, with keywords
+        # Vivienne-spec: "A woman/man who..." hook format, 100-140 words, paragraph style
         prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
 Topic: {topic}
 
-{structure_rules}
+HOOK FORMAT — use this for every script:
+Open with "A woman who [specific behaviour]." or "A man who [specific behaviour]." as the first sentence.
+The behaviour described must be specific and immediately recognisable to the audience.
+Then flow directly into the body — no "I'm Vivienne" introduction.
 
-{script_examples}
+EXAMPLES of the opening hook pattern:
+- "A woman who holds everything together for everyone else is usually the one nobody checks on."
+- "A woman who keeps going back to the same person is not weak. She is attached to a feeling she has not yet found anywhere else."
+- "A man who was never taught how to express pain does not become someone without pain. He becomes someone you cannot reach."
 
-CRITICAL RULES — follow exactly:
-1. Each script MUST be 60-65 words. Count carefully. Do not go over 65 or under 58.
-2. Open with a SHORT identity hook (one of these patterns):
-   - "A woman who [behaviour]..." or "A man who [behaviour]..."
-   - "The woman who [does X]..." / "The man who [does X]..."
-   - Or: "I'm {persona_name} — and I need to say something."
-   Use the identity hook ("A woman/man who...") for at least 3 of the 5 scripts.
-3. Then flow into the 5-part structure:
-   - The Claim: one clear uncomfortable truth
-   - The Unpacking: the mechanism explained with specificity
-   - The Turn: a reframe that changes how the viewer sees it
-   - CTA: one earned sign-off (follow, save, share — not forced)
-4. Podcast confession style — essay-like, intimate, not a listicle
-5. Warm, direct, British cadence — measured, real, understated
-6. No hashtags, no emojis, no stage directions, no filler
-7. Each of the 5 must cover a different angle with a different emotional opening
-8. Never shame the viewer. Validate before educating.
+STRUCTURE (after the hook):
+- Validate: show you understand exactly what they are going through
+- Unpack: explain the real mechanism — why this happens, what it is called, what drives it
+- Turn: reframe it — change how they see themselves or the situation
+- CTA: one earned sign-off ("Follow.", "Save this.", "More tomorrow.", "Follow — I talk about this every week.")
 
-{signoffs}
+STYLE:
+- 100-140 words per script (count carefully — do not go under 100 or over 145)
+- Podcast confession, essay-like, never a listicle
+- Warm, direct, British cadence — measured, real, understated firmness
+- No hashtags, no emojis, no stage directions, no filler sentences
+- Never shame the viewer. Validate before educating.
+- Each of the 5 must cover a DIFFERENT angle of the topic
 
-Return ONLY a JSON array of 5 objects. Each object has "script" (string) and "keywords" (array of 4-5 hashtag strings starting with #).
-[{{"script": "Script text here.", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
-        max_tok = 900
+{signoffs if 'signoffs' in dir() else ''}
+
+Return ONLY a JSON array of 5 objects. Each object has:
+- "script": the full script text (string)
+- "keywords": array of 4-5 hashtag strings starting with # (relevant to the script content)
+
+[{{"script": "A woman who...", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
+        max_tok = 1500
+        model = "llama-3.3-70b-versatile"
     else:
-        # Generic shorter scripts for other personas
+        # Generic scripts for other personas
         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
-        prompt = f"""You are writing 5 short podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
+        prompt = f"""You are writing 5 podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
 Topic: {topic}{skill_section}
 
-STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable. A real conversation, not a sales pitch.
+STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable. A real conversation, not a pitch.
 
 Rules:
-- 45-80 words each (comfortable speaking pace)
-- Open with a different emotional hook each time — try "A woman who..." or "A man who..." for at least 2
+- 100-130 words each
+- Open with "A woman who..." or "A man who..." identity hook for at least 3 of the 5
 - Warm, direct, British cadence
-- End with a quiet insight or gentle CTA
-- No stage directions, no filler
+- End with an earned CTA (Follow / Save this / More tomorrow)
+- No emojis, no stage directions, no filler
 
-Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags).
+Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
 [{{"script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
-        max_tok = 900  # qwen3.8-27b OTPM limit is 1000; keep under it
+        max_tok = 1500
+        model = "llama-3.3-70b-versatile"
 
     response = client.chat.completions.create(
-        model="qwen/qwen3.8-27b",
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tok, temperature=0.88
     )
@@ -301,7 +308,7 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
             all_keywords = []
 
     # Filter out any malformed/too-short items
-    valid = [(s, k) for s, k in zip(scripts, all_keywords) if s and len(s.split()) >= 40]
+    valid = [(s, k) for s, k in zip(scripts, all_keywords) if s and len(s.split()) >= 70]
     if valid:
         scripts, all_keywords = zip(*valid)
         scripts, all_keywords = list(scripts), list(all_keywords)
