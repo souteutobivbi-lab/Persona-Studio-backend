@@ -2904,7 +2904,7 @@ async function trainLoraFromFrames(){
   if(!triggerWord) return toast('Enter a trigger word first','err');
   if(_uploadedFrames.length < 5) return toast('Upload at least 5 images','err');
 
-  const p = getActivePersona();
+  const p = (S.persona?.name ? S.personas?.find(x=>x.name===S.persona.name) : null) || S.persona;
   if(!p) return toast('Select a persona first','err');
 
   document.getElementById('bLoraTrainingStatus').style.display='block';
