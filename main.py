@@ -801,20 +801,23 @@ async def swap_outfit(
             import base64
 
             # ── Re-upload master portrait to fal.ai to get a fresh URL ────
-            # Stored URLs may have expired; always re-upload to guarantee freshness
+            # Stored CDN URLs expire; download locally then re-upload via upload_file()
             set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
             print(f"[{jid}] Fetching master portrait from {master_url[:60]}...")
+            import tempfile, pathlib
+            tmp_portrait = pathlib.Path(tempfile.mktemp(suffix=".png"))
             try:
                 img_resp = _req.get(master_url, timeout=30)
                 img_resp.raise_for_status()
-                import io
-                img_bytes = io.BytesIO(img_resp.content)
-                img_bytes.name = "portrait.png"
-                fresh_url = _fal.upload(img_bytes, content_type="image/png")
+                tmp_portrait.write_bytes(img_resp.content)
+                fresh_url = _fal.upload_file(str(tmp_portrait))
                 print(f"[{jid}] Re-uploaded portrait → {fresh_url[:60]}")
             except Exception as upload_err:
-                print(f"[{jid}] Re-upload failed, using original URL: {upload_err}")
-                fresh_url = master_url
+                print(f"[{jid}] Re-upload failed: {upload_err}")
+                raise RuntimeError(f"Could not fetch master portrait — the stored URL may have expired. Please re-lock the portrait.") from upload_err
+            finally:
+                try: tmp_portrait.unlink()
+                except: pass
 
             # ── Step 1: SAM2 — get clothing mask ──────────────────────────
             print(f"[{jid}] SAM2 segmenting clothing on {fresh_url[:60]}...")
