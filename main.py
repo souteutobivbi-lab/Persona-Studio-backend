@@ -933,7 +933,22 @@ async def swap_outfit(
                 tw = trigger_word.strip() or "person"
                 # Build appearance description (first sentence, no outfit mention)
                 base_appearance = appearance.split(',')[0].strip() if appearance else "woman"
-                # Strip any outfit/clothing mentions from appearance
+
+                # fal CDN URLs require auth — download & re-upload to get a fresh accessible URL
+                raw_lora_url = lora_url.strip()
+                set_job(jid, {"status": "running", "progress": 12, "stage": "preparing_lora"})
+                print(f"[{jid}] Re-uploading LoRA weights so fal can access them...")
+                lora_resp = _req.get(
+                    raw_lora_url,
+                    headers={"Authorization": f"Key {FAL_KEY}"},
+                    timeout=120,
+                )
+                lora_resp.raise_for_status()
+                lora_tmp = tmp_dir / "lora_weights.safetensors"
+                lora_tmp.write_bytes(lora_resp.content)
+                fresh_lora_url = _fal.upload_file(str(lora_tmp))
+                print(f"[{jid}] LoRA re-uploaded → {fresh_lora_url[:60]}")
+
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
                     f"wearing {outfit_prompt}, "
@@ -944,7 +959,7 @@ async def swap_outfit(
                 print(f"[{jid}] LoRA pathway — prompt: {portrait_prompt[:120]}...")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
-                    "loras": [{"path": lora_url.strip(), "scale": 1.0}],
+                    "loras": [{"path": fresh_lora_url, "scale": 1.0}],
                     "num_inference_steps": 35,
                     "guidance_scale": 3.5,
                     "num_images": 1,
