@@ -798,69 +798,98 @@ async def swap_outfit(
         try:
             import fal_client as _fal
             import requests as _req
-            import base64
-
-            # ── Re-upload master portrait to fal.ai to get a fresh URL ────
-            # Stored CDN URLs expire; download locally then re-upload via upload_file()
-            set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
-            print(f"[{jid}] Fetching master portrait from {master_url[:60]}...")
             import tempfile, pathlib
-            tmp_portrait = pathlib.Path(tempfile.mktemp(suffix=".png"))
-            try:
-                img_resp = _req.get(master_url, timeout=30)
-                img_resp.raise_for_status()
-                tmp_portrait.write_bytes(img_resp.content)
-                fresh_url = _fal.upload_file(str(tmp_portrait))
-                print(f"[{jid}] Re-uploaded portrait → {fresh_url[:60]}")
-            except Exception as upload_err:
-                print(f"[{jid}] Re-upload failed: {upload_err}")
-                raise RuntimeError(f"Could not fetch master portrait — the stored URL may have expired. Please re-lock the portrait.") from upload_err
-            finally:
-                try: tmp_portrait.unlink()
-                except: pass
+            import numpy as np
+            from PIL import Image
+            from rembg import remove
 
-            # ── FLUX img2img — change ONLY the clothes, keep face/hair/bg ──
-            # Low strength (0.55) means 55% of steps change the image.
-            # At this level FLUX changes soft regions (fabric) but preserves
-            # hard-edged high-frequency details (face, eyes, hair).
-            set_job(jid, {"status": "running", "progress": 20, "stage": "generating"})
+            # ── 1. Download master portrait ────────────────────────────────
+            set_job(jid, {"status": "running", "progress": 5, "stage": "downloading"})
+            print(f"[{jid}] Fetching master portrait from {master_url[:60]}...")
+            tmp_dir = pathlib.Path(tempfile.mkdtemp())
+            tmp_portrait = tmp_dir / "portrait.png"
+            img_resp = _req.get(master_url, timeout=30)
+            img_resp.raise_for_status()
+            tmp_portrait.write_bytes(img_resp.content)
 
-            img2img_prompt = (
-                f"wearing {outfit_prompt}, "
-                f"photorealistic portrait, identical face, identical hair, "
-                f"same background, same pose, same lighting, upper body shot, high quality"
+            # ── 2. Build clothing mask with rembg ──────────────────────────
+            # rembg returns RGBA where alpha channel = person segmentation
+            # We then zero-out the top 32% (face/neck/head) so only the
+            # clothing body region is white (= inpaint zone).
+            set_job(jid, {"status": "running", "progress": 15, "stage": "masking"})
+            print(f"[{jid}] Building clothing mask...")
+            orig_img = Image.open(tmp_portrait).convert("RGB")
+            w, h = orig_img.size
+
+            # Get person segmentation
+            seg_rgba = remove(orig_img)  # RGBA
+            seg_arr = np.array(seg_rgba)
+            person_alpha = seg_arr[:, :, 3]  # 0=background, 255=person
+
+            # Clothing mask: person pixels below the top 32% of image height
+            clothing_mask = person_alpha.copy()
+            cut = int(h * 0.32)
+            clothing_mask[:cut, :] = 0  # zero out head/face area
+
+            # Slight dilation so no clothing edge is missed
+            from PIL import ImageFilter
+            mask_img = Image.fromarray(clothing_mask, mode="L")
+            mask_img = mask_img.filter(ImageFilter.MaxFilter(9))  # dilate 4px
+            tmp_mask = tmp_dir / "mask.png"
+            mask_img.save(tmp_mask)
+
+            # ── 3. Upload portrait + mask to fal.ai ───────────────────────
+            set_job(jid, {"status": "running", "progress": 25, "stage": "uploading"})
+            fresh_url  = _fal.upload_file(str(tmp_portrait))
+            mask_url_f = _fal.upload_file(str(tmp_mask))
+            print(f"[{jid}] Uploaded portrait={fresh_url[:50]} mask={mask_url_f[:50]}")
+
+            # ── 4. SDXL inpainting — only masked clothing pixels change ───
+            set_job(jid, {"status": "running", "progress": 35, "stage": "inpainting"})
+            inpaint_prompt = (
+                f"photorealistic portrait of a woman wearing {outfit_prompt}, "
+                f"professional photo, sharp focus, studio lighting, high quality"
             )
-            print(f"[{jid}] FLUX img2img swap: {img2img_prompt[:80]}...")
+            neg_prompt = (
+                "deformed, blurry, bad anatomy, disfigured, extra limbs, "
+                "watermark, text, low quality"
+            )
+            print(f"[{jid}] Inpainting: {inpaint_prompt[:80]}...")
 
-            result = _fal.subscribe("fal-ai/flux/dev/image-to-image", arguments={
-                "image_url": fresh_url,
-                "prompt": img2img_prompt,
-                "strength": 0.75,
-                "num_inference_steps": 28,
-                "guidance_scale": 4.5,
+            result = _fal.subscribe("fal-ai/stable-diffusion-xl/inpainting", arguments={
+                "image_url":  fresh_url,
+                "mask_url":   mask_url_f,
+                "prompt":     inpaint_prompt,
+                "negative_prompt": neg_prompt,
+                "strength":   0.99,
+                "num_inference_steps": 30,
+                "guidance_scale": 7.5,
                 "num_images": 1,
                 "enable_safety_checker": False,
             })
-            set_job(jid, {"status": "running", "progress": 80, "stage": "saving"})
+            set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
 
             imgs = result.get("images") or []
             if not imgs:
-                raise ValueError(f"FLUX img2img returned no images: {result}")
+                raise ValueError(f"Inpainting returned no images: {result}")
 
             out_url = imgs[0]["url"]
-            print(f"[{jid}] FLUX img2img result: {out_url[:60]}")
+            print(f"[{jid}] Inpaint result: {out_url[:60]}")
 
-            # ── Save locally ───────────────────────────────────────────────
-            set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
+            # ── 5. Save output ─────────────────────────────────────────────
             out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
             r = _req.get(out_url, timeout=60)
             out_path.write_bytes(r.content)
+
+            # Clean up temp files
+            for f in tmp_dir.iterdir(): f.unlink()
+            tmp_dir.rmdir()
 
             set_job(jid, {
                 "status": "complete",
                 "progress": 100,
                 "images": [f"/portrait/{jid}/0"],
-                "method": "outfit-swap-flux-img2img",
+                "method": "outfit-swap-inpaint",
                 "outfit": outfit_prompt,
             })
             print(f"[{jid}] Outfit swap complete")
