@@ -798,12 +798,13 @@ async def swap_outfit(
         try:
             import fal_client as _fal
             import requests as _req
-            import tempfile, pathlib
+            import tempfile, pathlib, io
+            from PIL import Image, ImageFilter
+            import numpy as np
 
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
 
             # ── Step 1: Download master portrait & upload to fal.ai ───────
-            # CDN URLs expire, so always re-upload for a fresh URL
             set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
             print(f"[{jid}] Fetching master portrait...")
             tmp_portrait = tmp_dir / "portrait.png"
@@ -814,20 +815,23 @@ async def swap_outfit(
             print(f"[{jid}] Portrait uploaded → {portrait_fal_url[:60]}")
 
             # ── Step 2: Generate flat-lay garment image from text prompt ──
-            # FASHN needs a real garment image, not a text prompt.
-            # We generate one with FLUX Dev using a flat-lay product photo style.
+            # Strengthen the colour name so FLUX doesn't drift to similar hues
             set_job(jid, {"status": "running", "progress": 20, "stage": "generating_garment"})
+            # Extract any colour words and amplify them
+            colour_emphasis = f"exact colour as described: {outfit_prompt},"
             garment_gen_prompt = (
                 f"flat-lay product photo of {outfit_prompt}, "
+                f"{colour_emphasis} "
                 f"isolated on pure white background, fashion editorial, "
                 f"professional clothing photography, no model, no person, "
-                f"centered, high detail, sharp focus"
+                f"centered, high detail, sharp focus, "
+                f"accurate colour, no colour shift"
             )
             print(f"[{jid}] Generating garment image: {garment_gen_prompt[:80]}...")
             garment_result = _fal.subscribe("fal-ai/flux/dev", arguments={
                 "prompt": garment_gen_prompt,
-                "num_inference_steps": 28,
-                "guidance_scale": 3.5,
+                "num_inference_steps": 35,
+                "guidance_scale": 4.5,
                 "num_images": 1,
                 "image_size": {"width": 768, "height": 1024},
                 "enable_safety_checker": False,
@@ -839,8 +843,6 @@ async def swap_outfit(
             print(f"[{jid}] Garment image generated → {garment_url[:60]}")
 
             # ── Step 3: FASHN v1.6 Virtual Try-On ─────────────────────────
-            # Takes the person photo + garment image and composites them.
-            # Preserves pose, body proportions and background.
             set_job(jid, {"status": "running", "progress": 50, "stage": "tryon"})
             print(f"[{jid}] Running FASHN v1.6 try-on...")
             tryon_result = _fal.subscribe("fal-ai/fashn/tryon/v1.6", arguments={
@@ -852,7 +854,6 @@ async def swap_outfit(
                 "segmentation_free":  True,
                 "num_samples":        1,
             })
-            set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
 
             tryon_imgs = tryon_result.get("images") or []
             if not tryon_imgs:
@@ -860,12 +861,61 @@ async def swap_outfit(
             out_url = tryon_imgs[0]["url"] if isinstance(tryon_imgs[0], dict) else tryon_imgs[0]
             print(f"[{jid}] Try-on result → {str(out_url)[:60]}")
 
-            # ── Step 4: Save output ────────────────────────────────────────
-            out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
-            r = _req.get(out_url, timeout=60)
-            out_path.write_bytes(r.content)
+            # ── Step 4: Smart composite — restore background, hands, face ─
+            # FASHN rewrites the whole image; we want ONLY the clothing pixels
+            # from FASHN and everything else (background, microphone, hands,
+            # face, jewellery) from the original portrait.
+            set_job(jid, {"status": "running", "progress": 75, "stage": "compositing"})
+            print(f"[{jid}] Compositing clothing onto original background...")
 
-            # Clean up
+            from rembg import remove as rembg_remove
+
+            # Load original and FASHN result
+            orig_img  = Image.open(str(tmp_portrait)).convert("RGBA")
+            fashn_bytes = _req.get(out_url, timeout=60).content
+            fashn_img = Image.open(io.BytesIO(fashn_bytes)).convert("RGBA")
+
+            # Match sizes
+            if fashn_img.size != orig_img.size:
+                fashn_img = fashn_img.resize(orig_img.size, Image.LANCZOS)
+
+            w, h = orig_img.size
+
+            # Person segmentation mask from original (clothing region proxy)
+            orig_rgb = orig_img.convert("RGB")
+            person_mask_raw = rembg_remove(orig_rgb, only_mask=True)
+            person_mask = np.array(person_mask_raw.convert("L")).astype(np.float32) / 255.0
+
+            # Restrict to clothing zone only:
+            #   - exclude top 22 % → face, neck, hair
+            #   - exclude bottom 20 % → hands, lap, lower legs
+            clothing_mask = person_mask.copy()
+            face_cut = int(h * 0.22)
+            hand_cut = int(h * 0.80)
+            clothing_mask[:face_cut, :] = 0
+            clothing_mask[hand_cut:, :]  = 0
+
+            # Feather edges so the seam isn't hard
+            mask_pil = Image.fromarray((clothing_mask * 255).astype(np.uint8))
+            mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=10))
+            clothing_mask = np.array(mask_pil).astype(np.float32) / 255.0
+
+            # Blend: original everywhere, FASHN only in clothing zone
+            orig_arr  = np.array(orig_img).astype(np.float32)
+            fashn_arr = np.array(fashn_img).astype(np.float32)
+            alpha = clothing_mask[:, :, np.newaxis]
+            composited = orig_arr * (1.0 - alpha) + fashn_arr * alpha
+            composited = np.clip(composited, 0, 255).astype(np.uint8)
+
+            out_img = Image.fromarray(composited, "RGBA").convert("RGB")
+
+            # ── Step 5: Save output ────────────────────────────────────────
+            set_job(jid, {"status": "running", "progress": 90, "stage": "saving"})
+            out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
+            out_img.save(str(out_path), "PNG")
+            print(f"[{jid}] Composited result saved → {out_path}")
+
+            # Clean up temp files
             for f in tmp_dir.iterdir():
                 try: f.unlink()
                 except: pass
@@ -876,10 +926,10 @@ async def swap_outfit(
                 "status": "complete",
                 "progress": 100,
                 "images": [f"/portrait/{jid}/0"],
-                "method": "outfit-swap-fashn-tryon",
+                "method": "outfit-swap-fashn-composite",
                 "outfit": outfit_prompt,
             })
-            print(f"[{jid}] Outfit swap complete via FASHN v1.6")
+            print(f"[{jid}] Outfit swap complete (FASHN + background restore)")
 
         except Exception as e:
             print(f"[{jid}] Outfit swap error: {e}")
