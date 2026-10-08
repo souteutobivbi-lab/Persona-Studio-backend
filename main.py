@@ -260,32 +260,55 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
         max_tokens=max_tok, temperature=0.88
     )
     raw = response.choices[0].message.content.strip()
+    import re as _re
+    # Strip <think>...</think> reasoning blocks
+    raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
+    raw = raw.replace('```json','').replace('```','').strip()
+    # Extract JSON array
+    start = raw.find('[')
+    end = raw.rfind(']')
+    if start != -1 and end != -1:
+        raw = raw[start:end+1]
+    # Fix common model quirks: trailing commas before ] or }
+    raw = _re.sub(r',\s*}', '}', raw)
+    raw = _re.sub(r',\s*]', ']', raw)
+
+    scripts = []
+    all_keywords = []
     try:
-        # Strip <think>...</think> reasoning blocks
-        import re as _re
-        raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
-        raw = raw.replace('```json','').replace('```','').strip()
-        start = raw.find('[')
-        end = raw.rfind(']')
-        if start != -1 and end != -1:
-            raw = raw[start:end+1]
         parsed = json.loads(raw)
         if not isinstance(parsed, list): parsed = [parsed]
-        # Handle both [{script, keywords}] and ["script string"] formats
         if parsed and isinstance(parsed[0], dict) and 'script' in parsed[0]:
-            scripts = [item['script'] for item in parsed]
-            all_keywords = [item.get('keywords', []) for item in parsed]
+            scripts = [item['script'] for item in parsed if isinstance(item, dict)]
+            all_keywords = [item.get('keywords', []) for item in parsed if isinstance(item, dict)]
         else:
             scripts = [str(item) for item in parsed]
             all_keywords = [[] for _ in scripts]
-    except:
-        scripts = [raw]
-        all_keywords = [[]]
-    # Filter out any scripts under 45 words (malformed outputs)
-    valid = [(s, k) for s, k in zip(scripts, all_keywords) if len(s.split()) >= 45]
+    except Exception as parse_err:
+        # Last resort: pull out individual script strings with regex
+        found = _re.findall(r'"script"\s*:\s*"((?:[^"\\]|\\.)*)"', raw)
+        kw_found = _re.findall(r'"keywords"\s*:\s*\[([^\]]*)\]', raw)
+        if found:
+            scripts = [s.replace('\\"','"').replace('\\n','\n') for s in found]
+            all_keywords = []
+            for kblock in kw_found:
+                kws = _re.findall(r'"([^"]+)"', kblock)
+                all_keywords.append(kws)
+            while len(all_keywords) < len(scripts):
+                all_keywords.append([])
+        else:
+            scripts = []
+            all_keywords = []
+
+    # Filter out any malformed/too-short items
+    valid = [(s, k) for s, k in zip(scripts, all_keywords) if s and len(s.split()) >= 40]
     if valid:
         scripts, all_keywords = zip(*valid)
         scripts, all_keywords = list(scripts), list(all_keywords)
+    elif not scripts:
+        scripts = ["Script generation failed — please try again."]
+        all_keywords = [[]]
+
     return {
         "scripts": scripts,
         "keywords": all_keywords,
