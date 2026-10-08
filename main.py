@@ -828,7 +828,7 @@ async def swap_outfit(
 
             # Clothing mask: person pixels below the top 32% of image height
             clothing_mask = person_alpha.copy()
-            cut = int(h * 0.32)
+            cut = int(h * 0.42)
             clothing_mask[:cut, :] = 0  # zero out head/face area
 
             # Slight dilation so no clothing edge is missed
@@ -847,8 +847,9 @@ async def swap_outfit(
             # ── 4. SDXL inpainting — only masked clothing pixels change ───
             set_job(jid, {"status": "running", "progress": 35, "stage": "inpainting"})
             inpaint_prompt = (
-                f"photorealistic portrait of a woman wearing {outfit_prompt}, "
-                f"professional photo, sharp focus, studio lighting, high quality"
+                f"woman wearing {outfit_prompt}, "
+                f"same body size, same pose, same proportions, same skin tone, "
+                f"photorealistic, sharp focus, studio lighting, high quality"
             )
             print(f"[{jid}] Inpainting: {inpaint_prompt[:80]}...")
 
@@ -858,7 +859,7 @@ async def swap_outfit(
                 "prompt":     inpaint_prompt,
                 "num_inference_steps": 28,
                 "guidance_scale": 3.5,
-                "strength":   0.99,
+                "strength":   0.80,
                 "num_images": 1,
                 "enable_safety_checker": False,
             })
