@@ -241,6 +241,9 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 .script-opt.on .script-opt-lbl{color:var(--p2);}
 .script-opt-txt{font-size:13px;line-height:1.6;color:var(--text);}
 .script-opt-wc{font-size:10px;color:var(--dim);margin-top:4px;}
+.script-kw-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.script-kw{font-size:10px;background:rgba(255,255,255,0.07);color:var(--accent);border:1px solid rgba(255,255,255,0.12);border-radius:99px;padding:2px 8px;cursor:pointer;}
+.script-kw:hover{background:rgba(255,255,255,0.13);}
 .script-box{background:rgba(0,0,0,.35);border:1px solid var(--border2);border-radius:9px;padding:13px;font-size:14px;line-height:1.8;color:var(--text);min-height:80px;outline:none;}
 .script-box:focus{border-color:var(--purple);}
 
@@ -2149,19 +2152,20 @@ async function generateScript(){
     fd.append('persona_name',S.persona?.name||'Victoria Sterling');
     fd.append('persona_age',S.persona?.age||'52');
     fd.append('niche',S.niche);fd.append('topic',topic);
-    if(S.persona?.skill)fd.append('skill_context',S.persona.skill.substring(0,2000));
+    if(S.persona?.skill)fd.append('skill_context',S.persona.skill.substring(0,4500));
     const r=await fetch(`${API()}/generate-script`,{method:'POST',body:fd});
     const d=await r.json();
     const scripts=d.scripts||[d.script];
-    window._scripts=scripts;S.script=scripts[0];
+    const keywords=d.keywords||scripts.map(()=>[]);
+    window._scripts=scripts;window._keywords=keywords;S.script=scripts[0];
     document.getElementById('scriptCard').style.display='block';
     document.getElementById('scriptBox').textContent=scripts[0];
     document.getElementById('wcBadge').textContent=scripts[0].split(' ').length+' words';
-    renderScriptOpts('scriptOptions',scripts,idx=>{
+    renderScriptOpts('scriptOptions',scripts,keywords,idx=>{
       S.script=scripts[idx];
       document.getElementById('scriptBox').textContent=scripts[idx];
       const wc=scripts[idx].split(' ').length;
-      const secs=Math.round(wc/2.8); // ~2.8 words/sec for measured British delivery
+      const secs=Math.round(wc/2.8);
       document.getElementById('wcBadge').textContent=wc+' words · ~'+secs+'s';
     });
     toast('5 scripts ready');
@@ -2169,14 +2173,20 @@ async function generateScript(){
   finally{btn.disabled=false;btn.textContent='✦ Generate scripts with AI';}
 }
 
-function renderScriptOpts(id,scripts,cb){
+function renderScriptOpts(id,scripts,keywords,cb){
+  // Support old 3-arg call: renderScriptOpts(id,scripts,cb)
+  if(typeof keywords==='function'){cb=keywords;keywords=[];}
   const el=document.getElementById(id);
-  el.innerHTML=scripts.map((s,i)=>`
-    <div class="script-opt ${i===0?'on':''}" onclick="selScript(this,'${id}',${i})">
+  el.innerHTML=scripts.map((s,i)=>{
+    const kws=(keywords&&keywords[i])||[];
+    const kwHtml=kws.length?`<div class="script-kw-row">${kws.map(k=>`<span class="script-kw">${k}</span>`).join('')}</div>`:'';
+    return `<div class="script-opt ${i===0?'on':''}" onclick="selScript(this,'${id}',${i})">
       <div class="script-opt-lbl">Option ${i+1}</div>
       <div class="script-opt-txt">${s}</div>
+      ${kwHtml}
       <div class="script-opt-wc">${s.split(' ').length} words</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   el._cb=cb;
 }
 function selScript(el,id,idx){
@@ -2194,11 +2204,11 @@ async function qsGenerate(){
     fd.append('niche',document.getElementById('qsNiche').value);
     fd.append('topic',topic);
     const r=await fetch(`${API()}/generate-script`,{method:'POST',body:fd});
-    const d=await r.json();const scripts=d.scripts||[d.script];
+    const d=await r.json();const scripts=d.scripts||[d.script];const kws=d.keywords||[];
     window._qsScripts=scripts;
     document.getElementById('qsResult').style.display='block';
     document.getElementById('qsScript').textContent=scripts[0];
-    renderScriptOpts('qsOptions',scripts,idx=>document.getElementById('qsScript').textContent=scripts[idx]);
+    renderScriptOpts('qsOptions',scripts,kws,idx=>document.getElementById('qsScript').textContent=scripts[idx]);
     toast('Scripts ready');
   }catch(e){toast('Error: '+e.message,'err');}
 }

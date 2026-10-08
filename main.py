@@ -116,6 +116,46 @@ Return ONLY valid JSON, nothing else. No markdown, no backticks."""}],
     except Exception as e:
         return JSONResponse({"error": "Parse failed: "+str(e), "raw": response.choices[0].message.content[:200]}, status_code=400)
 
+@app.post("/generate-topics")
+async def generate_topics(
+    persona_name: str = Form(...),
+    niche: str = Form(...),
+    skill_context: str = Form(""),
+    count: str = Form("8")
+):
+    from groq import Groq
+    client = Groq(api_key=GROQ_KEY)
+    skill_hint = skill_context[:600] if skill_context else ""
+    prompt = f"""Generate 8 specific, emotionally resonant content topic ideas for {persona_name}, a creator in the {niche} niche.
+
+{f'Persona context: {skill_hint}' if skill_hint else ''}
+
+Rules:
+- Each topic must be specific, not vague (e.g. "Why you go back to the person who hurt you" NOT "relationships")
+- Tap into something the audience is quietly struggling with right now
+- 6-14 words each, conversational phrasing, no hashtags
+- Make all 8 feel completely different from each other
+
+Return ONLY a JSON array of 8 topic strings. No explanation, no numbering.
+["Topic one", "Topic two", ...]"""
+    response = client.chat.completions.create(
+        model="qwen/qwen3.8-27b",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=350, temperature=0.97
+    )
+    raw = response.choices[0].message.content.strip()
+    try:
+        import re as _re
+        raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
+        raw = raw.replace('```json','').replace('```','').strip()
+        s = raw.find('['); e = raw.rfind(']')
+        if s != -1 and e != -1: raw = raw[s:e+1]
+        topics = json.loads(raw)
+        if not isinstance(topics, list): topics = []
+    except:
+        topics = []
+    return {"topics": topics}
+
 @app.get("/voices")
 async def get_voices():
     async with httpx.AsyncClient(timeout=15) as client:
@@ -164,7 +204,7 @@ async def generate_script(
             signoffs = sc[start:end].strip() if end > start else ""
 
     if has_vivienne_structure:
-        # Full Vivienne-spec prompt: 100-140 words, 5-part structure
+        # Full Vivienne-spec prompt: 60-65 words, 5-part structure, with keywords
         prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
 Topic: {topic}
 
@@ -174,22 +214,26 @@ Topic: {topic}
 
 CRITICAL RULES — follow exactly:
 1. Each script MUST be 60-65 words. Count carefully. Do not go over 65 or under 58.
-2. Follow the 5-part structure every time:
-   - Opening line: first name introduction ("I'm {persona_name}..." or "My name is {persona_name}...")
-   - The Claim: one clear, specific uncomfortable truth (15-25 words)
-   - The Unpacking: real mechanism explained with specificity (40-70 words)
-   - The Turn: reframe that changes how the viewer sees it (15-25 words)
-   - CTA: one of the sign-offs from the skill — earned, not tacked on
-3. Podcast confession style — essay-like, not a listicle
-4. Warm, direct, British cadence — measured, real, understated firmness
-5. No hashtags, no emojis, no stage directions, no filler
-6. Each of the 5 must cover a different angle of the topic with a different opening emotion
-7. Never shame the viewer. Validate before educating.
+2. Open with a SHORT identity hook (one of these patterns):
+   - "A woman who [behaviour]..." or "A man who [behaviour]..."
+   - "The woman who [does X]..." / "The man who [does X]..."
+   - Or: "I'm {persona_name} — and I need to say something."
+   Use the identity hook ("A woman/man who...") for at least 3 of the 5 scripts.
+3. Then flow into the 5-part structure:
+   - The Claim: one clear uncomfortable truth
+   - The Unpacking: the mechanism explained with specificity
+   - The Turn: a reframe that changes how the viewer sees it
+   - CTA: one earned sign-off (follow, save, share — not forced)
+4. Podcast confession style — essay-like, intimate, not a listicle
+5. Warm, direct, British cadence — measured, real, understated
+6. No hashtags, no emojis, no stage directions, no filler
+7. Each of the 5 must cover a different angle with a different emotional opening
+8. Never shame the viewer. Validate before educating.
 
 {signoffs}
 
-Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
-["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
+Return ONLY a JSON array of 5 objects. Each object has "script" (string) and "keywords" (array of 4-5 hashtag strings starting with #).
+[{{"script": "Script text here.", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
         max_tok = 900
     else:
         # Generic shorter scripts for other personas
@@ -201,14 +245,13 @@ STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable.
 
 Rules:
 - 45-80 words each (comfortable speaking pace)
-- Open with a different emotional hook each time
+- Open with a different emotional hook each time — try "A woman who..." or "A man who..." for at least 2
 - Warm, direct, British cadence
-- End with a quiet insight or gentle challenge
-- No hashtags, no emojis, no stage directions, no filler
-- Each must feel like a completely different moment
+- End with a quiet insight or gentle CTA
+- No stage directions, no filler
 
-Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no labels.
-["Script one here.", "Script two here.", "Script three here.", "Script four here.", "Script five here."]"""
+Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags).
+[{{"script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
         max_tok = 900  # qwen3.8-27b OTPM limit is 1000; keep under it
 
     response = client.chat.completions.create(
@@ -218,23 +261,37 @@ Return ONLY a JSON array of 5 script strings. No explanation, no markdown, no la
     )
     raw = response.choices[0].message.content.strip()
     try:
-        # Strip <think>...</think> reasoning blocks (Llama 3.3 / DeepSeek style)
+        # Strip <think>...</think> reasoning blocks
         import re as _re
         raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
         raw = raw.replace('```json','').replace('```','').strip()
-        # Find JSON array even if prefixed with prose
         start = raw.find('[')
         end = raw.rfind(']')
         if start != -1 and end != -1:
             raw = raw[start:end+1]
-        scripts = json.loads(raw)
-        if not isinstance(scripts, list):
-            scripts = [scripts]
+        parsed = json.loads(raw)
+        if not isinstance(parsed, list): parsed = [parsed]
+        # Handle both [{script, keywords}] and ["script string"] formats
+        if parsed and isinstance(parsed[0], dict) and 'script' in parsed[0]:
+            scripts = [item['script'] for item in parsed]
+            all_keywords = [item.get('keywords', []) for item in parsed]
+        else:
+            scripts = [str(item) for item in parsed]
+            all_keywords = [[] for _ in scripts]
     except:
         scripts = [raw]
-    # Filter out any scripts under 50 words (malformed outputs)
-    scripts = [s for s in scripts if len(s.split()) >= 50] or scripts
-    return {"scripts": scripts, "script": scripts[0] if scripts else "", "words": len(scripts[0].split()) if scripts else 0}
+        all_keywords = [[]]
+    # Filter out any scripts under 45 words (malformed outputs)
+    valid = [(s, k) for s, k in zip(scripts, all_keywords) if len(s.split()) >= 45]
+    if valid:
+        scripts, all_keywords = zip(*valid)
+        scripts, all_keywords = list(scripts), list(all_keywords)
+    return {
+        "scripts": scripts,
+        "keywords": all_keywords,
+        "script": scripts[0] if scripts else "",
+        "words": len(scripts[0].split()) if scripts else 0
+    }
 
 @app.post("/generate-voice")
 async def generate_voice(
