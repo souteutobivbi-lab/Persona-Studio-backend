@@ -266,7 +266,7 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tok, temperature=0.88
     )
-        raw = response.choices[0].message.content.strip()
+    raw = response.choices[0].message.content.strip()
     import re as _re
     # Strip <think>...</think> reasoning blocks
     raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
