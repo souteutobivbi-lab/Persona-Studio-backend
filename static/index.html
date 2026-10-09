@@ -3514,7 +3514,6 @@ async function startGen(){
             const plabel=document.getElementById('portraitDownloadLabel');
             if(prow&&pthumb){
               const objUrl=URL.createObjectURL(S.portraitFile);
-              const objUrl=URL.createObjectURL(S.portraitFile);
               pthumb.src=objUrl;
               pthumb.onload = () => URL.revokeObjectURL(objUrl);
               prow.style.display='flex';
