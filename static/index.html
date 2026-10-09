@@ -1938,7 +1938,7 @@ async function refreshTopicSuggestions(){
     const fd=new FormData();
     fd.append('persona_name',name);
     fd.append('niche',niche);
-    fd.append('skill_context',skill.substring(0,1500));
+    fd.append('skill_context',skill.substring(0,4500));
     fd.append('count','8'); // ask for 8, show 5-6 best
     const r=await fetch(`${API()}/generate-topics`,{method:'POST',body:fd});
     const d=await r.json();
@@ -1985,8 +1985,8 @@ function parseSkillForUI(text, updateTopic=true){
     relationships:['niche: relationships','relationships · '],
     mindset:['niche: mindset','mindset · ','personal development'],
     'luxury lifestyle':['niche: luxury','luxury lifestyle'],
-    motivation:['niche: motivation','motivation · ','ceo','founder','entrepreneurship','serial tech founder','proptech','building in public'],
     entrepreneurship:['niche: entrepreneurship','tech founder','startup','serial founder']
+    motivation:['niche: motivation','motivation · ','ceo','founder','entrepreneurship','serial tech founder','proptech','building in public'],
   };
   for(const [niche,kws] of Object.entries(nicheMap)){
     if(kws.some(kw=>text.toLowerCase().includes(kw))){
