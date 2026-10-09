@@ -608,6 +608,8 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 <div class="niche-chip" onclick="pickNiche(this,'finance')">📈 Finance</div>
                 <div class="niche-chip" onclick="pickNiche(this,'mindset')">🧠 Mindset</div>
                 <div class="niche-chip" onclick="pickNiche(this,'luxury lifestyle')">✨ Luxury</div>
+                <div class="niche-chip" onclick="pickNiche(this,'motivation')">🎯 Motivation</div>
+                <div class="niche-chip" onclick="pickNiche(this,'entrepreneurship')">🚀 Entrepreneurship</div>
               </div>
             </div>
             <div class="card">
@@ -1981,7 +1983,9 @@ function parseSkillForUI(text, updateTopic=true){
     health:['niche: health','health & wellness','health · '],
     relationships:['niche: relationships','relationships · '],
     mindset:['niche: mindset','mindset · ','personal development'],
-    'luxury lifestyle':['niche: luxury','luxury lifestyle']
+    'luxury lifestyle':['niche: luxury','luxury lifestyle'],
+    motivation:['niche: motivation','motivation · ','ceo','founder','entrepreneurship','serial tech founder','proptech','building in public'],
+    entrepreneurship:['niche: entrepreneurship','tech founder','startup','serial founder']
   };
   for(const [niche,kws] of Object.entries(nicheMap)){
     if(kws.some(kw=>text.toLowerCase().includes(kw))){
@@ -1994,7 +1998,7 @@ function parseSkillForUI(text, updateTopic=true){
   // ── Topic suggestions — pull ONLY from specific sections ─────
   const suggestions=[];
   let inGoodSection=false;
-  const goodSections=['HOOKS THAT WORK','HOOKS THAT STOP','CONTENT PILLARS','EXAMPLE SCRIPTS'];
+  const goodSections=['HOOKS THAT WORK','HOOKS THAT STOP','CONTENT PILLARS','EXAMPLE SCRIPTS','TOPICS BANK','FUNDING & MONEY','BUILDING & PRODUCT','MENTAL GAME','WINS & LOSSES','INDUSTRY & VISION'];
   const badSections=['VOCABULARY TO USE','VOCABULARY TO AVOID','SIGNATURE ANCHOR','OUTFIT STYLE',
     'APPEARANCE','SIGN-OFF','PLATFORM','TARGET AUDIENCE','VOICE & TONE','VOICE &amp;'];
 
