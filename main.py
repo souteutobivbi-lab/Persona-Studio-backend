@@ -55,6 +55,11 @@ def set_job(jid, data):
     jobs[jid] = data
     save_jobs(jobs)
 
+
+@app.get("/robots.txt")
+async def robots():
+    return HTMLResponse("User-agent: *\nDisallow: /\n", media_type="text/plain")
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "3.0", "host": "railway"}
@@ -63,7 +68,9 @@ async def health():
 async def root():
     p = Path(__file__).parent / "static" / "index.html"
     if p.exists():
-        return HTMLResponse(p.read_text())
+    content = p.read_text()
+    content = content.replace('<head>', '<head><meta name="robots" content="noindex,nofollow">')
+    return HTMLResponse(content)
     return {"api": "Persona Studio v3.0"}
 
 from fastapi.staticfiles import StaticFiles
