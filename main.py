@@ -1390,3 +1390,9 @@ async def fix_lora_registry():
                 updated.append({"persona_id": persona_id, "url": permanent_url})
         save_lora_registry(LORA_REGISTRY)
     return {"updated": updated}
+
+@app.get("/lora-debug")
+async def lora_debug():
+    LORA_DIR = Path("/app/loras")
+    files = [f.name for f in LORA_DIR.glob("*.safetensors")] if LORA_DIR.exists() else []
+    return {"registry": LORA_REGISTRY, "files_on_disk": files}
