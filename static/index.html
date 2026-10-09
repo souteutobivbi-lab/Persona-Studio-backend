@@ -1696,14 +1696,41 @@ function loraPersonaChanged(){
   if(!pid) return;
   const p = S.personas.find(x => x.name === pid);
   if(!p) return;
-  // Set ID.personaName so all downstream LoRA functions know which persona
+
+  // Update Stage 1 master portrait fields to match selected persona
+  const nameEl = document.getElementById('ppName');
+  const ageEl  = document.getElementById('ppAge');
+  const appEl  = document.getElementById('ppAppearance');
+  if(nameEl) nameEl.value = p.name || '';
+  if(ageEl)  ageEl.value  = p.age  || '';
+  if(appEl)  appEl.value  = p.appearance || '';
+
+  // Set ID state from selected persona (mirrors initPortraitsPanel logic)
   ID.personaName = p.name;
-  // Auto-fill trigger word fields with persona name slug
+  const cleanUrl = u => {
+    if(!u) return null;
+    const m = u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/);
+    return m ? m[1] : null;
+  };
+  if(p.savedPortraits?.length){
+    const cleaned = p.savedPortraits.map(cleanUrl).filter(Boolean);
+    ID.allUrls   = cleaned;
+    ID.masterUrl = cleanUrl(p.portrait) || cleaned[0] || null;
+    ID.angleUrls = cleaned.slice(1);
+  } else {
+    ID.allUrls   = [];
+    ID.masterUrl = null;
+    ID.angleUrls = [];
+  }
+  ID.loraUrl     = p.loraUrl || null;
+  ID.triggerWord = p.triggerWord || p.loraTriggerWord || null;
+
+  // Auto-fill trigger word fields
   const slug = p.name.toLowerCase().replace(/\s+/g,'_') + '_v1';
   const tw1 = document.getElementById('loraTriggerWord');
   const tw2 = document.getElementById('bLoraTriggerWord');
-  if(tw1 && !tw1.value) tw1.value = p.loraUrl ? (p.loraTriggerWord||slug) : slug;
-  if(tw2 && !tw2.value) tw2.value = p.loraUrl ? (p.loraTriggerWord||slug) : slug;
+  if(tw1) tw1.value = p.triggerWord || p.loraTriggerWord || slug;
+  if(tw2) tw2.value = p.triggerWord || p.loraTriggerWord || slug;
 }
 
 // ── PERSONA SIDEBAR ────────────────────────────────────
