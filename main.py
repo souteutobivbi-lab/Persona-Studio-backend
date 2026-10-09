@@ -187,6 +187,7 @@ async def generate_script(
 
     # Detect Vivienne-style skill vs generic ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â look for structure markers
     has_vivienne_structure = False
+    has_ceo_structure = niche.lower() in ['motivation','entrepreneurship'] and skill_context and any(k in (skill_context or '') for k in ['CEO','Founder','NUTLIP','HOMIVIS','MEDIAHOUZ','Serial Tech'])
     script_examples = ""
     structure_rules = ""
     if skill_context:
@@ -210,7 +211,8 @@ async def generate_script(
             end = sc.find("ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â", start + 20)
             signoffs = sc[start:end].strip() if end > start else ""
 
-    if has_vivienne_structure:
+    if has_ceo_structure:
+        prompt = f"""You are writing 5 short-form video scripts for {persona_name}, a serial tech founder and CEO building multiple tech companies in the UK.\nTopic: {topic}\n\nVOICE: First person throughout. Speaking from inside the build, not above it.\n\nHOOK FORMAT - open each script with ONE of these (rotate, never repeat the same type twice):\n- A specific number or fact: e.g. "Three investors in one week told me the same thing."\n- A specific moment: e.g. "The day we pushed live, nothing worked."\n- A direct statement: e.g. "I did not start this because I saw a gap. I started it because I was frustrated."\n- A confession: e.g. "I almost shut everything down in month eight."\n- A question: e.g. "What do you do the morning after a rejection?"\nNever open with A man who or A woman who.\n\nSTRUCTURE after the hook:\n- Stay specific - name the company, the problem, the day, the feeling\n- No abstract lessons. No motivational language. No preaching.\n- End with a grounded observation and one earned sign-off:\n  "Follow - I document this here." / "More tomorrow." / "This is what building looks like."\n\nLENGTH: 100-140 words. Paragraph style. No lists. No stage directions.\nTONE: Someone telling you what actually happened. Dry, honest, specific.\n\nReturn ONLY a JSON array of 5 objects:\n[{{"title": "Short searchable title", "script": "Script text", "keywords": ["#buildinpublic"]}}]"""\n        max_tok = 1500\n        model = "qwen/qwen3.8-27b"\n    elif has_vivienne_structure:
         # Vivienne-spec: "A woman/man who..." hook format, 100-140 words, paragraph style
         prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
 Topic: {topic}
