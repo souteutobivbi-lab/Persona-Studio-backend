@@ -1139,7 +1139,7 @@ async def swap_outfit(
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
                     f"wearing {outfit_prompt}, "
-                    f"seated sideways in cream upholstered podcast armchair, body angled 45 degrees from camera, legs crossed at knee, talking to someone off-camera to the left, black podcast microphone on boom arm in foreground, large tropical palm plant behind, warm grey studio wall, "
+                    f"seated sideways in cream upholstered podcast chair, body angled 45 degrees from camera, legs crossed at knee, gaze directed off-camera to the left mid-conversation, black podcast microphone on boom arm in foreground right side, large tropical palm plant behind left shoulder, warm grey studio wall background, full-figured curvy hourglass body, thick thighs, natural weight and softness, substantial physical presence, "
                     f"bright professional studio lighting, key light and fill light, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field bokeh background, "
                     f"photorealistic, 8k, high detail, professional editorial portrait photography"
                 )
@@ -1148,7 +1148,7 @@ async def swap_outfit(
                     "prompt": portrait_prompt,
                     "loras": [{"path": fresh_lora_url, "scale": 1.0}],
                     "image_url": portrait_ref_url,
-                    "strength": 0.65,
+                    "strength": 0.55,
                     "num_inference_steps": 40,
                     "guidance_scale": 3.5,
                     "num_images": 1,
