@@ -1385,7 +1385,7 @@ async def fix_lora_registry():
         permanent_url = fal_client.upload_file(str(lora_path))
         # Find matching persona in registry
         for persona_id, entry in LORA_REGISTRY.items():
-            if slug in entry.get("local", "") or slug == persona_id.lower().replace(" ", "_"):
+            if slug in entry.get("local", "") or slug in persona_id.lower().replace(" ", "_") or persona_id.lower().replace(" ", "_") in slug:
                 entry["fal_url"] = permanent_url
                 updated.append({"persona_id": persona_id, "url": permanent_url})
         save_lora_registry(LORA_REGISTRY)
