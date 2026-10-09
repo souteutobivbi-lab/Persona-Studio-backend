@@ -622,6 +622,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <button class="gen-btn" id="genScriptBtn" onclick="generateScript()">✦ Generate scripts with AI</button>
             <div id="scriptCard" style="display:none;" class="card">
               <div class="card-hd">Choose a script <span class="badge" id="wcBadge">5 options · ~20 seconds each</span></div>
+              <input type="search" id="scriptSearch" class="inp" placeholder="Search scripts..." oninput="filterScripts()" style="margin-bottom:8px;">
               <div id="scriptOptions"></div>
               <div class="card-hd" style="margin-top:12px;">Edit</div>
               <div class="script-box" id="scriptBox" contenteditable="true"></div>
@@ -2244,21 +2245,34 @@ async function generateScript(){
   finally{btn.disabled=false;btn.textContent='✦ Generate scripts with AI';}
 }
 
-function renderScriptOpts(id,scripts,keywords,cb){
+function filterScripts(){
+  const q=document.getElementById('scriptSearch').value.toLowerCase();
+  const el=document.getElementById('scriptOptions');
+  el.querySelectorAll('.script-opt').forEach((d,i)=>{
+    const title=(el._titles&&el._titles[i]||'').toLowerCase();
+    const text=(el._scripts&&el._scripts[i]||'').toLowerCase();
+    d.style.display=(!q||title.includes(q)||text.includes(q))?'':'none';
+  });
+}
+function renderScriptOpts(id,scripts,keywords,cb,titles){
   // Support old 3-arg call: renderScriptOpts(id,scripts,cb)
-  if(typeof keywords==='function'){cb=keywords;keywords=[];}
+  if(typeof keywords==='function'){cb=keywords;keywords=[];titles=[];}
   const el=document.getElementById(id);
   el.innerHTML=scripts.map((s,i)=>{
     const kws=(keywords&&keywords[i])||[];
+    const ttl=(titles&&titles[i])||`Option ${i+1}`;
     const kwHtml=kws.length?`<div class="script-kw-row">${kws.map(k=>`<span class="script-kw">${k}</span>`).join('')}</div>`:'';
     return `<div class="script-opt ${i===0?'on':''}" onclick="selScript(this,'${id}',${i})">
-      <div class="script-opt-lbl">Option ${i+1}</div>
+      <div class="script-opt-lbl">${ttl}</div>
       <div class="script-opt-txt">${s}</div>
       ${kwHtml}
       <div class="script-opt-wc">${s.split(' ').length} words</div>
     </div>`;
   }).join('');
   el._cb=cb;
+  el._scripts=scripts;
+  el._keywords=keywords;
+  el._titles=titles||[];
 }
 function selScript(el,id,idx){
   document.querySelectorAll(`#${id} .script-opt`).forEach(d=>d.classList.remove('on'));
@@ -2275,7 +2289,7 @@ async function qsGenerate(){
     fd.append('niche',document.getElementById('qsNiche').value);
     fd.append('topic',topic);
     const r=await fetch(`${API()}/generate-script`,{method:'POST',body:fd});
-    const d=await r.json();const scripts=d.scripts||[d.script];const kws=d.keywords||[];
+    const d=await r.json();const scripts=d.scripts||[d.script];const kws=d.keywords||[];;const titles=d.titles||[];
     window._qsScripts=scripts;
     document.getElementById('qsResult').style.display='block';
     document.getElementById('qsScript').textContent=scripts[0];

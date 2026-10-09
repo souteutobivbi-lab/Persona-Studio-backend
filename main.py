@@ -238,7 +238,7 @@ Return ONLY a JSON array of 5 objects. Each object has:
 - "script": the full script text (string)
 - "keywords": array of 4-5 hashtag strings starting with # (relevant to the script content)
 
-[{{"script": "A woman who...", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
+[{{"title": "Short searchable title", "script": "A woman who...", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
         max_tok = 1500
         model = "qwen/qwen3.8-27b"
     else:
@@ -257,7 +257,7 @@ Rules:
 - No emojis, no stage directions, no filler
 
 Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
-[{{"script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
+[{{"title": "Short searchable title", "script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
         max_tok = 1500
         model = "qwen/qwen3.8-27b"
 
@@ -287,6 +287,7 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
         if not isinstance(parsed, list): parsed = [parsed]
         if parsed and isinstance(parsed[0], dict) and 'script' in parsed[0]:
             scripts = [item['script'] for item in parsed if isinstance(item, dict)]
+            all_titles = [item.get('title', f'Script {j+1}') for j, item in enumerate(parsed) if isinstance(item, dict)]
             all_keywords = [item.get('keywords', []) for item in parsed if isinstance(item, dict)]
         else:
             scripts = [str(item) for item in parsed]
@@ -308,15 +309,18 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
             all_keywords = []
 
     # Filter out any malformed/too-short items
-    valid = [(s, k) for s, k in zip(scripts, all_keywords) if s and len(s.split()) >= 70]
+    valid = [(s, k, t) for s, k, t in zip(scripts, all_keywords, all_titles) if s and len(s.split()) >= 70]
     if valid:
-        scripts, all_keywords = zip(*valid)
-        scripts, all_keywords = list(scripts), list(all_keywords)
+        scripts, all_keywords, all_titles = zip(*valid)
+        scripts, all_keywords, all_titles = list(scripts), list(all_keywords), list(all_titles)
+    if not 'all_titles' in dir():
+        all_titles = [f'Script {j+1}' for j in range(len(scripts))]
     elif not scripts:
         scripts = ["Script generation failed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â please try again."]
         all_keywords = [[]]
 
     return {
+        "titles": all_titles if "all_titles" in dir() else [f"Script {j+1}" for j in range(len(scripts))],
         "scripts": scripts,
         "keywords": all_keywords,
         "script": scripts[0] if scripts else "",
