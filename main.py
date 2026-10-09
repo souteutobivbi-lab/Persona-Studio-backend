@@ -1139,9 +1139,9 @@ async def swap_outfit(
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
                     f"wearing {outfit_prompt}, "
-                    f"same pose, same background, podcast microphone on boom arm visible, same setting and props as reference image, full-figured curvy body, natural body shape, "
-                    f"professional portrait photography, soft studio lighting, "
-                    f"photorealistic, 8k, high detail"
+                    f"seated sideways in cream upholstered podcast armchair, body angled 45 degrees from camera, legs crossed at knee, talking to someone off-camera to the left, black podcast microphone on boom arm in foreground, large tropical palm plant behind, warm grey studio wall, "
+                    f"bright professional studio lighting, key light and fill light, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field bokeh background, "
+                    f"photorealistic, 8k, high detail, professional editorial portrait photography"
                 )
                 print(f"[{jid}] LoRA pathway ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â prompt: {portrait_prompt[:120]}...")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
