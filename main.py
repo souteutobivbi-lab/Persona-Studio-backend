@@ -143,9 +143,10 @@ Return ONLY a JSON array of 8 topic strings. No explanation, no numbering.
         messages=[{"role": "user", "content": prompt}],
         max_tokens=350, temperature=0.97
     )
-    raw = response.choices[0].message.content.strip()
-    try:
-        import re as _re
+        raw = response.choices[0].message.content.strip()
+    print(f"[DEBUG RAW MODEL OUTPUT]: {raw[:500]}")
+    import re as _re
+    # Strip <think>...</think> reasoning blocks
         raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
         raw = raw.replace('```json','').replace('```','').strip()
         s = raw.find('['); e = raw.rfind(']')
@@ -266,7 +267,8 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tok, temperature=0.88
     )
-    raw = response.choices[0].message.content.strip()
+        raw = response.choices[0].message.content.strip()
+    print(f"[DEBUG RAW MODEL OUTPUT]: {raw[:500]}")
     import re as _re
     # Strip <think>...</think> reasoning blocks
     raw = _re.sub(r'<think>.*?</think>', '', raw, flags=_re.DOTALL).strip()
