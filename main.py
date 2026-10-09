@@ -1139,7 +1139,7 @@ async def swap_outfit(
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
                     f"wearing {outfit_prompt}, "
-                    f"same pose, same background, same props and accessories as reference image, "
+                    f"same pose, same background, podcast microphone on boom arm visible, same setting and props as reference image, full-figured curvy body, natural body shape, "
                     f"professional portrait photography, soft studio lighting, "
                     f"photorealistic, 8k, high detail"
                 )
@@ -1148,8 +1148,8 @@ async def swap_outfit(
                     "prompt": portrait_prompt,
                     "loras": [{"path": fresh_lora_url, "scale": 1.0}],
                     "image_url": portrait_ref_url,
-                    "strength": 0.85,
-                    "num_inference_steps": 35,
+                    "strength": 0.65,
+                    "num_inference_steps": 40,
                     "guidance_scale": 3.5,
                     "num_images": 1,
                     "image_size": {"width": 768, "height": 1024},
@@ -1209,7 +1209,7 @@ async def swap_outfit(
             print(f"[{jid}] Generating garment image: {garment_gen_prompt[:80]}...")
             garment_result = _fal.subscribe("fal-ai/flux/dev", arguments={
                 "prompt": garment_gen_prompt,
-                "num_inference_steps": 35,
+                "num_inference_steps": 40,
                 "guidance_scale": 4.5,
                 "num_images": 1,
                 "image_size": {"width": 768, "height": 1024},
