@@ -1985,8 +1985,8 @@ function parseSkillForUI(text, updateTopic=true){
     relationships:['niche: relationships','relationships · '],
     mindset:['niche: mindset','mindset · ','personal development'],
     'luxury lifestyle':['niche: luxury','luxury lifestyle'],
-    entrepreneurship:['niche: entrepreneurship','tech founder','startup','serial founder']
-    motivation:['niche: motivation','motivation · ','ceo','founder','entrepreneurship','serial tech founder','proptech','building in public'],
+    entrepreneurship:['niche: entrepreneurship','tech founder','startup','serial founder'],
+    motivation:['niche: motivation','motivation · ','ceo','founder','serial tech founder','proptech','building in public']
   };
   for(const [niche,kws] of Object.entries(nicheMap)){
     if(kws.some(kw=>text.toLowerCase().includes(kw))){
