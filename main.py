@@ -171,8 +171,13 @@ async def get_voices():
     if r.status_code != 200:
         return JSONResponse({"error": "ElevenLabs error"}, status_code=400)
     voices = r.json().get("voices", [])
-    return [{"id": v["voice_id"], "name": v["name"],
-             "description": ", ".join(v.get("labels", {}).values())} for v in voices]
+    custom_voice = {"id": "mGzBE5uXRa6uy9ilKVOD", "name": "Soute - CEO", "description": "Custom cloned voice", "is_cloned": True}
+    vlist = [{"id": v["voice_id"], "name": v["name"],
+              "description": ", ".join(v.get("labels", {}).values()),
+              "is_cloned": v.get("category") == "cloned"} for v in voices]
+    if not any(v["id"] == "mGzBE5uXRa6uy9ilKVOD" for v in vlist):
+        vlist.insert(0, custom_voice)
+    return sorted(vlist, key=lambda x: (0 if x["is_cloned"] else 1))
 
 @app.post("/generate-script")
 async def generate_script(
@@ -217,12 +222,12 @@ async def generate_script(
 
     if has_ceo_structure:
         prompt = (
-            f"You are writing 5 short-form video scripts for {persona_name},"
-            f" a serial tech founder and CEO building multiple tech companies in the UK.\n"
+            f"You are writing 5 short-form video scripts for {persona_name}, "
+            "a serial tech founder and CEO building multiple tech companies in the UK.\n"
             f"Topic: {topic}\n\n"
             "VOICE: First person throughout. Speaking from inside the build, not above it.\n\n"
             "HOOK FORMAT - open each script with ONE of these (rotate, never repeat):\n"
-            "- A specific number or fact: e.g. \"Three investors in one week told me the same thing.\"\n"
+            "- A specific number or fact: e.g. \"Three investors told me the same thing in one week.\"\n"
             "- A specific moment: e.g. \"The day we pushed live, nothing worked.\"\n"
             "- A direct statement: e.g. \"I did not start this because I saw a gap.\"\n"
             "- A confession: e.g. \"I almost shut everything down in month eight.\"\n"
@@ -231,12 +236,11 @@ async def generate_script(
             "STRUCTURE after the hook:\n"
             "- Stay specific - name the company, the problem, the day, the feeling\n"
             "- No abstract lessons. No motivational language. No preaching.\n"
-            "- End with a grounded observation and one earned sign-off:\n"
-            "  Follow - I document this here. / More tomorrow. / This is what building looks like.\n\n"
+            "- End with one earned sign-off: \"Follow - I document this here.\" / \"More tomorrow.\" / \"This is what building looks like.\"\n\n"
             "LENGTH: 100-140 words. Paragraph style. No lists. No stage directions.\n"
-            "TONE: Dry, honest, specific. Someone telling you what actually happened.\n\n"
+            "TONE: Someone telling you what actually happened. Dry, honest, specific.\n\n"
             "Return ONLY a JSON array of 5 objects:\n"
-            "[{\"title\": \"Short title\", \"script\": \"Script text\", \"keywords\": [\"#buildinpublic\"]}]"
+            '[{"title": "Short searchable title", "script": "Script text", "keywords": ["#buildinpublic"]}]'
         )
         max_tok = 1500
         model = "qwen/qwen3.8-27b"
