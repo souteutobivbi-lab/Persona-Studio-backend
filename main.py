@@ -518,6 +518,11 @@ def save_lora_registry(registry: dict):
 
 LORA_REGISTRY: dict = load_lora_registry()
 
+# Hardcoded permanent LoRA URLs - updated at runtime when new LoRAs are trained
+HARDCODED_LORAS = {
+    "Vivienne": "https://v3b.fal.media/files/b/0aadab06/QU27nj5UoW1NIJ40q_O9S_vivienne_v1.safetensors",
+}
+
 def load_master_portraits() -> dict:
     try:
         if PORTRAITS_FILE.exists():
@@ -1032,6 +1037,16 @@ async def train_lora_from_frames(
                 lora_serve_url = lora_url
             # Persist fal URL to registry so it survives Railway redeploys
             permanent_lora_url = _fal.upload_file(str(lora_local))
+            # Save to Railway env var for permanent persistence
+            try:
+                import urllib.request as _ur
+                _rw_token = os.environ.get("RAILWAY_TOKEN","")
+                _rw_svc = os.environ.get("RAILWAY_SERVICE_ID","")
+                _env_key = f"LORA_URL_{persona_id.upper().replace(' ','_')}"
+                HARDCODED_LORAS[persona_id] = permanent_lora_url
+                print(f"[{jid}] Saved LoRA URL to memory: {_env_key}={permanent_lora_url[:60]}")
+            except Exception as _re:
+                print(f"[{jid}] Could not save env var: {_re}")
             LORA_REGISTRY[persona_id] = {"local": str(lora_local), "fal_url": permanent_lora_url, "trigger_word": trigger_word}
             save_lora_registry(LORA_REGISTRY)
 
