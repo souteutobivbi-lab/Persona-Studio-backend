@@ -1343,3 +1343,15 @@ async def proxy_image(url: str):
             return Response(content=r.content, media_type=content_type)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=502)
+
+@app.post("/debug-model")
+async def debug_model():
+    from groq import Groq
+    client = Groq(api_key=GROQ_KEY)
+    resp = client.chat.completions.create(
+        model="openai/gpt-oss-20b",
+        messages=[{"role": "user", "content": 'Return this exact JSON: [{"script": "A woman who tests this endpoint.", "keywords": ["#test"]}]'}],
+        max_tokens=200, temperature=0.1
+    )
+    raw = resp.choices[0].message.content.strip()
+    return {"raw": raw, "length": len(raw)}
