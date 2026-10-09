@@ -103,7 +103,7 @@ Skill file:
 Extract these fields (leave empty string if not found):
 - name: persona's full name
 - age: persona's age as a number string
-- role: their role and niche (e.g. "Transformation Authority ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Wealth")
+- role: their role and niche (e.g. "Transformation Authority ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ -  Wealth")
 - niche: primary niche keyword (e.g. "wealth", "property", "interior design", "health", "relationships", "mindset", "luxury lifestyle")
 - appearance: physical description for image generation
 - catchphrase: their signature phrase
@@ -258,7 +258,8 @@ STYLE: Podcast confession ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒ
 
 Rules:
 - 100-130 words each
-- Open with "A woman who..." or "A man who..." identity hook for at least 3 of the 5
+- For motivation or entrepreneurship niche: write entirely in FIRST PERSON ("I", not "you" or "a person who"). Speaker shares their own experience directly.
+- For all other niches: Open with "A woman who..." or "A man who..." identity hook for at least 3 of the 5
 - Warm, direct, British cadence
 - End with an earned CTA (Follow / Save this / More tomorrow)
 - No emojis, no stage directions, no filler
@@ -333,6 +334,28 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
         "script": scripts[0] if scripts else "",
         "words": len(scripts[0].split()) if scripts else 0
     }
+
+
+@app.post("/clone-voice")
+async def clone_voice(
+    audio: UploadFile = File(...),
+    name: str = Form("Cloned Voice"),
+    persona_name: str = Form("")
+):
+    audio_bytes = await audio.read()
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.post(
+            "https://api.elevenlabs.io/v1/voices/add",
+            headers={"xi-api-key": ELEVENLABS_KEY},
+            data={"name": name, "description": f"Cloned voice for {persona_name or name}"},
+            files={"files": (audio.filename, audio_bytes, audio.content_type or "audio/mpeg")}
+        )
+    if r.status_code != 200:
+        return JSONResponse({"error": f"ElevenLabs error: {r.text[:200]}"}, status_code=400)
+    voice_id = r.json().get("voice_id")
+    if not voice_id:
+        return JSONResponse({"error": "No voice_id returned"}, status_code=400)
+    return {"voice_id": voice_id, "name": name, "status": "cloned"}
 
 @app.post("/generate-voice")
 async def generate_voice(

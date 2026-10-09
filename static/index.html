@@ -1909,6 +1909,7 @@ function goStep(n){
       parseSkillForUI(p.skill, true);
       // Also ensure skill name shows
       document.getElementById('skillName').textContent='✓ '+p.skillName;
+    refreshTopicSuggestions();
     }
     // Always regenerate topic suggestions — fresh 5 every time
     refreshTopicSuggestions();
