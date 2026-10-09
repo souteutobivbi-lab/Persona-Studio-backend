@@ -377,13 +377,13 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
 
     # Podcast set ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fixed every time, never varies
     podcast_set = (
-        "seated relaxed in a cream upholstered podcast armchair, legs crossed at knee, "
+        "seated sideways in a cream upholstered podcast armchair, body angled 45 degrees away from camera, legs crossed at knee, turned slightly to speak to someone off-camera to the left, natural conversational pose, "
         "hands resting naturally in lap, upper body and arms fully visible in frame, "
         "large black podcast microphone on boom arm positioned in front slightly to right, "
         "background: soft warm grey textured wall, "
         "large lush tropical areca palm plant with long green fronds behind right shoulder, "
-        "warm amber studio lighting, shallow depth of field, bokeh background, "
-        "camera angle slightly below eye level, subject looking slightly downward toward lens"
+        "bright professional studio lighting, key light and fill light setup, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field, bokeh background, "
+        "camera angle at chest level, tight medium shot framing head to mid-torso, subject looking slightly off-camera to the left as if in conversation"
     )
 
     # Technical photography layer ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â locks render quality
