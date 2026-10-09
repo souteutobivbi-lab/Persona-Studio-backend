@@ -1095,7 +1095,20 @@ async def swap_outfit(
                         local_path.write_bytes(dl.content)
                         print(f"[{jid}] LoRA restored from registry")
                     else:
-                        raise ValueError(f"LoRA not found locally and no registry entry for {persona_id} -- please retrain")
+                        # Hardcoded permanent fal URLs as last resort
+                        HARDCODED_LORAS = {
+                            "Vivienne": "https://v3b.fal.media/files/b/0aadab06/QU27nj5UoW1NIJ40q_O9S_vivienne_v1.safetensors",
+                        }
+                        hardcoded_url = HARDCODED_LORAS.get(persona_id)
+                        if hardcoded_url:
+                            print(f"[{jid}] Using hardcoded permanent LoRA URL for {persona_id}")
+                            dl = _req.get(hardcoded_url, timeout=180)
+                            dl.raise_for_status()
+                            local_path.parent.mkdir(parents=True, exist_ok=True)
+                            local_path.write_bytes(dl.content)
+                            print(f"[{jid}] LoRA restored from hardcoded URL")
+                        else:
+                            raise ValueError(f"LoRA not found locally and no registry entry for {persona_id} -- please retrain")
                     print(f"[{jid}] Using locally stored LoRA: {local_path}")
                     import shutil
                     shutil.copy(str(local_path), str(lora_tmp))
