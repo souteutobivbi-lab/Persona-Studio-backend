@@ -645,6 +645,19 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 <div id="voicePreviewLabel" style="font-size:11px;color:var(--dim);margin-top:4px;text-align:center;"></div>
               </div>
             </div>
+
+            <div class="card" id="voiceCloneCard" style="margin-top:12px;">
+              <div class="card-hd">Clone a voice <span class="badge">Upload audio to train</span></div>
+              <div style="font-size:12px;color:var(--dim);margin-bottom:10px;">Upload a clear audio sample (1-5 mins, MP3 or WAV). ElevenLabs will clone it and lock it to this persona.</div>
+              <input type="file" id="voiceCloneFile" accept="audio/*" style="display:none;" onchange="handleVoiceCloneFile(this)">
+              <div id="voiceCloneDropzone" onclick="document.getElementById('voiceCloneFile').click()"
+                style="border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--dim);font-size:13px;margin-bottom:10px;">
+                🎙 Click to upload audio sample
+              </div>
+              <input type="text" id="voiceCloneName" class="inp" placeholder="Voice name (e.g. Vivienne)" style="margin-bottom:8px;">
+              <button class="btn primary" id="voiceCloneBtn" onclick="cloneVoice()" style="width:100%;">✦ Clone voice</button>
+              <div id="voiceCloneStatus" style="font-size:12px;margin-top:8px;color:var(--dim);display:none;"></div>
+            </div>
             <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
             <div id="voiceResult" style="display:none;">
               <div class="card"><div class="card-hd">Preview</div><audio controls style="width:100%;" id="audioEl"></audio></div>
@@ -2300,6 +2313,42 @@ async function qsGenerate(){
 function useScript(){S.script=document.getElementById('qsScript').textContent;document.getElementById('scriptBox').textContent=S.script;document.getElementById('scriptCard').style.display='block';showPanel('create',null);goStep(3);}
 function saveScript(){const t=document.getElementById('scriptBox').textContent;if(!t)return;S.savedScripts.push({text:t,persona:S.persona?.name||'',niche:S.niche,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
 function saveScriptQS(){const t=document.getElementById('qsScript').textContent;if(!t)return;S.savedScripts.push({text:t,persona:document.getElementById('qsPersona').value,niche:document.getElementById('qsNiche').value,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
+
+function handleVoiceCloneFile(input){
+  const f=input.files[0]; if(!f) return;
+  const dz=document.getElementById('voiceCloneDropzone');
+  dz.textContent='✓ '+f.name+' ('+( f.size/1024/1024).toFixed(1)+' MB)';
+  dz.style.borderColor='var(--green)'; dz.style.color='var(--green)';
+}
+async function cloneVoice(){
+  const fi=document.getElementById('voiceCloneFile');
+  const name=document.getElementById('voiceCloneName').value.trim()||(S.persona?.name||'Cloned Voice');
+  const status=document.getElementById('voiceCloneStatus');
+  const btn=document.getElementById('voiceCloneBtn');
+  if(!fi.files[0]) return toast('Upload an audio file first','err');
+  btn.disabled=true; btn.textContent='Cloning...';
+  status.style.display='block'; status.style.color='var(--dim)';
+  status.textContent='Uploading to ElevenLabs...';
+  try{
+    const fd=new FormData();
+    fd.append('audio',fi.files[0]);
+    fd.append('name',name);
+    if(S.persona?.name) fd.append('persona_name',S.persona.name);
+    const r=await fetch(`${API()}/clone-voice`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    status.textContent='✓ Voice cloned! ID: '+d.voice_id;
+    status.style.color='var(--green)';
+    S.voiceId=d.voice_id;
+    if(S.persona){S.persona.voiceId=d.voice_id;S.persona.voiceName=name;savePersonas();updateRpVoice();}
+    toast('Voice cloned and locked to '+(S.persona?.name||'persona'));
+    loadVoices();
+  }catch(e){
+    status.textContent='Error: '+e.message; status.style.color='red';
+  }finally{
+    btn.disabled=false; btn.textContent='✦ Clone voice';
+  }
+}
 
 // ── VOICE ──────────────────────────────────────────────
 function detectPersonaGender(p){
