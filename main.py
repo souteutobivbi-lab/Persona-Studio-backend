@@ -240,7 +240,7 @@ Return ONLY a JSON array of 5 objects. Each object has:
 
 [{{"script": "A woman who...", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
         max_tok = 1500
-        model = "llama-3.3-70b-versatile"
+        model = "openai/gpt-oss-20b"
     else:
         # Generic scripts for other personas
         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
@@ -259,7 +259,7 @@ Rules:
 Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
 [{{"script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
         max_tok = 1500
-        model = "llama-3.3-70b-versatile"
+        model = "openai/gpt-oss-20b"
 
     response = client.chat.completions.create(
         model=model,
@@ -1312,7 +1312,7 @@ Return only the JSON object, nothing else."""
 
     try:
         resp = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # fast model — no thinking phase, responds in ~3s
+            model="openai/gpt-oss-20b",  # fast model — no thinking phase, responds in ~3s
             messages=[{"role": "user", "content": prompt}],
             max_tokens=700,
             temperature=0.7,
