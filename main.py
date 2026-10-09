@@ -963,12 +963,12 @@ async def train_lora_from_frames(
                 print(f"[{jid}] LoRA saved locally ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ {lora_local} ({len(dl.content)//1024}KB)")
                 # Use a self-hosted URL so it never expires
                 lora_serve_url = f"/lora-file/{safe_trigger}"
-            # Persist fal URL to registry so it survives Railway redeploys
-            LORA_REGISTRY[persona_id] = {"local": str(lora_local), "fal_url": lora_url, "trigger_word": trigger_word}
-            save_lora_registry(LORA_REGISTRY)
             except Exception as e:
                 print(f"[{jid}] Warning: could not save LoRA locally ({e}), using fal URL")
                 lora_serve_url = lora_url
+            # Persist fal URL to registry so it survives Railway redeploys
+            LORA_REGISTRY[persona_id] = {"local": str(lora_local), "fal_url": lora_url, "trigger_word": trigger_word}
+            save_lora_registry(LORA_REGISTRY)
 
             # Clean up
             for f in img_dir.iterdir():
