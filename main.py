@@ -187,11 +187,12 @@ async def generate_script(
 
     # Detect Vivienne-style skill vs generic ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â look for structure markers
     has_vivienne_structure = False
-    has_ceo_structure = (
-        niche.lower() in ['motivation','entrepreneurship'] or
-        any(k in topic.lower() for k in ['nutlip','homivis','mediahouz','ceo','founder','launch','platform','investors','funding','startup','building'])
-    ) and not ('SCRIPT STRUCTURE' in (skill_context or '') or 'podcast confession' in (skill_context or '').lower())
-    script_examples = ""
+    has_ceo_structure = False
+    _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
+    _ceo_skill_kws = ["nutlip","homivis","mediahouz","serial tech founder","building in public"]
+    if niche.lower() in ["motivation","entrepreneurship"] or any(k in topic.lower() for k in _ceo_topic_kws) or any(k in (skill_context or "").lower() for k in _ceo_skill_kws):
+        if not ("SCRIPT STRUCTURE" in (skill_context or "") or "podcast confession" in (skill_context or "").lower()):
+            has_ceo_structure = True
     structure_rules = ""
     if skill_context:
         sc = skill_context
@@ -1450,3 +1451,13 @@ async def proxy_image(url: str):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=502)
 
+
+@app.get("/fal-files")
+async def list_fal_files():
+    import fal_client
+    os.environ["FAL_KEY"] = FAL_KEY
+    try:
+        files = fal_client.list_files()
+        return {"files": [{"url": f.url, "file_name": f.file_name, "size": f.file_size} for f in files]}
+    except Exception as e:
+        return {"error": str(e)}
