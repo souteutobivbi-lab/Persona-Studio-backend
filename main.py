@@ -73,8 +73,8 @@ if static_path.exists():
 
 MUSIC_DIR = Path(__file__).parent / "static" / "music"
 MUSIC_TRACKS = {
-    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth — warm harp"},
-    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone — meditation ambience"},
+    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth â€” warm harp"},
+    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone â€” meditation ambience"},
 }
 
 @app.get("/music-tracks")
@@ -96,7 +96,7 @@ Skill file:
 Extract these fields (leave empty string if not found):
 - name: persona's full name
 - age: persona's age as a number string
-- role: their role and niche (e.g. "Transformation Authority · Wealth")
+- role: their role and niche (e.g. "Transformation Authority Â· Wealth")
 - niche: primary niche keyword (e.g. "wealth", "property", "interior design", "health", "relationships", "mindset", "luxury lifestyle")
 - appearance: physical description for image generation
 - catchphrase: their signature phrase
@@ -178,7 +178,7 @@ async def generate_script(
     from groq import Groq
     client = Groq(api_key=GROQ_KEY)
 
-    # Detect Vivienne-style skill vs generic — look for structure markers
+    # Detect Vivienne-style skill vs generic â€” look for structure markers
     has_vivienne_structure = False
     script_examples = ""
     structure_rules = ""
@@ -189,18 +189,18 @@ async def generate_script(
         # Extract script structure section
         if "SCRIPT STRUCTURE" in sc:
             start = sc.find("SCRIPT STRUCTURE")
-            end = sc.find("━━━", start + 20)
+            end = sc.find("â”â”â”", start + 20)
             structure_rules = sc[start:end].strip() if end > start else sc[start:start+800]
         # Extract example scripts section
         if "EXAMPLE SCRIPTS" in sc:
             start = sc.find("EXAMPLE SCRIPTS")
-            end = sc.find("━━━", start + 20)
+            end = sc.find("â”â”â”", start + 20)
             script_examples = sc[start:end].strip() if end > start else sc[start:start+2000]
         # Extract sign-offs
         signoffs = ""
         if "SIGN-OFFS" in sc:
             start = sc.find("SIGN-OFFS")
-            end = sc.find("━━━", start + 20)
+            end = sc.find("â”â”â”", start + 20)
             signoffs = sc[start:end].strip() if end > start else ""
 
     if has_vivienne_structure:
@@ -208,10 +208,10 @@ async def generate_script(
         prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
 Topic: {topic}
 
-HOOK FORMAT — use this for every script:
+HOOK FORMAT â€” use this for every script:
 Open with "A woman who [specific behaviour]." or "A man who [specific behaviour]." as the first sentence.
 The behaviour described must be specific and immediately recognisable to the audience.
-Then flow directly into the body — no "I'm Vivienne" introduction.
+Then flow directly into the body â€” no "I'm Vivienne" introduction.
 
 EXAMPLES of the opening hook pattern:
 - "A woman who holds everything together for everyone else is usually the one nobody checks on."
@@ -220,14 +220,14 @@ EXAMPLES of the opening hook pattern:
 
 STRUCTURE (after the hook):
 - Validate: show you understand exactly what they are going through
-- Unpack: explain the real mechanism — why this happens, what it is called, what drives it
-- Turn: reframe it — change how they see themselves or the situation
-- CTA: one earned sign-off ("Follow.", "Save this.", "More tomorrow.", "Follow — I talk about this every week.")
+- Unpack: explain the real mechanism â€” why this happens, what it is called, what drives it
+- Turn: reframe it â€” change how they see themselves or the situation
+- CTA: one earned sign-off ("Follow.", "Save this.", "More tomorrow.", "Follow â€” I talk about this every week.")
 
 STYLE:
-- 100-140 words per script (count carefully — do not go under 100 or over 145)
+- 100-140 words per script (count carefully â€” do not go under 100 or over 145)
 - Podcast confession, essay-like, never a listicle
-- Warm, direct, British cadence — measured, real, understated firmness
+- Warm, direct, British cadence â€” measured, real, understated firmness
 - No hashtags, no emojis, no stage directions, no filler sentences
 - Never shame the viewer. Validate before educating.
 - Each of the 5 must cover a DIFFERENT angle of the topic
@@ -240,14 +240,14 @@ Return ONLY a JSON array of 5 objects. Each object has:
 
 [{{"script": "A woman who...", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
         max_tok = 1500
-        model = "openai/gpt-oss-20b"
+        model = "qwen/qwen3.8-27b"
     else:
         # Generic scripts for other personas
         skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
         prompt = f"""You are writing 5 podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
 Topic: {topic}{skill_section}
 
-STYLE: Podcast confession — emotionally honest, intimate, slightly vulnerable. A real conversation, not a pitch.
+STYLE: Podcast confession â€” emotionally honest, intimate, slightly vulnerable. A real conversation, not a pitch.
 
 Rules:
 - 100-130 words each
@@ -259,7 +259,7 @@ Rules:
 Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
 [{{"script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
         max_tok = 1500
-        model = "openai/gpt-oss-20b"
+        model = "qwen/qwen3.8-27b"
 
     response = client.chat.completions.create(
         model=model,
@@ -313,7 +313,7 @@ Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags
         scripts, all_keywords = zip(*valid)
         scripts, all_keywords = list(scripts), list(all_keywords)
     elif not scripts:
-        scripts = ["Script generation failed — please try again."]
+        scripts = ["Script generation failed â€” please try again."]
         all_keywords = [[]]
 
     return {
@@ -359,7 +359,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     """
     color_hint = f"{outfit_color} " if outfit_color else ""
 
-    # Base identity layer — locks the visual aesthetic to the reference accounts
+    # Base identity layer â€” locks the visual aesthetic to the reference accounts
     base_identity = (
         "deep rich warm amber-brown luminous skin, high-gloss healthy glow on cheekbones and shoulders, "
         "high cheekbones, almond-shaped dark brown eyes, long flared black lashes, "
@@ -375,7 +375,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     # Persona-specific overrides (age, any unique traits from skill file)
     persona_layer = appearance if appearance else ""
 
-    # Podcast set — fixed every time, never varies
+    # Podcast set â€” fixed every time, never varies
     podcast_set = (
         "seated relaxed in a cream upholstered podcast armchair, legs crossed at knee, "
         "hands resting naturally in lap, upper body and arms fully visible in frame, "
@@ -386,7 +386,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         "camera angle slightly below eye level, subject looking slightly downward toward lens"
     )
 
-    # Technical photography layer — locks render quality
+    # Technical photography layer â€” locks render quality
     photo_tech = (
         "Sony A7R IV 85mm f1.4 portrait lens, "
         "natural skin texture visible pores real human skin, "
@@ -405,8 +405,8 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     )
 
 def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
-    """Compare two face images using insightface buffalo_l. Returns cosine similarity 0.0–1.0.
-    Used only as a post-generation quality check — never as a retry trigger for generation."""
+    """Compare two face images using insightface buffalo_l. Returns cosine similarity 0.0â€“1.0.
+    Used only as a post-generation quality check â€” never as a retry trigger for generation."""
     try:
         import insightface
         import numpy as np
@@ -433,7 +433,7 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
         print(f"Face similarity error (skipping): {e}")
         return -1.0
 
-# Persistent master portrait store — survives Railway restarts
+# Persistent master portrait store â€” survives Railway restarts
 # Saved to /app/master_portraits.json; fal CDN URLs are permanent
 PORTRAITS_FILE = Path("/app/master_portraits.json")
 
@@ -453,7 +453,7 @@ def save_master_portraits(portraits: dict):
     except Exception as e:
         print(f"Warning: could not save master portraits: {e}")
 
-MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id → {"local": path, "url": fal_url}
+MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id â†’ {"local": path, "url": fal_url}
 
 @app.post("/set-master-portrait")
 async def set_master_portrait(
@@ -522,7 +522,7 @@ async def generate_portrait(
     os.environ["FAL_KEY"] = FAL_KEY
     jid = str(uuid.uuid4())[:8]
 
-    # Resolve master portrait URL — must be a public https URL for fal
+    # Resolve master portrait URL â€” must be a public https URL for fal
     ref_url = master_url.strip()
     if ref_url and not ref_url.startswith("http"):
         ref_url = ""
@@ -770,7 +770,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # Stage 6: Fix aspect ratio + grain filter + optional background music
         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
-        # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
+        # Scale to true 9:16 (720x1280) â€” flashtalk outputs landscape so we
         # scale to height 1280 then center-crop to 720 wide.
         vf = (
             "scale=-2:1280,"
@@ -848,7 +848,7 @@ async def download_video(job_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Outfit swap — preserves face, body & background; replaces only clothing
+# Outfit swap â€” preserves face, body & background; replaces only clothing
 # Uses SAM2 for clothing segmentation mask + FLUX inpainting
 # ---------------------------------------------------------------------------
 # LoRA training from real uploaded frames (Pathway B)
@@ -882,7 +882,7 @@ async def train_lora_from_frames(
 
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
 
-            # ── Write frames + captions to disk ──────────────────────────
+            # â”€â”€ Write frames + captions to disk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             set_job(jid, {"status": "running", "progress": 5, "stage": "preparing"})
             caption = (
                 f"{trigger_word}, "
@@ -897,7 +897,7 @@ async def train_lora_from_frames(
                 (img_dir / fname).write_bytes(data)
                 (img_dir / f"{stem}.txt").write_text(caption)
 
-            # ── Zip everything up ─────────────────────────────────────────
+            # â”€â”€ Zip everything up â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             zip_path = tmp_dir / "training.zip"
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for p in img_dir.iterdir():
@@ -905,9 +905,9 @@ async def train_lora_from_frames(
 
             set_job(jid, {"status": "running", "progress": 15, "stage": "uploading_zip"})
             zip_fal_url = _fal.upload_file(str(zip_path))
-            print(f"[{jid}] Training zip uploaded → {zip_fal_url[:60]}")
+            print(f"[{jid}] Training zip uploaded â†’ {zip_fal_url[:60]}")
 
-            # ── Submit LoRA training job ──────────────────────────────────
+            # â”€â”€ Submit LoRA training job â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             set_job(jid, {"status": "running", "progress": 20, "stage": "training"})
             print(f"[{jid}] Submitting LoRA training for '{trigger_word}' ({len(frame_data)} images)...")
 
@@ -927,9 +927,9 @@ async def train_lora_from_frames(
             if not lora_url:
                 raise ValueError(f"LoRA training returned no weights: {result}")
 
-            print(f"[{jid}] LoRA trained → {str(lora_url)[:60]}")
+            print(f"[{jid}] LoRA trained â†’ {str(lora_url)[:60]}")
 
-            # ── Persist LoRA weights permanently on our server ────────────
+            # â”€â”€ Persist LoRA weights permanently on our server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             # fal CDN URLs expire in ~24h. Download and store locally so
             # the weights survive restarts (Railway volume) or at least the
             # current deployment lifetime.
@@ -943,7 +943,7 @@ async def train_lora_from_frames(
                 dl = _req2.get(lora_url, headers={"Authorization": f"Key {FAL_KEY}"}, timeout=180)
                 dl.raise_for_status()
                 lora_local.write_bytes(dl.content)
-                print(f"[{jid}] LoRA saved locally → {lora_local} ({len(dl.content)//1024}KB)")
+                print(f"[{jid}] LoRA saved locally â†’ {lora_local} ({len(dl.content)//1024}KB)")
                 # Use a self-hosted URL so it never expires
                 lora_serve_url = f"/lora-file/{safe_trigger}"
             except Exception as e:
@@ -1012,7 +1012,7 @@ async def swap_outfit(
 ):
     """
     Swap outfit on the locked master portrait.
-    If lora_url is provided: use FLUX Dev + LoRA (generates entire image — best quality).
+    If lora_url is provided: use FLUX Dev + LoRA (generates entire image â€” best quality).
     Otherwise: FASHN virtual try-on + smart composite fallback.
     Returns {job_id, status:"running"} immediately.
     Poll /portrait-status/{jid} for completion.
@@ -1024,7 +1024,7 @@ async def swap_outfit(
     # Accept master_url from the browser if server lost it (Railway ephemeral filesystem)
     master_url = (entry or {}).get("url") or master_url_override.strip() or None
     if not master_url:
-        return JSONResponse({"error": f"No locked portrait for '{persona_id}' — lock a master portrait first"}, status_code=400)
+        return JSONResponse({"error": f"No locked portrait for '{persona_id}' â€” lock a master portrait first"}, status_code=400)
     # Restore to in-memory dict so subsequent calls also work
     if not entry and master_url:
         MASTER_PORTRAITS[persona_id] = {"local": "", "url": master_url}
@@ -1044,10 +1044,10 @@ async def swap_outfit(
 
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
 
-            # ══════════════════════════════════════════════════════════════
-            # PATHWAY A — LoRA + FLUX Dev (best quality, full regeneration)
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            # PATHWAY A â€” LoRA + FLUX Dev (best quality, full regeneration)
             # Used when the persona has a trained LoRA URL.
-            # ══════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             if use_lora:
                 set_job(jid, {"status": "running", "progress": 10, "stage": "lora_generating"})
                 tw = trigger_word.strip() or "person"
@@ -1060,17 +1060,17 @@ async def swap_outfit(
                 lora_tmp = tmp_dir / "lora_weights.safetensors"
 
                 if raw_lora_url.startswith("/lora-file/"):
-                    # Locally stored — read directly from disk
+                    # Locally stored â€” read directly from disk
                     pid_slug = raw_lora_url.split("/lora-file/")[-1]
                     safe_slug = "".join(c for c in pid_slug if c.isalnum() or c in "-_")
                     local_path = pathlib.Path("/app/loras") / f"{safe_slug}.safetensors"
                     if not local_path.exists():
-                        raise ValueError(f"LoRA file not found locally at {local_path} — please retrain the LoRA")
+                        raise ValueError(f"LoRA file not found locally at {local_path} â€” please retrain the LoRA")
                     print(f"[{jid}] Using locally stored LoRA: {local_path}")
                     import shutil
                     shutil.copy(str(local_path), str(lora_tmp))
                 else:
-                    # fal CDN URL — download with auth header
+                    # fal CDN URL â€” download with auth header
                     print(f"[{jid}] Downloading LoRA from fal CDN...")
                     lora_resp = _req.get(
                         raw_lora_url,
@@ -1082,7 +1082,7 @@ async def swap_outfit(
 
                 print(f"[{jid}] Uploading LoRA weights to fal...")
                 fresh_lora_url = _fal.upload_file(str(lora_tmp))
-                print(f"[{jid}] LoRA ready → {fresh_lora_url[:60]}")
+                print(f"[{jid}] LoRA ready â†’ {fresh_lora_url[:60]}")
 
                 # Upload master portrait as image reference so pose/props are preserved
                 set_job(jid, {"status": "running", "progress": 20, "stage": "uploading_reference"})
@@ -1091,7 +1091,7 @@ async def swap_outfit(
                 img_resp.raise_for_status()
                 tmp_portrait.write_bytes(img_resp.content)
                 portrait_ref_url = _fal.upload_file(str(tmp_portrait))
-                print(f"[{jid}] Portrait reference uploaded → {portrait_ref_url[:60]}")
+                print(f"[{jid}] Portrait reference uploaded â†’ {portrait_ref_url[:60]}")
 
                 portrait_prompt = (
                     f"{tw}, {base_appearance}, "
@@ -1100,7 +1100,7 @@ async def swap_outfit(
                     f"professional portrait photography, soft studio lighting, "
                     f"photorealistic, 8k, high detail"
                 )
-                print(f"[{jid}] LoRA pathway — prompt: {portrait_prompt[:120]}...")
+                print(f"[{jid}] LoRA pathway â€” prompt: {portrait_prompt[:120]}...")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
                     "loras": [{"path": fresh_lora_url, "scale": 1.0}],
@@ -1117,14 +1117,14 @@ async def swap_outfit(
                 if not gen_imgs:
                     raise ValueError(f"LoRA generation returned no images: {gen_result}")
                 out_url = gen_imgs[0]["url"] if isinstance(gen_imgs[0], dict) else gen_imgs[0]
-                print(f"[{jid}] LoRA result → {str(out_url)[:60]}")
+                print(f"[{jid}] LoRA result â†’ {str(out_url)[:60]}")
 
                 set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
                 out_bytes = _req.get(out_url, timeout=60).content
                 out_img = Image.open(io.BytesIO(out_bytes)).convert("RGB")
                 out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
                 out_img.save(str(out_path), "PNG")
-                print(f"[{jid}] LoRA result saved → {out_path}")
+                print(f"[{jid}] LoRA result saved â†’ {out_path}")
 
                 set_job(jid, {
                     "status": "complete",
@@ -1134,13 +1134,13 @@ async def swap_outfit(
                     "outfit": outfit_prompt,
                 })
                 print(f"[{jid}] Outfit swap complete (LoRA pathway)")
-                return  # ← done, skip FASHN pathway below
+                return  # â† done, skip FASHN pathway below
 
-            # ══════════════════════════════════════════════════════════════
-            # PATHWAY B — FASHN virtual try-on + smart composite (fallback)
-            # ══════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            # PATHWAY B â€” FASHN virtual try-on + smart composite (fallback)
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-            # ── Step 1: Download master portrait & upload to fal.ai ───────
+            # â”€â”€ Step 1: Download master portrait & upload to fal.ai â”€â”€â”€â”€â”€â”€â”€
             set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
             print(f"[{jid}] Fetching master portrait...")
             tmp_portrait = tmp_dir / "portrait.png"
@@ -1148,9 +1148,9 @@ async def swap_outfit(
             img_resp.raise_for_status()
             tmp_portrait.write_bytes(img_resp.content)
             portrait_fal_url = _fal.upload_file(str(tmp_portrait))
-            print(f"[{jid}] Portrait uploaded → {portrait_fal_url[:60]}")
+            print(f"[{jid}] Portrait uploaded â†’ {portrait_fal_url[:60]}")
 
-            # ── Step 2: Generate flat-lay garment image from text prompt ──
+            # â”€â”€ Step 2: Generate flat-lay garment image from text prompt â”€â”€
             # Strengthen the colour name so FLUX doesn't drift to similar hues
             set_job(jid, {"status": "running", "progress": 20, "stage": "generating_garment"})
             # Extract any colour words and amplify them
@@ -1176,9 +1176,9 @@ async def swap_outfit(
             if not garment_imgs:
                 raise ValueError(f"FLUX garment generation returned no images: {garment_result}")
             garment_url = garment_imgs[0]["url"]
-            print(f"[{jid}] Garment image generated → {garment_url[:60]}")
+            print(f"[{jid}] Garment image generated â†’ {garment_url[:60]}")
 
-            # ── Step 3: FASHN v1.6 Virtual Try-On ─────────────────────────
+            # â”€â”€ Step 3: FASHN v1.6 Virtual Try-On â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             set_job(jid, {"status": "running", "progress": 50, "stage": "tryon"})
             print(f"[{jid}] Running FASHN v1.6 try-on...")
             tryon_result = _fal.subscribe("fal-ai/fashn/tryon/v1.6", arguments={
@@ -1195,9 +1195,9 @@ async def swap_outfit(
             if not tryon_imgs:
                 raise ValueError(f"FASHN try-on returned no images: {tryon_result}")
             out_url = tryon_imgs[0]["url"] if isinstance(tryon_imgs[0], dict) else tryon_imgs[0]
-            print(f"[{jid}] Try-on result → {str(out_url)[:60]}")
+            print(f"[{jid}] Try-on result â†’ {str(out_url)[:60]}")
 
-            # ── Step 4: Smart composite — restore background, hands, face ─
+            # â”€â”€ Step 4: Smart composite â€” restore background, hands, face â”€
             # FASHN rewrites the whole image; we want ONLY the clothing pixels
             # from FASHN and everything else (background, microphone, hands,
             # face, jewellery) from the original portrait.
@@ -1223,8 +1223,8 @@ async def swap_outfit(
             person_mask = np.array(person_mask_raw.convert("L")).astype(np.float32) / 255.0
 
             # Restrict to clothing zone only:
-            #   - exclude top 22 % → face, neck, hair
-            #   - exclude bottom 20 % → hands, lap, lower legs
+            #   - exclude top 22 % â†’ face, neck, hair
+            #   - exclude bottom 20 % â†’ hands, lap, lower legs
             clothing_mask = person_mask.copy()
             face_cut = int(h * 0.22)
             hand_cut = int(h * 0.80)
@@ -1245,11 +1245,11 @@ async def swap_outfit(
 
             out_img = Image.fromarray(composited, "RGBA").convert("RGB")
 
-            # ── Step 5: Save output ────────────────────────────────────────
+            # â”€â”€ Step 5: Save output â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             set_job(jid, {"status": "running", "progress": 90, "stage": "saving"})
             out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
             out_img.save(str(out_path), "PNG")
-            print(f"[{jid}] Composited result saved → {out_path}")
+            print(f"[{jid}] Composited result saved â†’ {out_path}")
 
             # Clean up temp files
             for f in tmp_dir.iterdir():
@@ -1295,14 +1295,14 @@ The video script is:
 
 Write platform-optimised captions for this video. Return ONLY a JSON object with these keys:
 {{
-  "tiktok": "TikTok caption — hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
-  "instagram": "Instagram caption — 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
-  "youtube": "YouTube Shorts description — 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading — not a throwaway line."
+  "tiktok": "TikTok caption â€” hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
+  "instagram": "Instagram caption â€” 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
+  "youtube": "YouTube Shorts description â€” 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading â€” not a throwaway line."
 }}
 
 Rules:
-- Keep the voice and tone of the script — warm, direct, specific
-- Never use generic hashtags like #motivation #love — make them specific to the content
+- Keep the voice and tone of the script â€” warm, direct, specific
+- Never use generic hashtags like #motivation #love â€” make them specific to the content
 - The hook line for TikTok should mirror the script opening or amplify the claim
 - No emojis except sparingly on Instagram (1-2 max)
 - Do not invent facts not in the script
@@ -1312,7 +1312,7 @@ Return only the JSON object, nothing else."""
 
     try:
         resp = client.chat.completions.create(
-            model="openai/gpt-oss-20b",  # fast model — no thinking phase, responds in ~3s
+            model="openai/gpt-oss-20b",  # fast model â€” no thinking phase, responds in ~3s
             messages=[{"role": "user", "content": prompt}],
             max_tokens=700,
             temperature=0.7,
@@ -1343,23 +1343,3 @@ async def proxy_image(url: str):
             return Response(content=r.content, media_type=content_type)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=502)
-
-@app.post("/debug-model")
-async def debug_model():
-    from groq import Groq
-    client = Groq(api_key=GROQ_KEY)
-    prompt = """You are writing 5 scripts for Vivienne, aged 28, in the relationships niche.
-Topic: Why you keep going back to the wrong person
-
-Open with "A woman who [specific behaviour]." as the first sentence.
-100-140 words per script.
-
-Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
-[{"script": "A woman who...", "keywords": ["#relationships"]}]"""
-    resp = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1500, temperature=0.88
-    )
-    raw = resp.choices[0].message.content.strip()
-    return {"raw": raw[:2000], "length": len(raw)}
