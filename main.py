@@ -187,7 +187,10 @@ async def generate_script(
 
     # Detect Vivienne-style skill vs generic ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â look for structure markers
     has_vivienne_structure = False
-    has_ceo_structure = niche.lower() in ['motivation','entrepreneurship'] and skill_context and any(k in (skill_context or '') for k in ['CEO','Founder','NUTLIP','HOMIVIS','MEDIAHOUZ','Serial Tech'])
+    has_ceo_structure = (
+        niche.lower() in ['motivation','entrepreneurship'] or
+        any(k in topic.lower() for k in ['nutlip','homivis','mediahouz','ceo','founder','launch','platform','investors','funding','startup','building'])
+    ) and not ('SCRIPT STRUCTURE' in (skill_context or '') or 'podcast confession' in (skill_context or '').lower())
     script_examples = ""
     structure_rules = ""
     if skill_context:
