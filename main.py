@@ -1348,10 +1348,18 @@ async def proxy_image(url: str):
 async def debug_model():
     from groq import Groq
     client = Groq(api_key=GROQ_KEY)
+    prompt = """You are writing 5 scripts for Vivienne, aged 28, in the relationships niche.
+Topic: Why you keep going back to the wrong person
+
+Open with "A woman who [specific behaviour]." as the first sentence.
+100-140 words per script.
+
+Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
+[{"script": "A woman who...", "keywords": ["#relationships"]}]"""
     resp = client.chat.completions.create(
         model="openai/gpt-oss-20b",
-        messages=[{"role": "user", "content": 'Return this exact JSON: [{"script": "A woman who tests this endpoint.", "keywords": ["#test"]}]'}],
-        max_tokens=200, temperature=0.1
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=1500, temperature=0.88
     )
     raw = resp.choices[0].message.content.strip()
-    return {"raw": raw, "length": len(raw)}
+    return {"raw": raw[:2000], "length": len(raw)}
