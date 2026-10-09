@@ -1374,25 +1374,3 @@ async def proxy_image(url: str):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=502)
 
-@app.post("/fix-lora-registry")
-async def fix_lora_registry():
-    import fal_client
-    os.environ["FAL_KEY"] = FAL_KEY
-    LORA_DIR = Path("/app/loras")
-    updated = []
-    for lora_path in LORA_DIR.glob("*.safetensors"):
-        slug = lora_path.stem
-        permanent_url = fal_client.upload_file(str(lora_path))
-        # Find matching persona in registry
-        for persona_id, entry in LORA_REGISTRY.items():
-            if slug in entry.get("local", "") or slug in persona_id.lower().replace(" ", "_") or persona_id.lower().replace(" ", "_") in slug:
-                entry["fal_url"] = permanent_url
-                updated.append({"persona_id": persona_id, "url": permanent_url})
-        save_lora_registry(LORA_REGISTRY)
-    return {"updated": updated}
-
-@app.get("/lora-debug")
-async def lora_debug():
-    LORA_DIR = Path("/app/loras")
-    files = [f.name for f in LORA_DIR.glob("*.safetensors")] if LORA_DIR.exists() else []
-    return {"registry": LORA_REGISTRY, "files_on_disk": files}
