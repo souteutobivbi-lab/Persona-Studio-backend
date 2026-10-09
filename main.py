@@ -1452,12 +1452,19 @@ async def proxy_image(url: str):
         return JSONResponse({"error": str(e)}, status_code=502)
 
 
+
 @app.get("/fal-files")
 async def list_fal_files():
-    import fal_client
-    os.environ["FAL_KEY"] = FAL_KEY
-    try:
-        files = fal_client.list_files()
-        return {"files": [{"url": f.url, "file_name": f.file_name, "size": f.file_size} for f in files]}
-    except Exception as e:
-        return {"error": str(e)}
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.get(
+            "https://rest.alpha.fal.ai/storage/upload/list",
+            headers={"Authorization": f"Key {FAL_KEY}"}
+        )
+        if r.status_code != 200:
+            return {"error": r.text[:200], "status": r.status_code}
+        data = r.json()
+        # Filter for safetensors files only
+        files = [f for f in (data.get("files") or data if isinstance(data, list) else []) 
+                 if isinstance(f, dict) and ".safetensors" in str(f.get("url","") or f.get("file_name",""))]
+        return {"files": files, "raw_sample": str(data)[:500]}
+
