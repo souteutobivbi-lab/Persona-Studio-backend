@@ -967,7 +967,8 @@ async def train_lora_from_frames(
                 print(f"[{jid}] Warning: could not save LoRA locally ({e}), using fal URL")
                 lora_serve_url = lora_url
             # Persist fal URL to registry so it survives Railway redeploys
-            LORA_REGISTRY[persona_id] = {"local": str(lora_local), "fal_url": lora_url, "trigger_word": trigger_word}
+            permanent_lora_url = _fal.upload_file(str(lora_local))
+            LORA_REGISTRY[persona_id] = {"local": str(lora_local), "fal_url": permanent_lora_url, "trigger_word": trigger_word}
             save_lora_registry(LORA_REGISTRY)
 
             # Clean up
