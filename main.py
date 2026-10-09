@@ -68,9 +68,9 @@ async def health():
 async def root():
     p = Path(__file__).parent / "static" / "index.html"
     if p.exists():
-    content = p.read_text()
-    content = content.replace('<head>', '<head><meta name="robots" content="noindex,nofollow">')
-    return HTMLResponse(content)
+        content = p.read_text()
+        content = content.replace('<head>', '<head><meta name="robots" content="noindex,nofollow">')
+        return HTMLResponse(content)
     return {"api": "Persona Studio v3.0"}
 
 from fastapi.staticfiles import StaticFiles
