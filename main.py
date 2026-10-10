@@ -1311,13 +1311,24 @@ async def swap_outfit(
                 portrait_ref_url = _fal.upload_file(str(tmp_portrait))
                 print(f"[{jid}] Portrait reference uploaded ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ {portrait_ref_url[:60]}")
 
-                portrait_prompt = (
-                    f"{tw}, {base_appearance}, "
-                    f"wearing {outfit_prompt}, "
-                    f"seated sideways in cream upholstered podcast chair, body angled 45 degrees from camera, legs crossed at knee, gaze directed off-camera to the left mid-conversation, black podcast microphone on boom arm in foreground right side, large tropical palm plant behind left shoulder, warm grey studio wall background, full-figured curvy hourglass body, thick thighs, natural weight and softness, substantial physical presence, "
-                    f"bright professional studio lighting, key light and fill light, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field bokeh background, "
-                    f"photorealistic, 8k, high detail, professional editorial portrait photography"
+                # Extract sex from skill_context so male personas render correctly
+                _sex = "female"
+                for _sc_line in skill_context.splitlines():
+                    if _sc_line.strip().upper().startswith("SEX:"):
+                        _sex = _sc_line.split(":", 1)[1].strip().lower()
+                        break
+
+                # Use build_portrait_prompt so PORTRAIT SCENE from skill file is respected
+                portrait_prompt = build_portrait_prompt(
+                    appearance=base_appearance,
+                    persona_age="",
+                    outfit=outfit_prompt,
+                    outfit_color="",
+                    sex=_sex,
+                    skill_context=skill_context,
                 )
+                # Prepend trigger word so LoRA recognises the face
+                portrait_prompt = f"{tw}, {portrait_prompt}"
                 print(f"[{jid}] LoRA pathway ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â prompt: {portrait_prompt[:120]}...")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
