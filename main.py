@@ -1625,21 +1625,24 @@ async def enhance_video(video_url: str = Form(...)):
 
         if has_audio:
             fc = (
-                f"[0:v]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
-                f"[0:v]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
-                f"[0:v]trim={t2},setpts=PTS-STARTPTS[v3];"
-                f"[0:a]atrim=0:{t1},asetpts=PTS-STARTPTS[a1];"
-                f"[0:a]atrim={t1}:{t2},asetpts=PTS-STARTPTS[a2];"
-                f"[0:a]atrim={t2},asetpts=PTS-STARTPTS[a3];"
+                f"[0:v]split=3[vs1][vs2][vs3];"
+                f"[vs1]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
+                f"[vs2]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
+                f"[vs3]trim={t2},setpts=PTS-STARTPTS[v3];"
+                f"[0:a]asplit=3[as1][as2][as3];"
+                f"[as1]atrim=0:{t1},asetpts=PTS-STARTPTS[a1];"
+                f"[as2]atrim={t1}:{t2},asetpts=PTS-STARTPTS[a2];"
+                f"[as3]atrim={t2},asetpts=PTS-STARTPTS[a3];"
                 f"[v1][a1][v2][a2][v3][a3]concat=n=3:v=1:a=1[outv][outa]"
             )
             maps = ["-map", "[outv]", "-map", "[outa]"]
             acodec = ["-c:a", "aac", "-b:a", "128k"]
         else:
             fc = (
-                f"[0:v]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
-                f"[0:v]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
-                f"[0:v]trim={t2},setpts=PTS-STARTPTS[v3];"
+                f"[0:v]split=3[vs1][vs2][vs3];"
+                f"[vs1]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
+                f"[vs2]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
+                f"[vs3]trim={t2},setpts=PTS-STARTPTS[v3];"
                 f"[v1][v2][v3]concat=n=3:v=1:a=0[outv]"
             )
             maps = ["-map", "[outv]"]
