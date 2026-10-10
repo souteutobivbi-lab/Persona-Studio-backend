@@ -1633,10 +1633,7 @@ async def enhance_video(video_url: str = Form(...)):
 
         # Concat
         with open(lst,"w") as f:
-            f.write(f"file '{s1}'
-file '{s2}'
-file '{s3}'
-")
+            f.write("file '" + s1 + "'\nfile '" + s2 + "'\nfile '" + s3 + "'\n")
 
         run(["ffmpeg","-y","-f","concat","-safe","0","-i",lst,
              "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart", out])
