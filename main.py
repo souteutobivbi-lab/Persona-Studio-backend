@@ -452,19 +452,24 @@ async def serve_audio(job_id: str):
     persona_layer = appearance if appearance else ""
 
     # Podcast set ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fixed every time, never varies
-    podcast_set = (
-        "seated sideways in a cream upholstered podcast armchair, body angled 45 degrees away from camera, legs crossed at knee, turned slightly to speak to someone off-camera to the left, natural conversational pose, "
-        "hands resting naturally in lap, upper body and arms fully visible in frame, "
-        "large black podcast microphone on boom arm positioned in front slightly to right, "
-        "background: soft warm grey textured wall, "
-        "large lush tropical areca palm plant with long green fronds behind right shoulder, "
-        "bright professional studio lighting, key light and fill light setup, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field, bokeh background, "
-        "camera angle at chest level, tight medium shot framing head to mid-torso, subject looking slightly off-camera to the left as if in conversation"
-    )
-
-    gender_word = "man" if sex.lower() in ("male", "m", "man") else "woman"
-
-    # Technical photography layer ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â locks render quality
+    if sex.lower() in ('male', 'm', 'man'):
+        podcast_set = (
+            'seated facing camera in a sleek modern podcast studio chair, body leaning slightly forward, elbows resting on knees, confident CEO posture, '
+            'large black podcast microphone on boom arm in front, '
+            'background: dark charcoal acoustic panels, subtle LED strip lighting behind, clean minimal studio setup, '
+            'bright crisp studio lighting, strong key light on face, cool-white tones, professional broadcast quality, high-key portrait lighting, '
+            'camera angle straight on at eye level, tight medium shot head to mid-torso, subject looking directly into camera'
+        )
+    else:
+        podcast_set = (
+            'seated sideways in a cream upholstered podcast armchair, body angled 45 degrees away from camera, legs crossed at knee, turned slightly to speak to someone off-camera to the left, natural conversational pose, '
+            'hands resting naturally in lap, upper body and arms fully visible in frame, '
+            'large black podcast microphone on boom arm positioned in front slightly to right, '
+            'background: soft warm grey textured wall, '
+            'large lush tropical areca palm plant with long green fronds behind right shoulder, '
+            'bright professional studio lighting, key light and fill light setup, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field, bokeh background, '
+            'camera angle at chest level, tight medium shot framing head to mid-torso, subject looking slightly off-camera to the left as if in conversation'
+        )
     photo_tech = (
         "Sony A7R IV 85mm f1.4 portrait lens, "
         "natural skin texture visible pores real human skin, "
