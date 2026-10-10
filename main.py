@@ -1121,17 +1121,12 @@ async def train_lora_from_frames(
             try: tmp_dir.rmdir()
             except: pass
 
-            # Persist LoRA to registry and Supabase
-            # Use permanent fal URL for Supabase (not local path)
-            _perm_url = permanent_lora_url if "permanent_lora_url" in dir() or "permanent_lora_url" in locals() else lora_serve_url
-            LORA_REGISTRY[persona_id] = {"url": _perm_url, "trigger_word": trigger_word}
-            save_lora_registry(LORA_REGISTRY)
-            print(f"[{jid}] LoRA saved to registry + Supabase: {persona_id}")
+            # Registry already saved above with correct fal_url key — duplicate removed
 
             set_job(jid, {
                 "status":       "complete",
                 "progress":     100,
-                "lora_url":     lora_serve_url,
+                "lora_url":     permanent_lora_url if "permanent_lora_url" in locals() else lora_serve_url,
                 "trigger_word": trigger_word,
                 "persona_id":   persona_id,
             })
@@ -1274,7 +1269,11 @@ async def swap_outfit(
                                     rows = [r for r in rows if r["persona_name"].lower() == persona_id.lower()]
                                     if rows:
                                         sb_url = rows[0]["lora_url"]
-                                        print(f"[{jid}] LoRA URL found in Supabase for {persona_id}")
+                                        if sb_url and not sb_url.startswith("http"):
+                                            print(f"[{jid}] Supabase lora_url is relative path, ignoring: {sb_url}")
+                                            sb_url = None
+                                        else:
+                                            print(f"[{jid}] LoRA URL found in Supabase for {persona_id}")
                                 except Exception as se:
                                     print(f"[{jid}] Supabase LoRA lookup error: {se}")
                             if sb_url:
