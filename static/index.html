@@ -1552,6 +1552,9 @@ function renderVideoGrid(){
             <button onclick="event.stopPropagation();openVideoModal('${v.url}','${v.title}','${v.time}','${ratio}')"
               style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;transition:opacity .2s;"
               class="vc-fs-btn">⛶</button>
+            <button onclick="event.stopPropagation();deleteVideo('${v.jid}')"
+              style="position:absolute;top:8px;left:8px;background:rgba(180,30,30,.75);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;transition:opacity .2s;"
+              class="vc-del-btn">×</button>
           </div>
           <div class="vc-info">
             <div class="vc-title">${v.title}</div>
@@ -1567,8 +1570,9 @@ function renderVideoGrid(){
   // Fullscreen button on hover
   grid.querySelectorAll('.vc').forEach(card=>{
     const fsBtn=card.querySelector('.vc-fs-btn');
-    card.addEventListener('mouseenter',()=>{if(fsBtn)fsBtn.style.opacity='1';});
-    card.addEventListener('mouseleave',()=>{if(fsBtn)fsBtn.style.opacity='0';});
+    const delBtn=card.querySelector('.vc-del-btn');
+    card.addEventListener('mouseenter',()=>{if(fsBtn)fsBtn.style.opacity='1';if(delBtn)delBtn.style.opacity='1';});
+    card.addEventListener('mouseleave',()=>{if(fsBtn)fsBtn.style.opacity='0';if(delBtn)delBtn.style.opacity='0';});
   });
 }
 
