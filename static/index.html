@@ -1543,7 +1543,7 @@ function renderVideoGrid(){
       <div class="${group.rowClass}">
         ${group.videos.map(({v,i})=>`
         <div class="vc" id="vc-${i}">
-          <div class="vc-thumb" style="${aspect};width:100%;overflow:hidden;" onclick="toggleVideoPlay(${i})">
+          <div class="vc-thumb" style="${aspect};width:100%;overflow:hidden;" onclick="openVideoModal('${v.url}','${v.title}','${v.time}','${ratio}')">
             <video id="vcv-${i}" src="${v.url}" preload="metadata" playsinline loop
               style="width:100%;height:100%;object-fit:cover;display:block;"></video>
             <div class="vc-overlay" id="vco-${i}">
