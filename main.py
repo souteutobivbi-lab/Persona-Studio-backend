@@ -1595,14 +1595,23 @@ async def enhance_video(video_url: str = Form(...)):
             f.write(resp.content)
 
         probe = subprocess.run([
-            "ffprobe", "-v", "error", "-select_streams", "v:0",
-            "-show_entries", "stream=duration",
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
             "-of", "json", input_path
         ], capture_output=True, text=True, timeout=30)
         try:
-            duration = float(_json.loads(probe.stdout)["streams"][0]["duration"])
+            duration = float(_json.loads(probe.stdout)["format"]["duration"])
         except Exception:
-            duration = 10.0
+            # last resort: ask for stream duration
+            probe2 = subprocess.run([
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "stream=duration",
+                "-of", "json", input_path
+            ], capture_output=True, text=True, timeout=30)
+            try:
+                duration = float(_json.loads(probe2.stdout)["streams"][0]["duration"])
+            except Exception:
+                duration = 8.0
 
         t1 = round(duration / 3, 3)
         t2 = round(2 * duration / 3, 3)
