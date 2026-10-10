@@ -3172,14 +3172,36 @@ function uploadMasterPortrait(input){
     const src=e.target.result;
     document.getElementById('masterPortraitImg').src=src;
     document.getElementById('masterPortraitResult').style.display='block';
-    document.getElementById('masterPortraitBadge').textContent='Uploaded — review before proceeding';
-    document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
-    document.getElementById('masterPortraitStatus').textContent='';
+    document.getElementById('masterPortraitBadge').textContent='Uploading...';
+    document.getElementById('proceedToAnglesBtn').style.display='none';
+    document.getElementById('masterPortraitStatus').textContent='Saving to server...';
     ID.masterUrl=src;
     ID.personaName=document.getElementById('ppName').value;
-    // Store as File for later use
     ID.masterFile=file;
-    toast('Photo uploaded — review and proceed when ready');
+    // Save to backend so it persists in Supabase
+    const name=document.getElementById('ppName').value.trim()||'unknown';
+    const fd=new FormData();
+    fd.append('persona_id',name.toLowerCase().replace(/\s+/g,'-'));
+    fd.append('portrait',file);
+    fetch(API()+'/lock-portrait',{method:'POST',body:fd})
+      .then(r=>r.json()).then(d=>{
+        if(d.url){
+          ID.masterUrl=d.url;
+          document.getElementById('masterPortraitBadge').textContent='Locked \u2014 saved permanently';
+          document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
+          document.getElementById('masterPortraitStatus').textContent='';
+          toast('Portrait locked and saved permanently');
+        } else {
+          document.getElementById('masterPortraitBadge').textContent='Uploaded (local only)';
+          document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
+          document.getElementById('masterPortraitStatus').textContent=d.error||'';
+          toast('Uploaded but server save failed','err');
+        }
+      }).catch(()=>{
+        document.getElementById('masterPortraitBadge').textContent='Uploaded (local only)';
+        document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
+        toast('Photo ready — review and proceed','ok');
+      });
   };
   reader.readAsDataURL(file);
 }

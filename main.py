@@ -471,7 +471,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         f"photorealistic portrait photograph, {persona_age} year old British-Nigerian woman, "
         f"{base_identity}, "
         f"{persona_layer}, "
-        f"wearing a {color_hint}{outfit} that fits her curves, "
+        f"wearing a {color_hint}{outfit}, well-fitted, sharp and professional, "
         f"{podcast_set}, "
         f"{photo_tech}"
     )
@@ -522,7 +522,19 @@ def save_lora_registry(registry: dict):
     try:
         LORAS_FILE.write_text(json.dumps(registry, indent=2))
     except Exception as e:
-        print(f"Warning: could not save lora registry: {e}")
+        print(f"Warning: could not save lora registry to disk: {e}")
+    if sb:
+        try:
+            for name, data in registry.items():
+                url = data.get("url", "") if isinstance(data, dict) else str(data)
+                trigger = data.get("trigger_word", name.lower()) if isinstance(data, dict) else name.lower()
+                sb.table("loras").upsert(
+                    {"persona_name": name, "lora_url": url, "trigger_word": trigger},
+                    on_conflict="persona_name"
+                ).execute()
+            print(f"Saved {len(registry)} LoRAs to Supabase")
+        except Exception as e:
+            print(f"Supabase lora save error: {e}")
 
 LORA_REGISTRY: dict = load_lora_registry()
 
@@ -532,6 +544,15 @@ HARDCODED_LORAS = {
 }
 
 def load_master_portraits() -> dict:
+    if sb:
+        try:
+            rows = sb.table("portraits").select("*").execute().data
+            if rows:
+                result = {r["persona_name"]: {"url": r["portrait_url"]} for r in rows}
+                print(f"Loaded {len(result)} portraits from Supabase: {list(result.keys())}")
+                return result
+        except Exception as e:
+            print("Supabase portrait load error:", e)
     try:
         if PORTRAITS_FILE.exists():
             data = json.loads(PORTRAITS_FILE.read_text())
@@ -545,7 +566,18 @@ def save_master_portraits(portraits: dict):
     try:
         PORTRAITS_FILE.write_text(json.dumps(portraits, indent=2))
     except Exception as e:
-        print(f"Warning: could not save master portraits: {e}")
+        print(f"Warning: could not save master portraits to disk: {e}")
+    if sb:
+        try:
+            for name, data in portraits.items():
+                url = data.get("url", "") if isinstance(data, dict) else str(data)
+                sb.table("portraits").upsert(
+                    {"persona_name": name, "portrait_url": url},
+                    on_conflict="persona_name"
+                ).execute()
+            print(f"Saved {len(portraits)} portraits to Supabase")
+        except Exception as e:
+            print(f"Supabase portrait save error: {e}")
 
 MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ {"local": path, "url": fal_url}
 
@@ -1069,6 +1101,11 @@ async def train_lora_from_frames(
             try: tmp_dir.rmdir()
             except: pass
 
+            # Persist LoRA to registry and Supabase
+            LORA_REGISTRY[persona_id] = {"url": lora_serve_url, "trigger_word": trigger_word}
+            save_lora_registry(LORA_REGISTRY)
+            print(f"[{jid}] LoRA saved to registry + Supabase: {persona_id}")
+
             set_job(jid, {
                 "status":       "complete",
                 "progress":     100,
@@ -1160,7 +1197,7 @@ async def swap_outfit(
                 set_job(jid, {"status": "running", "progress": 10, "stage": "lora_generating"})
                 tw = trigger_word.strip() or "person"
                 # Build appearance description (first sentence, no outfit mention)
-                base_appearance = appearance.split(',')[0].strip() if appearance else "woman"
+                base_appearance = appearance.split(',')[0].strip() if appearance else "person"
 
                 # Resolve LoRA weights to a local file or re-upload to fal
                 raw_lora_url = lora_url.strip()
