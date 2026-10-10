@@ -19,7 +19,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 input,textarea,select,button{font-family:inherit;}
 img{display:block;}
 
-/* ÔöÇÔöÇ VIEWS ÔöÇÔöÇ */
+/* →→ VIEWS →→ */
 .view{display:none;}
 .view.active{display:block;}
 #studio.active{display:grid;grid-template-columns:224px 1fr;min-height:100vh;}
@@ -918,7 +918,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <!-- PORTRAITS / IDENTITY LOCK -->
         <div id="panel-portraits" class="tab-panel">
 
-          <!-- ÔöÇÔöÇ QUICK PORTRAIT (PuLID) — no LoRA needed ÔöÇÔöÇ -->
+          <!-- →→ QUICK PORTRAIT (PuLID) — no LoRA needed →→ -->
           <div class="card" style="border-color:rgba(124,58,237,.4);background:linear-gradient(135deg,var(--p3),var(--card));">
             <div class="card-hd">ÔÜí Quick Portrait — Podcast style <span class="badge" style="background:var(--p3);color:var(--p2);">~$0.05 ┬À No LoRA needed</span></div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
@@ -1438,7 +1438,7 @@ const DEFAULTS=[
    niche:'interior design',catchphrase:'A room should feel like a decision.',portrait:null,skill:'',skillName:'',savedPortraits:[]}
 ];
 
-// ÔöÇÔöÇ VIEWS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ VIEWS →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function showView(v){
   document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
   document.getElementById(v).classList.add('active');
@@ -1446,7 +1446,7 @@ function showView(v){
 }
 function openStudio(){showView('studio');}
 
-// ÔöÇÔöÇ PUBLIC SITE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ PUBLIC SITE →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function showPubPage(pg){
   document.querySelectorAll('.pub-page').forEach(e=>e.classList.remove('active'));
   document.getElementById('pub-'+pg).classList.add('active');
@@ -1632,7 +1632,7 @@ function renderPublicPersonas(){
   }).join('');
 }
 
-// ÔöÇÔöÇ VIDEO MODAL ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ VIDEO MODAL →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function openVideoModal(url,title,time,ratio){
   const modal=document.getElementById('videoModal');
   const wrap=modal.querySelector('.modal-wrap');
@@ -1656,7 +1656,7 @@ function closeVideoModal(){
 }
 function closeModal(e){if(e.target.id==='videoModal')closeVideoModal();}
 
-// ÔöÇÔöÇ STUDIO PANELS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ STUDIO PANELS →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function showPanel(id,navEl){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
   document.getElementById('panel-'+id)?.classList.add('on');
@@ -1751,7 +1751,7 @@ function loraPersonaChanged(){
   if(tw2) tw2.value = p.triggerWord || p.loraTriggerWord || slug;
 }
 
-// ÔöÇÔöÇ PERSONA SIDEBAR ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ PERSONA SIDEBAR →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function renderSidePersonas(){
   const stack=document.getElementById('sidePersonas');
   const addBtn=stack.querySelector('.add-p');
@@ -1822,7 +1822,7 @@ function pickCreatePersona(el,name){
   }
 }
 
-// ÔöÇÔöÇ PERSONA DETAIL ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ PERSONA DETAIL →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function showPersonaDetail(p){
   showPanel('persona',null);
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
@@ -1895,7 +1895,7 @@ function editPersona(name){
   showPanel('newpersona',null);
 }
 
-// ÔöÇÔöÇ STEPS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ STEPS →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function goStep(n){
   document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('on'));
   document.getElementById('sp'+n)?.classList.add('on');
@@ -1920,7 +1920,7 @@ function goStep(n){
   if(n===4)renderPortraitStep();
 }
 
-// ÔöÇÔöÇ SKILL PARSING ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ SKILL PARSING →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 async function refreshTopicSuggestions(){
   const sugEl=document.getElementById('topicSuggestions');
   if(!sugEl) return;
@@ -1978,7 +1978,7 @@ async function refreshTopicSuggestions(){
 function parseSkillForUI(text, updateTopic=true){
   const lines=text.split('\n');
 
-  // ÔöÇÔöÇ Niche detection ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // →→ Niche detection →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
   const nicheMap={
     wealth:['niche: wealth','niche: finance','wealth ┬À ','finance ┬À '],
     property:['niche: property','property ┬À ','master builder','property development'],
@@ -1998,7 +1998,7 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // ÔöÇÔöÇ Topic suggestions — pull ONLY from specific sections ÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // →→ Topic suggestions — pull ONLY from specific sections →→→→→
   const suggestions=[];
   let inGoodSection=false;
   const goodSections=['HOOKS THAT WORK','HOOKS THAT STOP','CONTENT PILLARS','EXAMPLE SCRIPTS','TOPICS BANK','FUNDING & MONEY','BUILDING & PRODUCT','MENTAL GAME','WINS & LOSSES','INDUSTRY & VISION'];
@@ -2062,7 +2062,7 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // ÔöÇÔöÇ Scene suggestions — BACKGROUND SCENE SUGGESTIONS section ÔöÇÔöÇ
+  // →→ Scene suggestions — BACKGROUND SCENE SUGGESTIONS section →→
   const sceneEl=document.getElementById('sceneSuggestions');
   if(sceneEl){
     const scenePrompts=[];
@@ -2090,7 +2090,7 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // ÔöÇÔöÇ Portrait prompt — APPEARANCE / PORTRAIT GENERATION section ÔöÇÔöÇ
+  // →→ Portrait prompt — APPEARANCE / PORTRAIT GENERATION section →→
   // Find the section, skip the heading and underline, grab the first real content line
   let inAp=false;
   for(const line of lines){
@@ -2114,7 +2114,7 @@ function parseSkillForUI(text, updateTopic=true){
     break;
   }
 
-  // ÔöÇÔöÇ Outfit extraction — OUTFIT STYLE section ÔöÇÔöÇ
+  // →→ Outfit extraction — OUTFIT STYLE section →→
   const outfits=[];
   let inOutfit=false;
   for(const line of lines){
@@ -2204,7 +2204,7 @@ async function loadNpSkill(input){
   reader.readAsText(file);
 }
 
-// ÔöÇÔöÇ NICHE / RATIO ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ NICHE / RATIO →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function pickNiche(el,niche){document.querySelectorAll('.niche-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.niche=niche;}
 function pickCaption(el,style){
   document.querySelectorAll('.caption-opt').forEach(c=>{
@@ -2233,7 +2233,7 @@ function pickRatio(el,label,w,h){
   }
 }
 
-// ÔöÇÔöÇ SCRIPT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ SCRIPT →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 async function generateScript(){
   const topic=document.getElementById('topicInp').value.trim();
   if(!topic)return toast('Enter a topic first','err');
@@ -2357,7 +2357,7 @@ async function cloneVoice(){
   }
 }
 
-// ÔöÇÔöÇ VOICE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ VOICE →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function detectPersonaGender(p){
   if(!p) return 'female';
   const text=(p.appearance||''+p.role||''+p.name||'').toLowerCase();
@@ -2486,7 +2486,7 @@ async function genVoice(){
   finally{btn.disabled=false;btn.textContent='🎙 Generate voiceover';}
 }
 
-// ÔöÇÔöÇ PORTRAIT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ PORTRAIT →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function uploadPortrait(input){
   const file=input.files[0];if(!file)return;S.portraitFile=file;
   const reader=new FileReader();
@@ -2803,7 +2803,7 @@ function uploadScene(input){
   const file=input.files[0];if(!file)return;S.sceneFile=file;
   const reader=new FileReader();reader.onload=e=>{document.getElementById('sceneImg').src=e.target.result;document.getElementById('scenePreview').style.display='block';};reader.readAsDataURL(file);
 }
-// ÔöÇÔöÇ IDENTITY LOCK FLOW ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ IDENTITY LOCK FLOW →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
 // Identity state
 let ID = {
@@ -2813,7 +2813,7 @@ let ID = {
   personaName: null
 };
 
-// ÔöÇÔöÇ QUICK PORTRAIT (PuLID) functions ÔöÇÔöÇ
+// →→ QUICK PORTRAIT (PuLID) functions →→
 function qpPersonaChanged(){
   const sel = document.getElementById('qpPersonaSelect');
   const pid = sel.value;
@@ -2992,7 +2992,7 @@ function showIdStage(n){
   }
 }
 
-// ÔöÇÔöÇ Pathway selector ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ Pathway selector →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 let _loraPathway = 'A';
 function selectLoraPathway(p){
   _loraPathway = p;
@@ -3019,7 +3019,7 @@ function selectLoraPathway(p){
   if(p==='A') showIdStage(1);
 }
 
-// ÔöÇÔöÇ Pathway B: frame upload & LoRA training ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ Pathway B: frame upload & LoRA training →→→→→→→→→→→→→→→→→→→→→→→
 let _uploadedFrames = []; // array of File objects
 
 function handleFrameUpload(input){
@@ -3508,7 +3508,7 @@ async function genPortraits10(){
   toast('Use the Identity Lock flow in the Portraits panel');
 }
 
-// ÔöÇÔöÇ VIDEO GENERATION ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ VIDEO GENERATION →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 let pollIv=null;
 function cancelGen(){
   if(pollIv)clearInterval(pollIv);pollIv=null;
@@ -3701,7 +3701,7 @@ async function swapOutfitOnly(evt){
   const outfit = (document.getElementById('loraOutfitInp')?.value || '').trim();
   const styling = (document.getElementById('loraStylingInp')?.value || '').trim();
 
-  // ÔöÇÔöÇ Resolve persona: try every source in priority order ÔöÇÔöÇ
+  // →→ Resolve persona: try every source in priority order →→
   // 1. Fresh lookup from S.personas[] by name (most reliable — array is always up to date)
   let activePerObj = S.persona?.name
     ? S.personas?.find(x => x.name === S.persona.name) || S.persona
@@ -3861,7 +3861,7 @@ async function downloadVideo(url, filename){
 }
 function publishVideo(){const v=S.videos[0];if(!v)return;v.published=true;saveAll();updateDashboard();renderPublic('home');toast('Published!');}
 
-// ÔöÇÔöÇ NEW PERSONA ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ NEW PERSONA →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 let _npColor='#7c3aed';
 function pickColor(el,c){document.querySelectorAll('.color-swatch').forEach(d=>d.classList.remove('on'));el.classList.add('on');_npColor=c;}
 function npUploadPortrait(input){
@@ -3913,7 +3913,7 @@ function createPersona(){
   toast('Persona created: '+name);
 }
 
-// ÔöÇÔöÇ DOCS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ DOCS →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function setDocTab(tab){
   ['skills','scripts','portraits'].forEach(t=>{
     document.getElementById('docpanel-'+t).style.display=t===tab?'block':'none';
@@ -4009,7 +4009,7 @@ function updateDocCounts(){
   document.getElementById('docPortraitCount').textContent=(S.savedPortraits||[]).length;
 }
 
-// ÔöÇÔöÇ DASHBOARD / HISTORY ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ DASHBOARD / HISTORY →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function updateDashboard(){
   const total=S.videos.length,pub=S.videos.filter(v=>v.published).length;
   document.getElementById('dashVideos').textContent=total;
@@ -4038,7 +4038,7 @@ function renderHistory(){
 }
 function togglePublish(jid){const v=S.videos.find(v=>v.jid===jid);if(!v)return;v.published=!v.published;saveAll();updateDashboard();renderHistory();renderPublic('home');toast(v.published?'Published':'Unpublished');}
 
-// ÔöÇÔöÇ PERSISTENCE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ PERSISTENCE →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function saveAll(){
   try{
     // Deduplicate videos by jid before saving
@@ -4080,13 +4080,13 @@ function saveSettings(){
   toast('Saved');
 }
 
-// ÔöÇÔöÇ TOAST ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ TOAST →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function toast(msg,type='ok'){
   const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+(type==='ok'?'ok':'err');
   clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',3200);
 }
 
-// ÔöÇÔöÇ INIT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ INIT →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 loadAll();
 if(!S.personas.length)S.personas=DEFAULTS.map(p=>({...p}));
 S.persona=S.personas[0];
@@ -4101,7 +4101,7 @@ updateDashboard();
 updateDocCounts();
 setDocTab('skills');
 
-// ÔöÇÔöÇ Restore locked portraits from backend (survives Railway restarts) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ Restore locked portraits from backend (survives Railway restarts) →→→→→→
 (async function restoreLockedPortraits(){
   try {
     const r = await fetch(API()+'/locked-personas');
@@ -4124,7 +4124,7 @@ setDocTab('skills');
   } catch(e){ console.warn('Could not restore locked portraits:', e); }
 })();
 
-// ÔöÇÔöÇ Portrait job polling helper ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→ Portrait job polling helper →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 // POSTs to /generate-portrait, gets job_id, polls /portrait-status/{jid}
 // every 3 s until complete. Returns the completed job object (has .images[]).
 async function generatePortraitAndPoll(fd) {
@@ -4143,7 +4143,7 @@ async function generatePortraitAndPoll(fd) {
   }
   throw new Error('Portrait generation timed out after 5 minutes');
 }
-// ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
 // Load background music tracks from backend and populate the music selector
 (async function loadMusicTracks(){

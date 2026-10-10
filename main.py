@@ -464,12 +464,19 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     # Persona-specific overrides (age, any unique traits from skill file)
     persona_layer = appearance if appearance else ""
 
-    # Parse PORTRAIT SCENE from skill file if present
+    # Parse PORTRAIT SCENE from skill file — handles both "PORTRAIT SCENE: x" and section header format
     custom_scene = ""
-    if skill_context and "PORTRAIT SCENE:" in skill_context:
-        _sc_start = skill_context.find("PORTRAIT SCENE:") + len("PORTRAIT SCENE:")
-        _sc_end = skill_context.find(chr(10), _sc_start)
-        custom_scene = skill_context[_sc_start:_sc_end].strip() if _sc_end > _sc_start else skill_context[_sc_start:_sc_start+300].strip()
+    if skill_context and "PORTRAIT SCENE" in skill_context:
+        idx = skill_context.find("PORTRAIT SCENE")
+        rest = skill_context[idx + len("PORTRAIT SCENE"):]
+        for _line in rest.splitlines():
+            _line = _line.strip()
+            # Skip the colon-only line, dividers, and blank lines
+            if not _line or _line == ":" or all(c in "━─═-=" for c in _line):
+                continue
+            # If inline (PORTRAIT SCENE: content), strip leading colon
+            custom_scene = _line.lstrip(":").strip()
+            break
 
     # Podcast set - use skill file scene if defined, else sex-based default
     if custom_scene:
@@ -1184,6 +1191,7 @@ async def swap_outfit(
     lora_url: str = Form(""),
     trigger_word: str = Form(""),
     appearance: str = Form(""),
+    sex: str = Form("female"),
     skill_context: str = Form(""),
 ):
     """
@@ -1324,20 +1332,14 @@ async def swap_outfit(
                 portrait_ref_url = _fal.upload_file(str(tmp_portrait))
                 print(f"[{jid}] Portrait reference uploaded ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ {portrait_ref_url[:60]}")
 
-                # Extract sex from skill_context so male personas render correctly
-                _sex = "female"
-                for _sc_line in skill_context.splitlines():
-                    if _sc_line.strip().upper().startswith("SEX:"):
-                        _sex = _sc_line.split(":", 1)[1].strip().lower()
-                        break
-
+                # Use sex form field directly — skill files don't always have SEX: line
                 # Use build_portrait_prompt so PORTRAIT SCENE from skill file is respected
                 portrait_prompt = build_portrait_prompt(
                     appearance=base_appearance,
                     persona_age="",
                     outfit=outfit_prompt,
                     outfit_color="",
-                    sex=_sex,
+                    sex=sex,
                     skill_context=skill_context,
                 )
                 # Prepend trigger word so LoRA recognises the face
