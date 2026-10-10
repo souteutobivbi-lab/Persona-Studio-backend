@@ -373,7 +373,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   .filter-bar{padding:0 16px;}
   .pub-footer{padding:24px 16px;flex-direction:column;gap:12px;}
 
-  /* Video grids ÔÇö single column on mobile */
+  /* Video grids — single column on mobile */
   .ratio-row-916{grid-template-columns:repeat(2,1fr);}
   .ratio-row-45{grid-template-columns:repeat(2,1fr);}
   .ratio-row-11{grid-template-columns:repeat(2,1fr);}
@@ -384,7 +384,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   .pcp-header{padding:20px 16px;}
   .pcp-videos{padding:12px 16px;}
 
-  /* Modal ÔÇö full screen on mobile */
+  /* Modal — full screen on mobile */
   .modal-wrap{width:95vw!important;}
 
   /* Stats */
@@ -435,7 +435,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
       <div class="video-section-inner">
         <div class="video-grid" id="pubVideoGrid">
           <div class="empty-state">
-            <div class="empty-state-icon">­ƒÄ¼</div>
+            <div class="empty-state-icon">📁</div>
             <div class="empty-state-title">No videos yet</div>
             <div class="empty-state-sub">Published videos will appear here.</div>
           </div>
@@ -458,7 +458,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <div class="home-eyebrow" style="margin-bottom:12px;">Personas</div>
         <h1 class="home-title">Meet the creators</h1>
         <div class="personas-grid" id="pubPersonasGrid">
-          <div class="empty-state"><div class="empty-state-icon">­ƒæñ</div><div class="empty-state-title">No personas yet</div></div>
+          <div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">No personas yet</div></div>
         </div>
       </div>
     </div>
@@ -498,11 +498,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
     </div>
 
     <div class="nav-lbl">Workspace</div>
-    <div class="nav-item on" onclick="showPanel('dashboard',this)"><span class="ico">Ôè×</span> Dashboard</div>
+    <div class="nav-item on" onclick="showPanel('dashboard',this)"><span class="ico">🏠</span> Dashboard</div>
     <div class="nav-item" onclick="showPanel('create',this)"><span class="ico">Ôùê</span> Create video</div>
-    <div class="nav-item" onclick="showPanel('scripts',this)"><span class="ico">Ôëí</span> Scripts</div>
-    <div class="nav-item" onclick="showPanel('portraits',this)"><span class="ico">Ôùë</span> Portraits</div>
-    <div class="nav-item" onclick="showPanel('history',this)"><span class="ico">ÔùÀ</span> All videos</div>
+    <div class="nav-item" onclick="showPanel('scripts',this)"><span class="ico">📝</span> Scripts</div>
+    <div class="nav-item" onclick="showPanel('portraits',this)"><span class="ico">🖼</span> Portraits</div>
+    <div class="nav-item" onclick="showPanel('history',this)"><span class="ico">📹</span> All videos</div>
 
     <div class="nav-lbl">Personas</div>
     <div id="sidePersonas" style="display:flex;flex-direction:column;gap:4px;">
@@ -511,13 +511,13 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
     <div class="nav-lbl">Documents</div>
     <div class="folder-section">
-      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('skills')"><span class="ico">­ƒôï</span> Skill files <span class="folder-count" id="fcSkills">0</span></div>
-      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('scripts')"><span class="ico">­ƒôä</span> Saved scripts <span class="folder-count" id="fcScripts">0</span></div>
-      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('portraits')"><span class="ico">­ƒû╝</span> Portraits <span class="folder-count" id="fcPortraits">0</span></div>
+      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('skills')"><span class="ico">📱</span> Skill files <span class="folder-count" id="fcSkills">0</span></div>
+      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('scripts')"><span class="ico">📄</span> Saved scripts <span class="folder-count" id="fcScripts">0</span></div>
+      <div class="folder-row" onclick="showPanel('docs',this);setDocTab('portraits')"><span class="ico">🖼</span> Portraits <span class="folder-count" id="fcPortraits">0</span></div>
     </div>
 
     <div class="side-foot">
-      <div class="nav-item" onclick="showView('public')"><span class="ico">­ƒîÉ</span> Public site</div>
+      <div class="nav-item" onclick="showView('public')"><span class="ico">🌐</span> Public site</div>
       <div class="nav-item" onclick="showPanel('settings',this)"><span class="ico">ÔÜÖ</span> Settings</div>
     </div>
   </div>
@@ -526,7 +526,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
     <div class="topbar">
       <div class="tb-title" id="tbTitle">Dashboard</div>
       <div class="tb-right">
-        <button class="btn ghost" onclick="showView('public')">­ƒîÉ Public site</button>
+        <button class="btn ghost" onclick="showView('public')">🌐 Public site</button>
         <button class="btn primary" onclick="showPanel('create',null);goStep(1)">´╝ï New video</button>
       </div>
     </div>
@@ -548,11 +548,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <div class="card">
             <div class="card-hd">Pipeline <span class="badge green">Ready</span></div>
             <div style="display:flex;flex-direction:column;gap:7px;">
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Portrait generation ÔÇö ready</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Script generation ÔÇö ready</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Voiceover synthesis ÔÇö ready</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Talking video generation ÔÇö ready</div>
-              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Video processing ÔÇö ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Portrait generation — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Script generation — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Voiceover synthesis — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Talking video generation — ready</div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);"><span style="color:var(--green)">Ô£ô</span> Video processing — ready</div>
             </div>
           </div>
         </div>
@@ -582,17 +582,17 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div class="card-hd">Persona skill <span class="badge">Auto-fills niche, topic &amp; scene</span></div>
               <div class="skill-zone" id="skillZone" onclick="document.getElementById('skillFile').click()">
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <span style="font-size:20px;">­ƒôï</span>
+                  <span style="font-size:20px;">📱</span>
                   <div>
                     <div style="font-size:13px;color:var(--text);" id="skillName">Upload persona skill file</div>
-                    <div style="font-size:11px;color:var(--dim);margin-top:2px;">TXT or PDF ÔÇö AI extracts niche, hooks, topics, scenes automatically</div>
+                    <div style="font-size:11px;color:var(--dim);margin-top:2px;">TXT or PDF — AI extracts niche, hooks, topics, scenes automatically</div>
                   </div>
                 </div>
               </div>
               <input type="file" id="skillFile" accept=".pdf,.txt,.md" style="display:none;" onchange="loadSkill(this)">
               <div id="skillPreview" style="display:none;margin-top:10px;padding:10px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;color:var(--green);"></div>
             </div>
-            <button class="gen-btn" onclick="goStep(2)">Next ÔÇö Script ÔåÆ</button>
+            <button class="gen-btn" onclick="goStep(2)">Next — Script ÔåÆ</button>
           </div>
 
           <!-- Step 2 -->
@@ -600,16 +600,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card">
               <div class="card-hd">Niche</div>
               <div class="niche-grid" id="niches">
-                <div class="niche-chip on" onclick="pickNiche(this,'wealth')">­ƒÆ░ Wealth</div>
+                <div class="niche-chip on" onclick="pickNiche(this,'wealth')">💰 Wealth</div>
                 <div class="niche-chip" onclick="pickNiche(this,'relationships')">ÔØñ´©Å Relationships</div>
-                <div class="niche-chip" onclick="pickNiche(this,'health')">­ƒî┐ Health</div>
-                <div class="niche-chip" onclick="pickNiche(this,'property')">­ƒÅá Property</div>
-                <div class="niche-chip" onclick="pickNiche(this,'interior design')">­ƒÄ¿ Interior Design</div>
-                <div class="niche-chip" onclick="pickNiche(this,'finance')">­ƒôê Finance</div>
-                <div class="niche-chip" onclick="pickNiche(this,'mindset')">­ƒºá Mindset</div>
+                <div class="niche-chip" onclick="pickNiche(this,'health')">🌿 Health</div>
+                <div class="niche-chip" onclick="pickNiche(this,'property')">🏘 Property</div>
+                <div class="niche-chip" onclick="pickNiche(this,'interior design')">🏡 Interior Design</div>
+                <div class="niche-chip" onclick="pickNiche(this,'finance')">📈 Finance</div>
+                <div class="niche-chip" onclick="pickNiche(this,'mindset')">🧠 Mindset</div>
                 <div class="niche-chip" onclick="pickNiche(this,'luxury lifestyle')">Ô£¿ Luxury</div>
-                <div class="niche-chip" onclick="pickNiche(this,'motivation')">­ƒÄ» Motivation</div>
-                <div class="niche-chip" onclick="pickNiche(this,'entrepreneurship')">­ƒÜÇ Entrepreneurship</div>
+                <div class="niche-chip" onclick="pickNiche(this,'motivation')">💪 Motivation</div>
+                <div class="niche-chip" onclick="pickNiche(this,'entrepreneurship')">🚀 Entrepreneurship</div>
               </div>
             </div>
             <div class="card">
@@ -630,7 +630,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div class="script-box" id="scriptBox" contenteditable="true"></div>
               <div style="display:flex;gap:7px;margin-top:10px;">
                 <button class="btn ghost" style="flex:1;" onclick="generateScript()">Ôå║ Regenerate</button>
-                <button class="btn ghost" style="flex:1;" onclick="saveScript()">­ƒÆ¥ Save</button>
+                <button class="btn ghost" style="flex:1;" onclick="saveScript()">💾 Save</button>
                 <button class="btn primary" style="flex:1;" onclick="goStep(3)">Voice ÔåÆ</button>
               </div>
             </div>
@@ -654,18 +654,18 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <input type="file" id="voiceCloneFile" accept="audio/*" style="display:none;" onchange="handleVoiceCloneFile(this)">
               <div id="voiceCloneDropzone" onclick="document.getElementById('voiceCloneFile').click()"
                 style="border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--dim);font-size:13px;margin-bottom:10px;">
-                ­ƒÄÖ Click to upload audio sample
+                🎙 Click to upload audio sample
               </div>
               <input type="text" id="voiceCloneName" class="inp" placeholder="Voice name (e.g. Vivienne)" style="margin-bottom:8px;">
               <button class="btn primary" id="voiceCloneBtn" onclick="cloneVoice()" style="width:100%;">Ô£ª Clone voice</button>
               <div id="voiceCloneStatus" style="font-size:12px;margin-top:8px;color:var(--dim);display:none;"></div>
             </div>
-            <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">­ƒÄÖ Generate voiceover</button>
+            <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
             <div id="voiceResult" style="display:none;">
               <div class="card"><div class="card-hd">Preview</div><audio controls style="width:100%;" id="audioEl"></audio></div>
-              <!-- Background Music ÔÇö lives here so users set it alongside the voice -->
+              <!-- Background Music — lives here so users set it alongside the voice -->
               <div class="card" id="musicCard" style="margin-top:12px;">
-                <div class="card-hd">Background Music <span class="badge">Optional ÔÇö plays low under your voice</span></div>
+                <div class="card-hd">Background Music <span class="badge">Optional — plays low under your voice</span></div>
                 <div id="musicTrackList" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
                   <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;border:1px solid var(--purple);background:var(--p3);cursor:pointer;">
                     <input type="radio" name="bgMusic" value="" checked style="accent-color:var(--purple);">
@@ -691,7 +691,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card" id="portraitCard">
               <div class="card-hd">Portrait <span class="badge" id="portraitBadge">None</span></div>
 
-              <!-- LOCKED IDENTITY MODE ÔÇö shown when persona has a LoRA -->
+              <!-- LOCKED IDENTITY MODE — shown when persona has a LoRA -->
               <div id="portraitLoraMode" style="display:none;">
                 <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:10px;margin-bottom:14px;">
                   <div style="flex-shrink:0;position:relative;">
@@ -699,15 +699,15 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                     <a id="portraitLoraRefDownload" href="#" download style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;background:rgba(0,0,0,.6);color:#fff;padding:2px 0;border-radius:0 0 6px 6px;text-decoration:none;" onclick="event.preventDefault();downloadLockedPortrait()">Ôåô Save</a>
                   </div>
                   <div>
-                    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">­ƒöÆ Identity locked ÔÇö <span id="portraitLoraName"></span></div>
+                    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">🔒 Identity locked — <span id="portraitLoraName"></span></div>
                     <div style="font-size:11px;color:var(--muted);line-height:1.6;">AI will generate a new image of this exact person. Choose what outfit and styling you want for this video.</div>
-                    <button class="btn ghost" style="margin-top:8px;font-size:11px;padding:4px 10px;" onclick="viewLockedPortrait()">­ƒöì View full size</button>
+                    <button class="btn ghost" style="margin-top:8px;font-size:11px;padding:4px 10px;" onclick="viewLockedPortrait()">⚙️ View full size</button>
                   </div>
                 </div>
                 <div class="field" style="margin-bottom:8px;">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                     <div class="lbl" style="margin:0;">Choose outfit for this video</div>
-                    <button class="btn ghost" style="font-size:10px;padding:3px 9px;color:var(--dim);" onclick="populateOutfitSuggestions((S.persona?.name?S.personas?.find(x=>x.name===S.persona.name):null)||S.persona,true)" title="Refresh suggestions">­ƒöä Refresh</button>
+                    <button class="btn ghost" style="font-size:10px;padding:3px 9px;color:var(--dim);" onclick="populateOutfitSuggestions((S.persona?.name?S.personas?.find(x=>x.name===S.persona.name):null)||S.persona,true)" title="Refresh suggestions">🔄 Refresh</button>
                   </div>
                   <div id="outfitSuggestions" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
                   <input class="inp" id="loraOutfitInp" placeholder="e.g. cream cashmere blazer, pearl earrings, minimal makeup"/>
@@ -719,10 +719,10 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 </div>
                 <div style="display:flex;gap:8px;align-items:stretch;">
                   <button class="gen-btn" id="loraGenBtn" style="flex:1;" onclick="event.stopPropagation();genPortraitWithLora()">Ô£ª Generate portrait of <span id="loraGenBtnName"></span> in this outfit</button>
-                  <button class="btn ghost" id="swapOutfitBtn" style="flex-shrink:0;font-size:12px;padding:0 14px;border:1px solid var(--green);color:var(--green);" onclick="event.stopPropagation();swapOutfitOnly(event)" title="Keeps face, body &amp; background pixel-perfect ÔÇö only swaps the clothing">­ƒöä Swap outfit only</button>
+                  <button class="btn ghost" id="swapOutfitBtn" style="flex-shrink:0;font-size:12px;padding:0 14px;border:1px solid var(--green);color:var(--green);" onclick="event.stopPropagation();swapOutfitOnly(event)" title="Keeps face, body &amp; background pixel-perfect — only swaps the clothing">🔄 Swap outfit only</button>
                 </div>
-                <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:center;">Ô£ª Generate = new image of same face &nbsp;┬À&nbsp; ­ƒöä Swap = same photo, clothes only change</div>
-                <button class="btn ghost" style="width:100%;margin-top:10px;font-size:12px;color:var(--dim);border-color:var(--border);" onclick="skipOutfitToVideo()" title="Proceed to video using the existing locked portrait, no outfit change needed">Ô£ô Skip ÔÇö use current outfit &amp; proceed to video ÔåÆ</button>
+                <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:center;">Ô£ª Generate = new image of same face &nbsp;┬À&nbsp; 🔄 Swap = same photo, clothes only change</div>
+                <button class="btn ghost" style="width:100%;margin-top:10px;font-size:12px;color:var(--dim);border-color:var(--border);" onclick="skipOutfitToVideo()" title="Proceed to video using the existing locked portrait, no outfit change needed">Ô£ô Skip — use current outfit &amp; proceed to video ÔåÆ</button>
                 <div id="portraitLoraResult" style="display:none;margin-top:14px;">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-bottom:10px;">
                     <div>
@@ -755,7 +755,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 </div>
               </div>
 
-              <!-- STANDARD MODE ÔÇö shown when no LoRA -->
+              <!-- STANDARD MODE — shown when no LoRA -->
               <div id="portraitStandardMode">
                 <div class="p-grid" id="portraitGrid">
                   <div class="p-slot" onclick="document.getElementById('portUpload').click()"><span style="font-size:18px;color:var(--dim);">´╝ï</span></div>
@@ -784,8 +784,8 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 <img id="sceneImg" style="width:100%;border-radius:8px;border:1px solid var(--border);"/>
               </div>
             </div>
-            <button class="gen-btn" onclick="goStep(5)">Next ÔÇö Generate ÔåÆ</button>
-            <button class="btn ghost" style="width:100%;margin-top:6px;font-size:12px;color:var(--dim);" onclick="S.sceneFile=null;S.sceneUrl=null;goStep(5)">Skip scene ÔÇö generate with portrait only ÔåÆ</button>
+            <button class="gen-btn" onclick="goStep(5)">Next — Generate ÔåÆ</button>
+            <button class="btn ghost" style="width:100%;margin-top:6px;font-size:12px;color:var(--dim);" onclick="S.sceneFile=null;S.sceneUrl=null;goStep(5)">Skip scene — generate with portrait only ÔåÆ</button>
           </div>
 
           <!-- Step 5 -->
@@ -795,7 +795,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div class="pipeline" id="pipelineEl">
                 <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Preparing portrait</div><div class="pipe-sub">Background removal</div></div></div>
                 <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Building scene</div><div class="pipe-sub">Portrait + background composite</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generating talking video</div><div class="pipe-sub">AI lip sync ┬À ~30ÔÇô90 seconds</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generating talking video</div><div class="pipe-sub">AI lip sync ┬À ~30–90 seconds</div></div></div>
                 <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Processing video</div><div class="pipe-sub">Colour grade + export</div></div></div>
                 <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-lbl">Uploading</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
               </div>
@@ -805,7 +805,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="vprev-wrap"><div class="vprev ratio-916" id="vprev"><div class="vprev-empty"><div style="font-size:28px;">ÔûÂ</div><span style="font-size:11px;">Video appears here</span></div></div></div>
             <!-- Caption style selector -->
             <div class="card">
-              <div class="card-hd">Captions <span class="badge">Optional ÔÇö choose a style to burn subtitles in</span></div>
+              <div class="card-hd">Captions <span class="badge">Optional — choose a style to burn subtitles in</span></div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;" id="captionStyleGrid">
                 <div class="caption-opt on" data-style="none" onclick="pickCaption(this,'none')"
                   style="padding:10px;border-radius:9px;border:1px solid var(--purple);background:var(--p3);cursor:pointer;text-align:center;transition:all .12s;">
@@ -848,36 +848,36 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">Ô£ò Cancel</button>
             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
               <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">Ôåô Download video</button>
-              <button class="btn primary" style="flex:1;" onclick="publishVideo()">­ƒîÉ Publish</button>
+              <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
             </div>
-            <!-- Social description panel ÔÇö auto-generated after video -->
+            <!-- Social description panel — auto-generated after video -->
             <div id="videoDescPanel" style="display:none;margin-top:10px;">
               <div class="card" style="padding:14px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                  <div class="card-hd" style="margin:0;">­ƒôï Social media captions</div>
+                  <div class="card-hd" style="margin:0;">📱 Social media captions</div>
                   <span id="videoDescSpinner" style="font-size:11px;color:var(--amber);">Generating...</span>
                 </div>
                 <!-- TikTok -->
                 <div style="margin-bottom:10px;">
                   <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">TikTok</div>
                   <div id="descTikTok" style="font-size:12px;line-height:1.6;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;white-space:pre-wrap;min-height:40px;"></div>
-                  <button onclick="copyDesc('descTikTok','tiktokCopyBtn')" id="tiktokCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">­ƒôï Copy</button>
+                  <button onclick="copyDesc('descTikTok','tiktokCopyBtn')" id="tiktokCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">📱 Copy</button>
                 </div>
                 <!-- Instagram -->
                 <div style="margin-bottom:10px;">
                   <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Instagram</div>
                   <div id="descInstagram" style="font-size:12px;line-height:1.6;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;white-space:pre-wrap;min-height:40px;"></div>
-                  <button onclick="copyDesc('descInstagram','instaCopyBtn')" id="instaCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">­ƒôï Copy</button>
+                  <button onclick="copyDesc('descInstagram','instaCopyBtn')" id="instaCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">📱 Copy</button>
                 </div>
                 <!-- YouTube Shorts -->
                 <div>
                   <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">YouTube Shorts</div>
                   <div id="descYoutube" style="font-size:12px;line-height:1.6;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;white-space:pre-wrap;min-height:40px;"></div>
-                  <button onclick="copyDesc('descYoutube','ytCopyBtn')" id="ytCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">­ƒôï Copy</button>
+                  <button onclick="copyDesc('descYoutube','ytCopyBtn')" id="ytCopyBtn" class="btn ghost" style="margin-top:5px;font-size:11px;padding:4px 12px;">📱 Copy</button>
                 </div>
               </div>
             </div>
-            <!-- Portrait download row ÔÇö shown after video generated -->
+            <!-- Portrait download row — shown after video generated -->
             <div id="portraitDownloadRow" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;display:none;align-items:center;gap:10px;">
               <img id="portraitDownloadThumb" style="width:40px;height:53px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" src=""/>
               <div style="flex:1;min-width:0;">
@@ -909,7 +909,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="script-box" id="qsScript" contenteditable="true" style="margin-top:10px;"></div>
             <div style="display:flex;gap:8px;margin-top:10px;">
               <button class="btn ghost" style="flex:1;" onclick="navigator.clipboard.writeText(document.getElementById('qsScript').textContent);toast('Copied')">Copy</button>
-              <button class="btn ghost" style="flex:1;" onclick="saveScriptQS()">­ƒÆ¥ Save</button>
+              <button class="btn ghost" style="flex:1;" onclick="saveScriptQS()">💾 Save</button>
               <button class="btn primary" style="flex:1;" onclick="useScript()">Use in video ÔåÆ</button>
             </div>
           </div>
@@ -918,17 +918,17 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <!-- PORTRAITS / IDENTITY LOCK -->
         <div id="panel-portraits" class="tab-panel">
 
-          <!-- ÔöÇÔöÇ QUICK PORTRAIT (PuLID) ÔÇö no LoRA needed ÔöÇÔöÇ -->
+          <!-- ÔöÇÔöÇ QUICK PORTRAIT (PuLID) — no LoRA needed ÔöÇÔöÇ -->
           <div class="card" style="border-color:rgba(124,58,237,.4);background:linear-gradient(135deg,var(--p3),var(--card));">
-            <div class="card-hd">ÔÜí Quick Portrait ÔÇö Podcast style <span class="badge" style="background:var(--p3);color:var(--p2);">~$0.05 ┬À No LoRA needed</span></div>
+            <div class="card-hd">ÔÜí Quick Portrait — Podcast style <span class="badge" style="background:var(--p3);color:var(--p2);">~$0.05 ┬À No LoRA needed</span></div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
-              Generate a seated podcast portrait instantly. If you've set a master portrait below, PuLID locks that face ÔÇö same person every time. Otherwise FLUX generates a new face from the appearance prompt.
+              Generate a seated podcast portrait instantly. If you've set a master portrait below, PuLID locks that face — same person every time. Otherwise FLUX generates a new face from the appearance prompt.
             </div>
             <div class="g2" style="margin-bottom:10px;">
               <div class="field">
                 <div class="lbl">Persona</div>
                 <select class="inp" id="qpPersonaSelect" onchange="qpPersonaChanged()">
-                  <option value="">ÔÇö select persona ÔÇö</option>
+                  <option value="">— select persona —</option>
                 </select>
               </div>
               <div class="field">
@@ -958,7 +958,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div style="margin-top:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <span style="font-size:11px;color:var(--muted);flex:1;">Already have a portrait?</span>
               <label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--green);padding:5px 12px;border:1px solid var(--green);border-radius:6px;">
-                ­ƒô© Upload as master portrait
+                📸 Upload as master portrait
                 <input type="file" accept="image/*" style="display:none;" onchange="uploadPhotoAsMaster(this)"/>
               </label>
             </div>
@@ -976,7 +976,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <div style="display:flex;flex-direction:column;gap:6px;">
                     <button class="btn ghost" style="font-size:12px;width:100%;" onclick="genQuickPortrait()">Ôå║ Regenerate</button>
                     <button class="btn primary" style="font-size:12px;width:100%;" onclick="useQuickPortraitForVideo()">Use in video ÔåÆ</button>
-                    <button class="btn ghost" style="font-size:11px;width:100%;color:var(--green);border-color:rgba(34,197,94,.3);" id="qpLockBtn" onclick="lockQuickPortraitAsMaster()">­ƒöÆ Set as master portrait</button>
+                    <button class="btn ghost" style="font-size:11px;width:100%;color:var(--green);border-color:rgba(34,197,94,.3);" id="qpLockBtn" onclick="lockQuickPortraitAsMaster()">🔒 Set as master portrait</button>
                   </div>
                 </div>
               </div>
@@ -995,7 +995,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="field">
               <div class="lbl">Persona</div>
               <select class="inp" id="loraPersonaSelect" onchange="loraPersonaChanged()">
-                <option value="">ÔÇö select persona ÔÇö</option>
+                <option value="">— select persona —</option>
               </select>
             </div>
           </div>
@@ -1007,7 +1007,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div style="font-size:11px;color:var(--muted);line-height:1.5;">Generate master portrait<br>ÔåÆ AI makes 9 angle variations<br>ÔåÆ Train LoRA</div>
             </div>
             <div id="pathwayB-btn" onclick="selectLoraPathway('B')" style="cursor:pointer;padding:12px 10px;border-radius:10px;border:2px solid var(--border);background:var(--surface);text-align:center;">
-              <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">­ƒô╣ Pathway B</div>
+              <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">📸 Pathway B</div>
               <div style="font-size:11px;color:var(--muted);line-height:1.5;">Upload 15 real video frames<br>ÔåÆ Skip angle generation<br>ÔåÆ Train LoRA directly</div>
             </div>
           </div>
@@ -1024,17 +1024,17 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- PATHWAY B: Upload real frames directly -->
           <div id="pathwayB-panel" style="display:none;">
             <div class="card">
-              <div class="card-hd">­ƒô╣ Upload training images <span class="badge amber">10ÔÇô20 images ┬À Real video frames</span></div>
+              <div class="card-hd">📸 Upload training images <span class="badge amber">10–20 images ┬À Real video frames</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
-                Upload frames extracted from your video ÔÇö different expressions, same person. The LoRA will learn their face from real photos, no AI angle generation needed.
+                Upload frames extracted from your video — different expressions, same person. The LoRA will learn their face from real photos, no AI angle generation needed.
               </div>
 
               <!-- Drop zone -->
               <label id="frameDropZone" style="display:block;border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px;"
                 onmouseenter="this.style.borderColor='var(--purple)'" onmouseleave="this.style.borderColor='var(--border)'">
-                <div style="font-size:28px;margin-bottom:8px;">­ƒû╝´©Å</div>
+                <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
                 <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Click to select images</div>
-                <div style="font-size:11px;color:var(--dim);">10ÔÇô20 frames recommended ┬À JPG or PNG ┬À Same person, different expressions</div>
+                <div style="font-size:11px;color:var(--dim);">10–20 frames recommended ┬À JPG or PNG ┬À Same person, different expressions</div>
                 <input type="file" id="frameUploadInput" accept="image/*" multiple style="display:none;" onchange="handleFrameUpload(this)"/>
               </label>
 
@@ -1059,8 +1059,8 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--p3);border:1px solid rgba(124,58,237,.3);border-radius:9px;">
                   <div style="width:20px;height:20px;border:2px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
                   <div>
-                    <div style="font-size:12px;font-weight:600;color:var(--p2);" id="bLoraStatusText">Training in progressÔÇª</div>
-                    <div style="font-size:11px;color:var(--dim);margin-top:2px;">This takes 15ÔÇô25 minutes. You can leave this page ÔÇö the LoRA will be saved when ready.</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--p2);" id="bLoraStatusText">Training in progress…</div>
+                    <div style="font-size:11px;color:var(--dim);margin-top:2px;">This takes 15–25 minutes. You can leave this page — the LoRA will be saved when ready.</div>
                   </div>
                 </div>
               </div>
@@ -1146,7 +1146,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card">
               <div class="card-hd">Ôæó Train identity LoRA <span class="badge amber">One time ┬À ~15-20 minutes ┬À ~$2</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
-                The LoRA learns this persona's face from all 10 images. After training, every future portrait generation will use the trigger word to reproduce the same face exactly ÔÇö regardless of outfit, hair, jewellery or scene.
+                The LoRA learns this persona's face from all 10 images. After training, every future portrait generation will use the trigger word to reproduce the same face exactly — regardless of outfit, hair, jewellery or scene.
               </div>
 
               <!-- 10 image review -->
@@ -1159,14 +1159,14 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 <div style="font-size:10px;color:var(--dim);margin-top:4px;">This word in any prompt will reproduce this exact face. Use lowercase, underscores, no spaces.</div>
               </div>
 
-              <button class="gen-btn" id="trainLoraBtn" onclick="trainLora()">Ô£ª Train LoRA ÔÇö lock this identity</button>
+              <button class="gen-btn" id="trainLoraBtn" onclick="trainLora()">Ô£ª Train LoRA — lock this identity</button>
 
               <div id="loraTrainingStatus" style="display:none;margin-top:14px;">
                 <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--p3);border:1px solid rgba(124,58,237,.3);border-radius:9px;">
                   <div style="width:20px;height:20px;border:2px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
                   <div>
                     <div style="font-size:12px;font-weight:500;color:var(--p2);" id="loraStatusMsg">Training in progress...</div>
-                    <div style="font-size:10px;color:var(--dim);margin-top:2px;" id="loraStatusSub">This takes 15ÔÇô20 minutes. You can leave this page ÔÇö progress is saved.</div>
+                    <div style="font-size:10px;color:var(--dim);margin-top:2px;" id="loraStatusSub">This takes 15–20 minutes. You can leave this page — progress is saved.</div>
                   </div>
                 </div>
                 <div class="pbar" style="margin-top:10px;"><div class="pbar-fill" id="loraProgressBar" style="width:0%;"></div></div>
@@ -1180,7 +1180,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card">
               <div class="card-hd">Ôæú Test the locked identity <span class="badge green">LoRA trained</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
-                Generate a test image using the trained LoRA. Change the outfit and scene ÔÇö the face must stay identical to your master portrait.
+                Generate a test image using the trained LoRA. Change the outfit and scene — the face must stay identical to your master portrait.
               </div>
 
               <div id="loraSuccessBanner" style="padding:12px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px;display:none;">
@@ -1237,11 +1237,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               </div>
 
               <button class="gen-btn" id="lockIdentityBtn" onclick="lockIdentityToPersona()" style="background:linear-gradient(135deg,var(--green),#16a34a);">
-                ­ƒöÆ Lock identity ÔÇö this face is permanent
+                🔒 Lock identity — this face is permanent
               </button>
 
               <div id="lockSuccessMsg" style="display:none;margin-top:14px;padding:16px;background:var(--g2);border:1px solid rgba(34,197,94,.3);border-radius:10px;text-align:center;">
-                <div style="font-size:20px;margin-bottom:8px;">­ƒöÆ</div>
+                <div style="font-size:20px;margin-bottom:8px;">🔒</div>
                 <div style="font-size:14px;font-weight:600;color:var(--green);" id="lockSuccessPersona"></div>
                 <div style="font-size:12px;color:var(--muted);margin-top:4px;">Identity locked. Every portrait and video will use this face from now on.</div>
                 <button class="btn primary" style="margin-top:12px;" onclick="showPanel('create',null);goStep(1)">Start creating videos ÔåÆ</button>
@@ -1265,9 +1265,9 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <div id="panel-docs" class="tab-panel">
           <!-- Doc tab bar -->
           <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;">
-            <button class="btn ghost sm doc-tab on" id="dtab-skills" onclick="setDocTab('skills')">­ƒôï Skill files</button>
-            <button class="btn ghost sm doc-tab" id="dtab-scripts" onclick="setDocTab('scripts')">­ƒôä Scripts</button>
-            <button class="btn ghost sm doc-tab" id="dtab-portraits" onclick="setDocTab('portraits')">­ƒû╝ Portraits</button>
+            <button class="btn ghost sm doc-tab on" id="dtab-skills" onclick="setDocTab('skills')">📱 Skill files</button>
+            <button class="btn ghost sm doc-tab" id="dtab-scripts" onclick="setDocTab('scripts')">📄 Scripts</button>
+            <button class="btn ghost sm doc-tab" id="dtab-portraits" onclick="setDocTab('portraits')">🖼 Portraits</button>
           </div>
 
           <!-- Skills tab -->
@@ -1307,7 +1307,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <div class="card-hd">Ôæá Upload skill file <span class="badge green">Auto-fills all fields</span></div>
             <div class="skill-zone" id="npSkillZone" onclick="document.getElementById('npSkillFile').click()">
               <div style="display:flex;align-items:center;gap:10px;">
-                <span style="font-size:20px;">­ƒôï</span>
+                <span style="font-size:20px;">📱</span>
                 <div>
                   <div style="font-size:13px;color:var(--text);" id="npSkillName">Upload skill file (TXT or PDF)</div>
                   <div style="font-size:11px;color:var(--dim);">AI reads and fills all fields below automatically</div>
@@ -1480,7 +1480,7 @@ function renderPublicHome(){
         <div class="filter-tab-av" style="background:${col};">${avHtml}</div>${name.split(' ')[0]}
       </button>`;
     }).join('')
-    // Ratio filters ÔÇö only show if more than one ratio exists
+    // Ratio filters — only show if more than one ratio exists
     +(ratios.length>1?'<div style="width:1px;background:var(--border);height:24px;margin:0 6px;flex-shrink:0;"></div>':'')
     +(ratios.length>1?ratios.map(r=>`
       <button class="filter-tab ${currentFilter===r?'on':''}" onclick="filterVideos('${r}',this)">
@@ -1508,7 +1508,7 @@ function renderVideoGrid(){
     (isRatioFilter?(v.ratio||'9:16')===currentFilter:v.persona===currentFilter)
   ));
   if(!published.length){
-    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">­ƒÄ¼</div><div class="empty-state-title">No videos published yet</div><div class="empty-state-sub">Published videos appear here.</div></div>`;
+    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-title">No videos published yet</div><div class="empty-state-sub">Published videos appear here.</div></div>`;
     return;
   }
 
@@ -1604,7 +1604,7 @@ function toggleVideoPlay(i){
 function renderPublicPersonas(){
   const grid=document.getElementById('pubPersonasGrid');
   if(!S.personas.length){
-    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">­ƒæñ</div><div class="empty-state-title">No personas yet</div></div>`;
+    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">No personas yet</div></div>`;
     return;
   }
   grid.innerHTML=S.personas.map(p=>{
@@ -1675,11 +1675,11 @@ function populateQpPersonaSelect(){
   const sel = document.getElementById('qpPersonaSelect');
   if(!sel) return;
   const current = sel.value;
-  sel.innerHTML = '<option value="">ÔÇö select persona ÔÇö</option>';
+  sel.innerHTML = '<option value="">— select persona —</option>';
   S.personas.forEach(p=>{
     const opt = document.createElement('option');
-    opt.value = p.name; // use name as key ÔÇö personas have no .id field
-    opt.textContent = p.name + (p.masterPortraitUrl||p.loraUrl ? ' ­ƒöÆ' : '');
+    opt.value = p.name; // use name as key — personas have no .id field
+    opt.textContent = p.name + (p.masterPortraitUrl||p.loraUrl ? ' 🔒' : '');
     sel.appendChild(opt);
   });
   if(current) sel.value = current;
@@ -1694,11 +1694,11 @@ function populateLoraPersonaSelect(){
   const sel = document.getElementById('loraPersonaSelect');
   if(!sel) return;
   const current = sel.value;
-  sel.innerHTML = '<option value="">ÔÇö select persona ÔÇö</option>';
+  sel.innerHTML = '<option value="">— select persona —</option>';
   S.personas.forEach(p=>{
     const opt = document.createElement('option');
     opt.value = p.name;
-    opt.textContent = p.name + (p.loraUrl ? ' ­ƒöÆ LoRA trained' : p.masterPortraitUrl ? ' ­ƒû╝ master set' : '');
+    opt.textContent = p.name + (p.loraUrl ? ' 🔒 LoRA trained' : p.masterPortraitUrl ? ' 🖼 master set' : '');
     sel.appendChild(opt);
   });
   if(current) sel.value = current;
@@ -1808,7 +1808,7 @@ function pickCreatePersona(el,name){
   document.getElementById('rpRole').textContent=p.role+' ┬À '+p.age;
   if(p.appearance)document.getElementById('portraitPrompt').value=p.appearance;
   S.niche=p.niche||'wealth';
-  // Update niche chip ÔÇö find closest match
+  // Update niche chip — find closest match
   const pNiche=(p.niche||'').toLowerCase();
   document.querySelectorAll('.niche-chip').forEach(c=>{
     const chipText=c.textContent.toLowerCase().replace(/[^\w\s]/g,'').trim();
@@ -1913,7 +1913,7 @@ function goStep(n){
       document.getElementById('skillName').textContent='Ô£ô '+p.skillName;
     refreshTopicSuggestions();
     }
-    // Always regenerate topic suggestions ÔÇö fresh 5 every time
+    // Always regenerate topic suggestions — fresh 5 every time
     refreshTopicSuggestions();
   }
   if(n===3)loadVoices();
@@ -1925,7 +1925,7 @@ async function refreshTopicSuggestions(){
   const sugEl=document.getElementById('topicSuggestions');
   if(!sugEl) return;
   sugEl.style.display='flex';
-  sugEl.innerHTML='<div style="font-size:11px;color:var(--dim);">Ôƒ│ Generating fresh topics...</div>';
+  sugEl.innerHTML='<div style="font-size:11px;color:var(--dim);">⟳ Generating fresh topics...</div>';
 
   const p=S.persona;
   const niche=S.niche||p?.niche||'wealth';
@@ -1959,7 +1959,7 @@ async function refreshTopicSuggestions(){
       sugEl.style.marginTop='10px';
       sugEl.innerHTML=final.map(s=>`
         <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;document.querySelectorAll('.topic-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active');"
-          data-val="${s.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">${s.length>55?s.substring(0,55)+'ÔÇª':s}</button>`).join('');
+          data-val="${s.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">${s.length>55?s.substring(0,55)+'…':s}</button>`).join('');
     } else {
       sugEl.innerHTML='';
     }
@@ -1968,7 +1968,7 @@ async function refreshTopicSuggestions(){
     if(skillTopics.length){
       sugEl.innerHTML=skillTopics.slice(0,5).map(s=>`
         <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.classList.add('active');"
-          data-val="${s.replace(/"/g,'&quot;')}">${s.length>55?s.substring(0,55)+'ÔÇª':s}</button>`).join('');
+          data-val="${s.replace(/"/g,'&quot;')}">${s.length>55?s.substring(0,55)+'…':s}</button>`).join('');
     } else {
       sugEl.innerHTML='';
     }
@@ -1998,7 +1998,7 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // ÔöÇÔöÇ Topic suggestions ÔÇö pull ONLY from specific sections ÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ÔöÇÔöÇ Topic suggestions — pull ONLY from specific sections ÔöÇÔöÇÔöÇÔöÇÔöÇ
   const suggestions=[];
   let inGoodSection=false;
   const goodSections=['HOOKS THAT WORK','HOOKS THAT STOP','CONTENT PILLARS','EXAMPLE SCRIPTS','TOPICS BANK','FUNDING & MONEY','BUILDING & PRODUCT','MENTAL GAME','WINS & LOSSES','INDUSTRY & VISION'];
@@ -2007,27 +2007,27 @@ function parseSkillForUI(text, updateTopic=true){
 
   for(const line of lines){
     const upper=line.trim().toUpperCase();
-    // Dash/equals lines are section underlines ÔÇö skip but don't change section state
+    // Dash/equals lines are section underlines — skip but don't change section state
     if(/^[-=]{4,}$/.test(line.trim())) continue;
     // Detect entering a good section
     if(goodSections.some(s=>upper.includes(s))){ inGoodSection=true; continue; }
-    // Detect entering a bad section ÔÇö exit good mode
+    // Detect entering a bad section — exit good mode
     if(badSections.some(s=>upper.includes(s))){ inGoodSection=false; continue; }
 
     if(!inGoodSection) continue;
     const trimmed=line.trim();
     if(!trimmed) continue;
 
-    // Pattern 1: bullet with quoted hook ÔÇö "You can spot a bad build..."
+    // Pattern 1: bullet with quoted hook — "You can spot a bad build..."
     const m1=trimmed.match(/^[-ÔÇó]\s*[""](.{20,90})[""]/) || trimmed.match(/^[-ÔÇó]\s*"(.{20,90})"/);
     // Pattern 2: bullet with hook ending in ... or ?
     const m2=trimmed.match(/^[-ÔÇó]\s+(.{25,90}(?:\.{2,}|\?))$/);
-    // Pattern 3: numbered content pillar ÔÇö "1. Building quality ÔÇö what separates..."
+    // Pattern 3: numbered content pillar — "1. Building quality — what separates..."
     const m3=trimmed.match(/^\d+\.\s+(.{20,100})/);
     // Pattern 4: bare quoted string on its own line
     const m4=trimmed.match(/^[""](.{25,100})[""]\s*$/) || trimmed.match(/^"(.{25,100})"\s*$/);
-    // Pattern 5: Script label lines like "Script 1 ÔÇö Bad Build Tells" then first line of script
-    const m5=trimmed.match(/^Script\s+\d+\s*[ÔÇö-]\s*(.{10,60})$/);
+    // Pattern 5: Script label lines like "Script 1 — Bad Build Tells" then first line of script
+    const m5=trimmed.match(/^Script\s+\d+\s*[—-]\s*(.{10,60})$/);
 
     if(m1) suggestions.push(m1[1].trim());
     else if(m2) suggestions.push(m2[1].trim());
@@ -2053,7 +2053,7 @@ function parseSkillForUI(text, updateTopic=true){
       sugEl.style.display='flex';
       document.getElementById('topicBadge').style.display='inline-flex';
       sugEl.innerHTML=cleaned.map(s=>`
-        <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.classList.add('active');" data-val="${s.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">${s.length>55?s.substring(0,55)+'ÔÇª':s}</button>`).join('');
+        <button class="topic-chip" onclick="document.getElementById('topicInp').value=this.dataset.val;this.classList.add('active');" data-val="${s.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">${s.length>55?s.substring(0,55)+'…':s}</button>`).join('');
       if(updateTopic&&!document.getElementById('topicInp').value){
         document.getElementById('topicInp').value=cleaned[0];
       }
@@ -2062,7 +2062,7 @@ function parseSkillForUI(text, updateTopic=true){
     }
   }
 
-  // ÔöÇÔöÇ Scene suggestions ÔÇö BACKGROUND SCENE SUGGESTIONS section ÔöÇÔöÇ
+  // ÔöÇÔöÇ Scene suggestions — BACKGROUND SCENE SUGGESTIONS section ÔöÇÔöÇ
   const sceneEl=document.getElementById('sceneSuggestions');
   if(sceneEl){
     const scenePrompts=[];
@@ -2086,11 +2086,11 @@ function parseSkillForUI(text, updateTopic=true){
     }
     if(scenePrompts.length){
       sceneEl.innerHTML=scenePrompts.slice(0,4).map(s=>`
-        <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;this.style.background='var(--p3)';this.style.color='var(--p2)';" data-val="${s.replace(/"/g,'&quot;')}">${s.length>45?s.substring(0,45)+'ÔÇª':s}</button>`).join('');
+        <button class="topic-chip" onclick="document.getElementById('sceneInp').value=this.dataset.val;this.style.background='var(--p3)';this.style.color='var(--p2)';" data-val="${s.replace(/"/g,'&quot;')}">${s.length>45?s.substring(0,45)+'…':s}</button>`).join('');
     }
   }
 
-  // ÔöÇÔöÇ Portrait prompt ÔÇö APPEARANCE / PORTRAIT GENERATION section ÔöÇÔöÇ
+  // ÔöÇÔöÇ Portrait prompt — APPEARANCE / PORTRAIT GENERATION section ÔöÇÔöÇ
   // Find the section, skip the heading and underline, grab the first real content line
   let inAp=false;
   for(const line of lines){
@@ -2101,7 +2101,7 @@ function parseSkillForUI(text, updateTopic=true){
     const trimmed=line.trim();
     if(!trimmed) continue;
     // Skip section label lines like "British woman aged 41..." only if they look like headings
-    // Grab the first substantive line ÔÇö should be the actual prompt
+    // Grab the first substantive line — should be the actual prompt
     const prompt=trimmed.replace(/^["'\-ÔÇó]/,'').trim();
     if(prompt.length>30 && document.getElementById('portraitPrompt')){
       // Only set if it looks like a real portrait prompt (contains descriptive words)
@@ -2114,7 +2114,7 @@ function parseSkillForUI(text, updateTopic=true){
     break;
   }
 
-  // ÔöÇÔöÇ Outfit extraction ÔÇö OUTFIT STYLE section ÔöÇÔöÇ
+  // ÔöÇÔöÇ Outfit extraction — OUTFIT STYLE section ÔöÇÔöÇ
   const outfits=[];
   let inOutfit=false;
   for(const line of lines){
@@ -2142,7 +2142,7 @@ async function loadSkill(input){
   const reader=new FileReader();
   reader.onload=async e=>{
     const text=e.target.result;
-    document.getElementById('skillName').textContent='Ôƒ│ Analysing...';
+    document.getElementById('skillName').textContent='⟳ Analysing...';
     document.getElementById('skillZone').classList.add('skill-loaded');
     // Store skill
     if(!S.skills.find(s=>s.name===file.name)){
@@ -2162,7 +2162,7 @@ async function loadSkill(input){
         const detected=[p.name,p.age?'Age '+p.age:'',p.niche,p.catchphrase?'"'+p.catchphrase+'"':''].filter(Boolean);
         document.getElementById('skillPreview').style.display='block';
         document.getElementById('skillPreview').innerHTML='Ô£ô '+detected.join(' ┬À ');
-        toast('Skill parsed ÔÇö '+detected.filter(Boolean).length+' fields');
+        toast('Skill parsed — '+detected.filter(Boolean).length+' fields');
       }
     }catch(e){}
     document.getElementById('skillName').textContent='Ô£ô '+file.name;
@@ -2178,7 +2178,7 @@ async function loadNpSkill(input){
   const reader=new FileReader();
   reader.onload=async e=>{
     const text=e.target.result;
-    document.getElementById('npSkillName').textContent='Ôƒ│ Analysing...';
+    document.getElementById('npSkillName').textContent='⟳ Analysing...';
     document.getElementById('npSkillZone').classList.add('skill-loaded');
     window._npSkill=text; window._npSkillName=file.name;
     try{
@@ -2381,7 +2381,7 @@ async function loadVoices(){
     window._voices=voices;
     window._voiceGender=gender;
     renderVoiceList(voices);
-  }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px;">Backend not connected ÔÇö check Settings.</div>';}
+  }catch(e){document.getElementById('voiceList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px;">Backend not connected — check Settings.</div>';}
 }
 
 function renderVoiceList(voices){
@@ -2394,7 +2394,7 @@ function renderVoiceList(voices){
     const isActive=v.id===S.voiceId;
     const isLocked=v.id===lockedId;
     return `<div class="v-item ${isActive?'on':''}" id="vi-${v.id}" onclick="pickVoice(this,'${v.id}','${v.name.replace(/'/g,'\\\'')}')" >
-      <div class="v-ico">${isLocked?'­ƒöÆ':'­ƒÄÖ'}</div>
+      <div class="v-ico">${isLocked?'🔒':'🎙'}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;">
           ${v.name}
@@ -2406,7 +2406,7 @@ function renderVoiceList(voices){
       <button onclick="event.stopPropagation();lockVoice('${v.id}','${v.name.replace(/'/g,'\\\'')}')" 
         style="background:${isLocked?'var(--purple)':'var(--border2)'};border:none;color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;margin-left:4px;"
         title="${isLocked?'Unlock voice':'Lock this voice to '+S.persona?.name}">
-        ${isLocked?'­ƒöô Unlock':'­ƒöÆ Lock'}
+        ${isLocked?'🔓 Unlock':'🔒 Lock'}
       </button>
     </div>`;
   }).join('');
@@ -2416,7 +2416,7 @@ function renderVoiceList(voices){
     if(lockedId){
       const lv=voices.find(v=>v.id===lockedId);
       banner.style.display='flex';
-      banner.innerHTML=`<span style="color:var(--green);">­ƒöÆ ${lv?.name||'Voice'} locked to ${S.persona?.name||'this persona'}</span>
+      banner.innerHTML=`<span style="color:var(--green);">🔒 ${lv?.name||'Voice'} locked to ${S.persona?.name||'this persona'}</span>
         <button onclick="lockVoice(null,null)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:auto;">Unlock</button>`;
     } else {
       banner.style.display='none';
@@ -2442,7 +2442,7 @@ function lockVoice(id,name){
     } else {
       pp.voiceId=id; pp.voiceName=name;
       S.voiceId=id;
-      toast('­ƒöÆ '+name+' locked to '+S.persona.name);
+      toast('🔒 '+name+' locked to '+S.persona.name);
     }
     S.persona=pp;
     saveAll();
@@ -2458,14 +2458,14 @@ function updateRpVoice(){
   if(!rpv) return;
   const p=S.persona;
   rpv.innerHTML=p?.voiceName
-    ? `<span style="color:var(--green);">­ƒöÆ</span> <span style="color:var(--text);font-weight:500;">${p.voiceName}</span>`
+    ? `<span style="color:var(--green);">🔒</span> <span style="color:var(--text);font-weight:500;">${p.voiceName}</span>`
     : '<span style="color:var(--dim);">No voice locked</span>';
 }
 async function previewVoice(id,name){
   const area=document.getElementById('voicePreviewArea'),player=document.getElementById('voicePreviewPlayer'),label=document.getElementById('voicePreviewLabel');
   area.style.display='block';label.textContent='Generating preview...';player.src='';
   try{
-    const fd=new FormData();fd.append('script','I\'m a British content creator. This is how I sound on camera ÔÇö clear, measured, and authoritative.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
+    const fd=new FormData();fd.append('script','I\'m a British content creator. This is how I sound on camera — clear, measured, and authoritative.');fd.append('voice_id',id);fd.append('job_id','preview_'+id);
     const r=await fetch(`${API()}/generate-voice`,{method:'POST',body:fd});const d=await r.json();
     player.src=`${API()}/audio/${d.job_id}`;player.play();label.textContent='Previewing: '+name;
   }catch(e){label.textContent='Preview failed';}
@@ -2483,7 +2483,7 @@ async function genVoice(){
     document.getElementById('audioEl').src=`${API()}/audio/${d.job_id}`;
     document.getElementById('voiceResult').style.display='block';toast('Voiceover ready');
   }catch(e){toast('Error: '+e.message,'err');}
-  finally{btn.disabled=false;btn.textContent='­ƒÄÖ Generate voiceover';}
+  finally{btn.disabled=false;btn.textContent='🎙 Generate voiceover';}
 }
 
 // ÔöÇÔöÇ PORTRAIT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
@@ -2501,7 +2501,7 @@ async function populateOutfitSuggestions(p, forceRefresh){
   if(!el||!p) return;
 
   // Show loading state briefly
-  el.innerHTML=`<div style="font-size:11px;color:var(--dim);">Ôƒ│ Loading outfit suggestions...</div>`;
+  el.innerHTML=`<div style="font-size:11px;color:var(--dim);">⟳ Loading outfit suggestions...</div>`;
 
   // If refreshing, bump counter so defaultOutfits shuffles
   if(forceRefresh) window._outfitRefreshCount=(window._outfitRefreshCount||0)+1;
@@ -2509,7 +2509,7 @@ async function populateOutfitSuggestions(p, forceRefresh){
   // Try skill file outfits first (unless refreshing)
   let outfits=(!forceRefresh && window._skillOutfits)||[];
 
-  // If skill has outfits ÔÇö use them
+  // If skill has outfits — use them
   if(outfits.length>=3){
     renderOutfitChips(outfits);
     return;
@@ -2543,7 +2543,7 @@ function defaultOutfitPool(p){
   const niche=(p?.niche||'').toLowerCase();
   const appearance=(p?.appearance||'').toLowerCase();
 
-  // Vivienne ÔÇö signature burnt orange bodycon + alternatives
+  // Vivienne — signature burnt orange bodycon + alternatives
   if(name.includes('vivienne')){
     return [
       'Burnt orange bodycon midi dress, short sleeves, gold hoop earrings, gold pendant necklace, wide gold cuff bracelet, long voluminous natural black curls',
@@ -2646,7 +2646,7 @@ function selectOutfit(el,outfit,idx){
 }
 
 function renderPortraitStep(){
-  // Always get fresh persona from array ÔÇö S.persona may be stale (set before masterPortraitUrl was saved)
+  // Always get fresh persona from array — S.persona may be stale (set before masterPortraitUrl was saved)
   const p = (S.persona?.name ? S.personas?.find(x=>x.name===S.persona.name) : null) || S.persona;
   if(p && S.persona?.name === p.name) S.persona = p; // keep S.persona in sync
   // Locked if persona has a LoRA model OR a saved master portrait URL
@@ -2669,8 +2669,8 @@ function renderPortraitStep(){
     if(refCompare) refCompare.src=refUrl;
     if(nameEl) nameEl.textContent=p.name;
     if(btnName) btnName.textContent=p.name;
-    const lockType = p?.loraUrl ? '­ƒöÆ LoRA trained' : '­ƒöÆ Face locked';
-    document.getElementById('portraitBadge').textContent=lockType+' ÔÇö '+p.name;
+    const lockType = p?.loraUrl ? '🔒 LoRA trained' : '🔒 Face locked';
+    document.getElementById('portraitBadge').textContent=lockType+' — '+p.name;
     document.getElementById('portraitLoraResult').style.display='none';
     // Populate outfit suggestions (reset shuffle count so initial load is ordered)
     window._outfitRefreshCount=0;
@@ -2687,17 +2687,17 @@ function renderPortraitStep(){
 }
 
 async function genPortraitWithLora(){
-  // Always get fresh persona from array ÔÇö S.persona may be stale (set before masterPortraitUrl was saved)
+  // Always get fresh persona from array — S.persona may be stale (set before masterPortraitUrl was saved)
   const p = (S.persona?.name ? S.personas?.find(x=>x.name===S.persona.name) : null) || S.persona;
   if(p && S.persona?.name === p.name) S.persona = p; // keep S.persona in sync
-  if(!p?.loraUrl && !p?.masterPortraitUrl) return toast('No identity lock found ÔÇö lock a master portrait first','err');
+  if(!p?.loraUrl && !p?.masterPortraitUrl) return toast('No identity lock found — lock a master portrait first','err');
 
   const outfit=document.getElementById('loraOutfitInp').value.trim();
   const styling=document.getElementById('loraStylingInp').value.trim();
   if(!outfit) return toast('Enter an outfit for this video first','err');
 
   const btn=document.getElementById('loraGenBtn');
-  btn.disabled=true; btn.innerHTML='Ôƒ│ Generating...';
+  btn.disabled=true; btn.innerHTML='⟳ Generating...';
   const st=document.getElementById('portraitGenStatus');
   st.style.display='block';
   st.textContent='Generating '+p.name+' in new outfit with locked identity... ~25 seconds';
@@ -2720,14 +2720,14 @@ async function genPortraitWithLora(){
     // Show comparison
     document.getElementById('portraitLoraGenImg').src=imgUrl;
     document.getElementById('portraitLoraResult').style.display='block';
-    document.getElementById('portraitBadge').textContent='­ƒöÆ Generated Ô£ô';
+    document.getElementById('portraitBadge').textContent='🔒 Generated Ô£ô';
     st.style.display='none';
 
     // Set as the portrait for video generation
     const resp=await fetch(imgUrl);
     const blob=await resp.blob();
     S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
-    toast('Portrait ready ÔÇö '+p.name+' in new outfit');
+    toast('Portrait ready — '+p.name+' in new outfit');
   }catch(e){
     st.textContent='Error: '+e.message;
     toast('Error: '+e.message,'err');
@@ -2743,7 +2743,7 @@ async function genPortrait(){
   const st=document.getElementById('portraitGenStatus');
   const hasLora=!!S.persona?.loraUrl;
   st.style.display='block';
-  st.textContent=hasLora?'­ƒöÆ Generating with locked identity... ~20 seconds':'Generating portrait... ~20 seconds';
+  st.textContent=hasLora?'🔒 Generating with locked identity... ~20 seconds':'Generating portrait... ~20 seconds';
   try{
     const fd=new FormData();
     fd.append('persona_name',S.persona?.name||'persona');
@@ -2759,7 +2759,7 @@ async function genPortrait(){
     const grid=document.getElementById('portraitGrid');
     grid.children[0].innerHTML=`<img src="${imgUrl}"/><div class="sel-check">Ô£ô</div>`;
     grid.children[0].classList.add('done','selected');
-    document.getElementById('portraitBadge').textContent=hasLora?'­ƒöÆ Identity locked Ô£ô':'Generated Ô£ô';
+    document.getElementById('portraitBadge').textContent=hasLora?'🔒 Identity locked Ô£ô':'Generated Ô£ô';
     const resp=await fetch(imgUrl);const blob=await resp.blob();S.portraitFile=new File([blob],'portrait.png',{type:'image/png'});
     st.style.display='none';toast(hasLora?'Portrait generated with locked identity':'Portrait ready');
   }catch(e){st.style.display='none';toast('Error: '+e.message,'err');}
@@ -2776,7 +2776,7 @@ async function genScene(){
   document.getElementById('sceneImg').style.opacity='0.3';
   document.getElementById('sceneImg').src='';
   const prevDiv=document.getElementById('scenePreview');
-  prevDiv.querySelector('div').textContent='Ôƒ│ Generating background scene... ~15 seconds';
+  prevDiv.querySelector('div').textContent='⟳ Generating background scene... ~15 seconds';
   prevDiv.querySelector('div').style.color='var(--amber)';
   try{
     const fd=new FormData();fd.append('scene_description',prompt);
@@ -2827,12 +2827,12 @@ function qpPersonaChanged(){
     statusEl.style.background = 'var(--g2)';
     statusEl.style.border = '1px solid rgba(34,197,94,.2)';
     statusEl.style.color = 'var(--green)';
-    statusEl.textContent = '­ƒöÆ Master portrait set ÔÇö PuLID will lock the face (~$0.05)';
+    statusEl.textContent = '🔒 Master portrait set — PuLID will lock the face (~$0.05)';
   } else {
     statusEl.style.background = 'rgba(245,158,11,.08)';
     statusEl.style.border = '1px solid rgba(245,158,11,.2)';
     statusEl.style.color = 'var(--amber)';
-    statusEl.textContent = 'Ô£ª No master portrait yet ÔÇö FLUX will generate a new face (~$0.02). You can lock it afterwards.';
+    statusEl.textContent = 'Ô£ª No master portrait yet — FLUX will generate a new face (~$0.02). You can lock it afterwards.';
   }
 }
 
@@ -2847,7 +2847,7 @@ async function genQuickPortrait(){
   const statusEl = document.getElementById('qpStatus');
   const resultEl = document.getElementById('qpResult');
   statusEl.style.display='block';
-  statusEl.textContent = (p.masterPortraitUrl||p.loraUrl) ? '­ƒöÆ Generating with PuLID identity lock...' : 'Ô£ª Generating with FLUX...';
+  statusEl.textContent = (p.masterPortraitUrl||p.loraUrl) ? '🔒 Generating with PuLID identity lock...' : 'Ô£ª Generating with FLUX...';
   resultEl.style.display='none';
   try {
     const fd = new FormData();
@@ -2862,14 +2862,14 @@ async function genQuickPortrait(){
     const d = await generatePortraitAndPoll(fd);
     const imgUrl = API()+d.images[0]; // d.images[0] is already "/portrait/jid/0"
     document.getElementById('qpImg').src = imgUrl;
-    const method = d.method==='instant-character' ? '­ƒöÆ Identity locked' : d.method==='flux-fallback' ? 'Ô£ª FLUX fallback' : 'Ô£ª FLUX ÔÇö new face';
+    const method = d.method==='instant-character' ? '🔒 Identity locked' : d.method==='flux-fallback' ? 'Ô£ª FLUX fallback' : 'Ô£ª FLUX — new face';
     document.getElementById('qpMethodBadge').textContent = method;
     const score = d.identity_scores&&d.identity_scores[0];
     document.getElementById('qpScoreRow').textContent = score && score>0 ? 'Identity score: '+Math.round(score*100)+'%' : '';
-    // Always show lock button ÔÇö allow re-locking with a better portrait
+    // Always show lock button — allow re-locking with a better portrait
     const lockBtn = document.getElementById('qpLockBtn');
     lockBtn.style.display = 'block';
-    lockBtn.textContent = p.masterPortraitUrl ? '­ƒöÆ Replace master portrait' : '­ƒöÆ Set as master portrait';
+    lockBtn.textContent = p.masterPortraitUrl ? '🔒 Replace master portrait' : '🔒 Set as master portrait';
     // store last generated path for locking
     window._qpLastImg = {url: imgUrl, path: d.images[0], personaName: pid};
     resultEl.style.display='block';
@@ -2905,11 +2905,11 @@ async function lockQuickPortraitAsMaster(){
     // Keep S.persona in sync with the array item so swapOutfitOnly etc. see masterPortraitUrl
     if(S.persona?.name === p.name) S.persona = p;
     const lb = document.getElementById('qpLockBtn');
-    lb.textContent = 'Ô£à Master portrait updated ÔÇö click to replace';
+    lb.textContent = 'Ô£à Master portrait updated — click to replace';
     populateQpPersonaSelect(); // refresh dropdown lock indicators
     populateLoraPersonaSelect();
     qpPersonaChanged(); // refresh status banner
-    toast('­ƒöÆ Master portrait locked ÔÇö all future portraits will use this face');
+    toast('🔒 Master portrait locked — all future portraits will use this face');
   } catch(e){
     toast('Lock failed: '+e.message,'err');
   }
@@ -2941,11 +2941,11 @@ async function uploadPhotoAsMaster(input){
     qpPersonaChanged();
     // show preview
     document.getElementById('qpImg').src = d.fal_url;
-    document.getElementById('qpMethodBadge').textContent = '­ƒöÆ Uploaded & locked';
+    document.getElementById('qpMethodBadge').textContent = '🔒 Uploaded & locked';
     document.getElementById('qpResult').style.display='block';
     // set _qpLastImg so "Use in video" works
     window._qpLastImg = {url: d.fal_url, path: null, personaName: pid, isUpload: true};
-    toast('­ƒöÆ Portrait uploaded and locked as master for '+p.name);
+    toast('🔒 Portrait uploaded and locked as master for '+p.name);
   } catch(e){
     toast('Upload failed: '+e.message,'err');
   }
@@ -2976,7 +2976,7 @@ async function useQuickPortraitForVideo(){
   }
   const pb = document.getElementById('portraitBadge');
   if(pb) pb.textContent='Quick portrait Ô£ô';
-  toast('Portrait set ÔÇö now add your script');
+  toast('Portrait set — now add your script');
 }
 
 function showIdStage(n){
@@ -3067,7 +3067,7 @@ async function trainLoraFromFrames(){
   if(!p) return toast('Select a persona in the dropdown above first','err');
 
   document.getElementById('bLoraTrainingStatus').style.display='block';
-  document.getElementById('bLoraStatusText').textContent='Uploading imagesÔÇª';
+  document.getElementById('bLoraStatusText').textContent='Uploading images…';
   document.getElementById('trainLoraFromFramesBtn').disabled=true;
 
   try {
@@ -3081,7 +3081,7 @@ async function trainLoraFromFrames(){
     const d   = await res.json();
     if(d.error) throw new Error(d.error);
 
-    document.getElementById('bLoraStatusText').textContent='Training in progress (15ÔÇô25 min)ÔÇª checking statusÔÇª';
+    document.getElementById('bLoraStatusText').textContent='Training in progress (15–25 min)… checking status…';
 
     // Poll for completion
     const jid = d.job_id;
@@ -3118,22 +3118,22 @@ async function pollLoraJob(jid, p, triggerWord, statusElId){
           statusBox.style.background='var(--g2)';
           statusBox.style.border='1px solid rgba(34,197,94,.2)';
         }
-        if(statusEl){ statusEl.style.color='var(--green)'; statusEl.textContent='Ô£ô LoRA trained ÔÇö identity locked!'; }
+        if(statusEl){ statusEl.style.color='var(--green)'; statusEl.textContent='Ô£ô LoRA trained — identity locked!'; }
 
         // Re-enable the train button
         const btn = document.getElementById('trainLoraFromFramesBtn');
         if(btn){ btn.disabled=false; btn.textContent='Ô£ª Re-train LoRA'; }
 
-        toast('LoRA ready ÔÇö outfit swap will now use this identity ­ƒÄë','ok');
+        toast('LoRA ready — outfit swap will now use this identity 🎯','ok');
         return;
       }
       if(d.status==='error') throw new Error(d.error||'Training failed');
-      if(statusEl) statusEl.textContent=`TrainingÔÇª ${d.progress||0}% (${d.stage||'working'})`;
+      if(statusEl) statusEl.textContent=`Training… ${d.progress||0}% (${d.stage||'working'})`;
     }catch(e){
-      if(statusEl) statusEl.textContent='Checking statusÔÇª';
+      if(statusEl) statusEl.textContent='Checking status…';
     }
   }
-  if(statusEl) statusEl.textContent='Training is taking longer than expected ÔÇö check Railway logs';
+  if(statusEl) statusEl.textContent='Training is taking longer than expected — check Railway logs';
   const btn = document.getElementById('trainLoraFromFramesBtn');
   if(btn) btn.disabled=false;
 }
@@ -3151,7 +3151,7 @@ function initPortraitsPanel(){
   const cleanUrl=u=>{
     if(!u) return null;
     const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/);
-    return m?m[1]:null; // reject data: base64 URLs ÔÇö they are too large to store
+    return m?m[1]:null; // reject data: base64 URLs — they are too large to store
   };
   if(p.savedPortraits?.length){
     ID.personaName=p.name;
@@ -3207,7 +3207,7 @@ function uploadMasterPortrait(input){
       }).catch(()=>{
         document.getElementById('masterPortraitBadge').textContent='Uploaded (local only)';
         document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
-        toast('Photo ready ÔÇö review and proceed','ok');
+        toast('Photo ready — review and proceed','ok');
       });
   };
   reader.readAsDataURL(file);
@@ -3219,10 +3219,10 @@ function useLoraPortraitAndContinue(){
   const sceneCard=document.querySelector('#sp4 .card:last-of-type');
   if(sceneCard) sceneCard.scrollIntoView({behavior:'smooth', block:'start'});
   // Hide the lora result buttons briefly to show scene section
-  toast('Portrait selected ÔÇö now choose a background scene below');
+  toast('Portrait selected — now choose a background scene below');
 }
 
-// Stage 1 ÔÇö Master portrait
+// Stage 1 — Master portrait
 async function genMasterPortrait(){
   const name=document.getElementById('ppName').value.trim();
   const age=document.getElementById('ppAge').value.trim();
@@ -3245,7 +3245,7 @@ async function genMasterPortrait(){
     const d=await generatePortraitAndPoll(fd);
     const url=d.images[0].startsWith("http")?d.images[0]:API()+d.images[0];
     document.getElementById('masterPortraitImg').src=url;
-    document.getElementById('masterPortraitBadge').textContent='Generated ÔÇö review carefully';
+    document.getElementById('masterPortraitBadge').textContent='Generated — review carefully';
     document.getElementById('masterPortraitStatus').textContent='';
     document.getElementById('proceedToAnglesBtn').style.display='inline-flex';
     ID.masterUrl=url;
@@ -3254,7 +3254,7 @@ async function genMasterPortrait(){
     const resp=await fetch(url);
     const blob=await resp.blob();
     ID.masterFile=new File([blob],'master.png',{type:'image/png'});
-    toast('Master portrait ready ÔÇö review before proceeding');
+    toast('Master portrait ready — review before proceeding');
   }catch(e){
     document.getElementById('masterPortraitStatus').textContent='Error: '+e.message;
     toast('Error: '+e.message,'err');
@@ -3267,10 +3267,10 @@ function proceedToAngles(){
   document.getElementById('masterThumb').src=ID.masterUrl;
   document.getElementById('masterThumbName').textContent=ID.personaName||'';
   showIdStage(2);
-  toast('Master portrait locked ÔÇö now generate 9 angle variations');
+  toast('Master portrait locked — now generate 9 angle variations');
 }
 
-// Stage 2 ÔÇö 9 angle variations
+// Stage 2 — 9 angle variations
 const ANGLES = [
   {label:'Slight left turn',    desc:'30 degree turn to the left, three-quarter view, eyes looking at camera'},
   {label:'Slight right turn',   desc:'30 degree turn to the right, three-quarter view, eyes looking at camera'},
@@ -3314,7 +3314,7 @@ async function genAngleVariations(){
       const fd=new FormData();
       fd.append('persona_name',name);
       fd.append('persona_age',age);
-      // Angle-specific prompt ÔÇö builds on base appearance with precise angle instruction
+      // Angle-specific prompt — builds on base appearance with precise angle instruction
       fd.append('appearance', appearance+', '+ANGLES[i].desc);
       fd.append('outfit','same professional attire, hands visible');
       fd.append('count','1');
@@ -3326,7 +3326,7 @@ async function genAngleVariations(){
       done++;
       document.getElementById('anglesBadge').textContent=done+' / 9';
     }catch(e){
-      slot.innerHTML=`<span style="font-size:9px;color:var(--red);padding:4px;text-align:center;">Failed ÔÇö retry</span>`;
+      slot.innerHTML=`<span style="font-size:9px;color:var(--red);padding:4px;text-align:center;">Failed — retry</span>`;
       slot.style.border='1px solid var(--red)';
     }
   }
@@ -3334,7 +3334,7 @@ async function genAngleVariations(){
   ID.allUrls=[ID.masterUrl,...ID.angleUrls];
   document.getElementById('anglesStatus').textContent=done+' of 9 angle variations generated';
 
-  // Save all URLs to persona in localStorage ÔÇö clean any double-prefixed URLs first
+  // Save all URLs to persona in localStorage — clean any double-prefixed URLs first
   const _clean=u=>{if(!u)return null;const m=u.match(/(https:\/\/(?:v3b\.fal\.media|fal\.media|storage\.googleapis).*)/) ;return m?m[1]:u.startsWith('data:')?u:u.startsWith('http')?u:null;};
   ID.allUrls=ID.allUrls.map(_clean).filter(Boolean);
   const pp=S.personas.find(p=>p.name===ID.personaName);
@@ -3351,13 +3351,13 @@ async function genAngleVariations(){
     populateLoraGrid();
     toast(done+' angle variations ready ÔåÆ proceed to train LoRA');
   } else {
-    toast('Some angles failed ÔÇö you can still proceed with '+done+' images','err');
+    toast('Some angles failed — you can still proceed with '+done+' images','err');
     document.getElementById('proceedToLoraBtn').style.display='flex';
     populateLoraGrid();
   }
 }
 
-// Stage 3 ÔÇö LoRA training
+// Stage 3 — LoRA training
 function populateLoraGrid(){
   const grid=document.getElementById('loraTrainingGrid');
   grid.innerHTML=ID.allUrls.map((url,i)=>`
@@ -3384,11 +3384,11 @@ async function trainLora(){
   document.getElementById('loraStatusMsg').textContent='Submitting training job to fal.ai...';
 
   try{
-    // Build full image list ÔÇö master (may be base64) + angles (CDN URLs)
+    // Build full image list — master (may be base64) + angles (CDN URLs)
     const allImgs = ID.allUrls.length ? ID.allUrls :
       (S.persona?.savedPortraits||[]);
 
-    if(!allImgs.length) return toast('No training images found ÔÇö please regenerate angle variations first','err');
+    if(!allImgs.length) return toast('No training images found — please regenerate angle variations first','err');
     console.log('Training with',allImgs.length,'images:',allImgs.map(u=>u.substring(0,40)));
 
     const fd=new FormData();
@@ -3401,13 +3401,13 @@ async function trainLora(){
     if(d.error) throw new Error(d.error);
 
     const jobId=d.job_id||d.jobId||('lora_'+Date.now());
-    if(!d.job_id) console.warn('No job_id in response ÔÇö using fallback:', jobId);
+    if(!d.job_id) console.warn('No job_id in response — using fallback:', jobId);
     ID.loraJobId=jobId;
     ID.triggerWord=triggerWord;
     // Save job ID so it survives page refresh
     try{ localStorage.setItem('lora_training_job', JSON.stringify({jobId, triggerWord, personaName:ID.personaName, started:Date.now()})); }catch(e){}
-    document.getElementById('loraStatusMsg').textContent='Training in progress ÔÇö job ID: '+jobId;
-    document.getElementById('loraStatusSub').textContent='This takes 15ÔÇô20 minutes. Checking progress every 30 seconds...';
+    document.getElementById('loraStatusMsg').textContent='Training in progress — job ID: '+jobId;
+    document.getElementById('loraStatusSub').textContent='This takes 15–20 minutes. Checking progress every 30 seconds...';
 
     // Poll for completion
     let elapsed=0;
@@ -3418,7 +3418,7 @@ async function trainLora(){
         const sd=await sr.json();
         const pct=sd.progress||Math.min(Math.round(elapsed/1200*100),95);
         document.getElementById('loraProgressBar').style.width=pct+'%';
-        document.getElementById('loraProgressLabel').textContent=pct+'% ÔÇö '+Math.round(elapsed/60)+' min elapsed';
+        document.getElementById('loraProgressLabel').textContent=pct+'% — '+Math.round(elapsed/60)+' min elapsed';
         document.getElementById('loraStatusMsg').textContent=sd.message||'Training in progress...';
 
         if(sd.status==='complete'){
@@ -3445,13 +3445,13 @@ async function trainLora(){
     },30000);
 
   }catch(e){
-    btn.disabled=false; btn.textContent='Ô£ª Train LoRA ÔÇö lock this identity';
+    btn.disabled=false; btn.textContent='Ô£ª Train LoRA — lock this identity';
     document.getElementById('loraTrainingStatus').style.display='none';
     toast('Error: '+e.message,'err');
   }
 }
 
-// Stage 4 ÔÇö Test
+// Stage 4 — Test
 async function testLoraGeneration(){
   if(!ID.loraUrl) return toast('Train LoRA first','err');
   const outfit=document.getElementById('loraTestOutfit').value||'cream cashmere blazer, luxury library background';
@@ -3471,11 +3471,11 @@ async function testLoraGeneration(){
     document.getElementById('loraTestImg').src=url;
     document.getElementById('loraTestMaster').src=ID.masterUrl||'';
     document.getElementById('loraTestResult').style.display='block';
-    toast('Test image ready ÔÇö compare faces');
+    toast('Test image ready — compare faces');
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
-// Stage 5 ÔÇö Lock to persona
+// Stage 5 — Lock to persona
 function lockIdentityToPersona(){
   if(!ID.loraUrl) return toast('Train LoRA first','err');
   const loraPid = document.getElementById('loraPersonaSelect')?.value;
@@ -3496,13 +3496,13 @@ function lockIdentityToPersona(){
   // Update right panel portrait
   const av=document.getElementById('rpAv');
   if(av&&pp.portrait) av.innerHTML=`<img src="${pp.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
-  toast('­ƒöÆ '+pp.name+' identity locked permanently');
+  toast('🔒 '+pp.name+' identity locked permanently');
   // Save to portrait docs
   ID.allUrls.forEach(url=>S.savedPortraits.push({url,persona:pp.name,time:new Date().toLocaleString()}));
   saveAll();updateDocCounts();
 }
 
-// Legacy function ÔÇö keep for backward compat
+// Legacy function — keep for backward compat
 async function genPortraits10(){
   showPanel('portraits',null);
   toast('Use the Identity Lock flow in the Portraits panel');
@@ -3550,7 +3550,7 @@ async function startGen(){
       removing_background:'Removing background from portrait...',
       compositing:'Compositing portrait onto scene...',
       uploading:'Uploading files to fal.ai...',
-      generating_video:'Flashtalk generating lip-sync video ÔÇö this takes 30ÔÇô90 seconds...',
+      generating_video:'Flashtalk generating lip-sync video — this takes 30–90 seconds...',
       downloading:'Downloading generated video...',
       processing:'Encoding video for mobile streaming...',
       grain_filter:'Applying grain filter...',
@@ -3571,7 +3571,7 @@ async function startGen(){
         if(st==='removing_background'){updatePipe(1,'run','Removing background...');}
         if(st==='compositing'){updatePipe(1,'done');updatePipe(2,'run','Compositing...');}
         if(st==='uploading'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Uploading...');}
-        if(st==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Flashtalk lip-sync (~30ÔÇô90s)...');}
+        if(st==='generating_video'){updatePipe(1,'done');updatePipe(2,'done');updatePipe(3,'run','Flashtalk lip-sync (~30–90s)...');}
         if(st==='downloading'){updatePipe(3,'done');updatePipe(4,'run','Downloading...');}
         if(st==='processing'||st==='grain_filter'){updatePipe(3,'done');updatePipe(4,'run','Encoding for mobile...');}
         if(st==='captions'){updatePipe(4,'done');updatePipe(5,'run','Burning captions...');}
@@ -3660,7 +3660,7 @@ async function fetchPortraitAsFile(portraitUrl){
     const blob = await resp.blob();
     return new File([blob],'portrait.png',{type:'image/png'});
   }catch(e){
-    // CORS-blocked (fal.ai CDN) ÔÇö use backend proxy
+    // CORS-blocked (fal.ai CDN) — use backend proxy
     try{
       const proxyUrl = `${API()}/proxy-image?url=${encodeURIComponent(portraitUrl)}`;
       const resp = await fetch(proxyUrl);
@@ -3678,7 +3678,7 @@ async function skipOutfitToVideo(){
   // Use the locked portrait as-is, bypass outfit selection, proceed to next step
   const p = S.persona;
   const portraitUrl = p?.masterPortraitUrl || p?.portrait;
-  if(!portraitUrl){ toast('No locked portrait found ÔÇö lock a master portrait first','err'); return; }
+  if(!portraitUrl){ toast('No locked portrait found — lock a master portrait first','err'); return; }
 
   const btn = event?.currentTarget;
   if(btn){ btn.disabled=true; btn.textContent='ÔÅ│ Loading portrait...'; }
@@ -3691,7 +3691,7 @@ async function skipOutfitToVideo(){
   S.portraitUrl = portraitUrl;
   window._qpLastImg = { url: portraitUrl, path: null, personaName: p?.name||'' };
 
-  if(btn){ btn.disabled=false; btn.textContent='Ô£ô Skip ÔÇö use current outfit & proceed to video ÔåÆ'; }
+  if(btn){ btn.disabled=false; btn.textContent='Ô£ô Skip — use current outfit & proceed to video ÔåÆ'; }
   toast('Using current outfit Ô£ô');
   goStep(5); // proceed to scene step
 }
@@ -3702,7 +3702,7 @@ async function swapOutfitOnly(evt){
   const styling = (document.getElementById('loraStylingInp')?.value || '').trim();
 
   // ÔöÇÔöÇ Resolve persona: try every source in priority order ÔöÇÔöÇ
-  // 1. Fresh lookup from S.personas[] by name (most reliable ÔÇö array is always up to date)
+  // 1. Fresh lookup from S.personas[] by name (most reliable — array is always up to date)
   let activePerObj = S.persona?.name
     ? S.personas?.find(x => x.name === S.persona.name) || S.persona
     : S.persona;
@@ -3732,20 +3732,20 @@ async function swapOutfitOnly(evt){
   if(!pid){ toast('No persona selected','err'); return; }
   if(!outfit){ toast('Enter an outfit first','err'); return; }
   if(!activePerObj?.masterPortraitUrl){
-    toast('No locked portrait for '+(activePerObj?.name||pid)+' ÔÇö lock a portrait first via "Upload as master portrait"','err'); return;
+    toast('No locked portrait for '+(activePerObj?.name||pid)+' — lock a portrait first via "Upload as master portrait"','err'); return;
   }
   const outfitFull = styling ? `${outfit}, ${styling}` : outfit;
   const btn = document.getElementById('swapOutfitBtn');
   btn.disabled = true;
-  btn.textContent = '­ƒöä Swapping...';
-  toast('Swapping outfit ÔÇö face & body stay identical...');
+  btn.textContent = '🔄 Swapping...';
+  toast('Swapping outfit — face & body stay identical...');
   try{
     const fd = new FormData();
     fd.append('persona_id', pid);
     fd.append('outfit', outfitFull);
     // Always send master_url so server can recover it if redeployed (Railway ephemeral memory)
     if(activePerObj.masterPortraitUrl) fd.append('master_url_override', activePerObj.masterPortraitUrl);
-    // Pass LoRA details if the persona has a trained LoRA ÔÇö enables higher quality generation
+    // Pass LoRA details if the persona has a trained LoRA — enables higher quality generation
     if(activePerObj.loraUrl){ fd.append('lora_url', activePerObj.loraUrl); }
     if(activePerObj.triggerWord){ fd.append('trigger_word', activePerObj.triggerWord); }
     if(activePerObj.appearance){ fd.append('appearance', activePerObj.appearance); }
@@ -3761,7 +3761,7 @@ async function swapOutfitOnly(evt){
         const st = await sr.json();
         if(st.status==='complete'){
           clearInterval(poll);
-          btn.disabled=false; btn.textContent='­ƒöä Swap outfit only';
+          btn.disabled=false; btn.textContent='🔄 Swap outfit only';
           // Show result in the existing portrait result grid
           const imgUrl = `${API()}${st.images[0]}`;
           const genImg = document.getElementById('portraitLoraGenImg');
@@ -3774,16 +3774,16 @@ async function swapOutfitOnly(evt){
           const blob = await imgResp.blob();
           S.portraitFile = new File([blob], 'portrait-swapped.png', {type:'image/png'});
           S.portraitUrl = imgUrl;
-          toast('Outfit swapped ÔÇö same face, body & background Ô£ô');
+          toast('Outfit swapped — same face, body & background Ô£ô');
         } else if(st.status==='error'){
           clearInterval(poll);
-          btn.disabled=false; btn.textContent='­ƒöä Swap outfit only';
+          btn.disabled=false; btn.textContent='🔄 Swap outfit only';
           toast(st.error||'Outfit swap failed','err');
         }
-      }catch(e){ clearInterval(poll); btn.disabled=false; btn.textContent='­ƒöä Swap outfit only'; }
+      }catch(e){ clearInterval(poll); btn.disabled=false; btn.textContent='🔄 Swap outfit only'; }
     }, 3000);
   }catch(e){
-    btn.disabled=false; btn.textContent='­ƒöä Swap outfit only';
+    btn.disabled=false; btn.textContent='🔄 Swap outfit only';
     toast(e.message||'Outfit swap failed','err');
   }
 }
@@ -3797,7 +3797,7 @@ function copyDesc(elId, btnId){
     btn.textContent = 'Ô£ô Copied!';
     btn.style.color = 'var(--green)';
     setTimeout(()=>{ btn.textContent=orig; btn.style.color=''; }, 2000);
-  }).catch(()=> toast('Copy failed ÔÇö select text manually','err'));
+  }).catch(()=> toast('Copy failed — select text manually','err'));
 }
 
 async function generateVideoDescription(script, personaName, niche){
@@ -3827,7 +3827,7 @@ async function generateVideoDescription(script, personaName, niche){
     if(d.youtube)   document.getElementById('descYoutube').textContent   = d.youtube;
     if(spinner) spinner.style.display = 'none';
   } catch(e){
-    if(spinner){ spinner.textContent = 'Failed ÔÇö try regenerating'; spinner.style.color='var(--red)'; }
+    if(spinner){ spinner.textContent = 'Failed — try regenerating'; spinner.style.color='var(--red)'; }
     console.warn('Description generation failed:', e);
   } finally {
     window._descGenerating = false;
@@ -3852,7 +3852,7 @@ async function downloadVideo(url, filename){
     URL.revokeObjectURL(a.href);
     toast('Download started');
   }catch(e){
-    // Fallback ÔÇö open in new tab if fetch fails (e.g. CORS)
+    // Fallback — open in new tab if fetch fails (e.g. CORS)
     const a=document.createElement('a');
     a.href=url; a.download=filename; a.target='_blank';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -3927,7 +3927,7 @@ function renderDocs(tab){
     const el=document.getElementById('docSkillList');
     el.innerHTML=S.skills.length?S.skills.map((s,i)=>`
       <div class="doc-item">
-        <div class="doc-item-icon">­ƒôï</div>
+        <div class="doc-item-icon">📱</div>
         <div style="flex:1;"><div class="doc-item-name">${s.name}</div><div class="doc-item-meta">${s.persona||''}${s.added?' ┬À '+s.added:''}</div></div>
         <div class="doc-item-actions">
           <button class="btn ghost sm" onclick="loadSkillFromStore(${i})">Load</button>
@@ -3940,7 +3940,7 @@ function renderDocs(tab){
     el.innerHTML=S.savedScripts.length?S.savedScripts.map((s,i)=>`
       <div class="doc-item" style="flex-direction:column;align-items:flex-start;">
         <div style="display:flex;align-items:center;gap:8px;width:100%;">
-          <div class="doc-item-icon">­ƒôä</div>
+          <div class="doc-item-icon">📄</div>
           <div style="flex:1;"><div class="doc-item-name">${s.persona} ┬À ${s.niche}</div><div class="doc-item-meta">${s.time}</div></div>
           <div class="doc-item-actions">
             <button class="btn ghost sm" onclick="loadSavedScript(${i})">Use</button>
@@ -3994,7 +3994,7 @@ function loadSkillFromStore(i){
   document.getElementById('skillName').textContent='Ô£ô '+s.name;
   document.getElementById('skillZone').classList.add('skill-loaded');
   document.getElementById('rpSkill').innerHTML=`<span style="color:var(--green);">Ô£ô</span> <span style="color:var(--text);font-weight:500;">${s.name}</span>`;
-  showPanel('create',null);goStep(1);toast('Skill loaded ÔÇö topic suggestions filled');
+  showPanel('create',null);goStep(1);toast('Skill loaded — topic suggestions filled');
 }
 function deleteSkill(i){S.skills.splice(i,1);saveAll();updateDocCounts();renderDocs('skills');}
 function loadSavedScript(i){const s=S.savedScripts[i];if(!s)return;document.getElementById('scriptBox').textContent=s.text;document.getElementById('scriptCard').style.display='block';S.script=s.text;showPanel('create',null);goStep(3);toast('Script loaded');}
