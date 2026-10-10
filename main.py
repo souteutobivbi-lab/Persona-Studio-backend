@@ -435,18 +435,31 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     """
     color_hint = f"{outfit_color} " if outfit_color else ""
 
-    # Base identity layer ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â locks the visual aesthetic to the reference accounts
-    base_identity = (
-        "deep rich warm amber-brown luminous skin, high-gloss healthy glow on cheekbones and shoulders, "
-        "high cheekbones, almond-shaped dark brown eyes, long flared black lashes, "
-        "full wide lips with nude-brown gloss, strong defined jawline, broad smooth forehead, "
-        "West African facial bone structure, "
-        "full-figured curvy body, full rounded bust, soft voluminous arms, thick legs crossed, "
-        "hourglass silhouette with natural weight and softness, substantial physical presence, "
-        "long voluminous natural black curls falling past shoulders, "
-        "natural glam makeup, contoured cheeks, highlighted nose bridge, defined arched brows, "
-        "gold medium hoop earrings, thin gold chain necklace, gold wrist bracelet"
-    )
+    # Derive gender word and sex flag
+    _is_male = sex.lower() in ("male", "m", "man")
+    gender_word = "man" if _is_male else "woman"
+
+    # Base identity layer — branches by sex
+    if _is_male:
+        base_identity = (
+            "deep rich warm dark brown skin, sharp angular jawline, high cheekbones, "
+            "dark brown eyes, close-cropped or short natural hair, "
+            "West African facial bone structure, "
+            "broad shoulders, lean athletic build, strong upright posture, "
+            "clean well-groomed appearance, confident composed expression"
+        )
+    else:
+        base_identity = (
+            "deep rich warm amber-brown luminous skin, high-gloss healthy glow on cheekbones and shoulders, "
+            "high cheekbones, almond-shaped dark brown eyes, long flared black lashes, "
+            "full wide lips with nude-brown gloss, strong defined jawline, broad smooth forehead, "
+            "West African facial bone structure, "
+            "full-figured curvy body, full rounded bust, soft voluminous arms, thick legs crossed, "
+            "hourglass silhouette with natural weight and softness, substantial physical presence, "
+            "long voluminous natural black curls falling past shoulders, "
+            "natural glam makeup, contoured cheeks, highlighted nose bridge, defined arched brows, "
+            "gold medium hoop earrings, thin gold chain necklace, gold wrist bracelet"
+        )
 
     # Persona-specific overrides (age, any unique traits from skill file)
     persona_layer = appearance if appearance else ""
