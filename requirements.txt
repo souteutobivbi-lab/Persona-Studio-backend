@@ -9,3 +9,5 @@ aiofiles
 numpy
 rembg
 onnxruntime
+
+supabase

@@ -5,12 +5,16 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTM
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import httpx
+from supabase import create_client
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEY       = os.environ.get("GROQ_KEY", "")
 ELEVENLABS_KEY = os.environ.get("ELEVENLABS_KEY", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 FAL_KEY        = os.environ.get("FAL_KEY", "")
 
 UPLOAD_DIR = Path("/app/uploads")
