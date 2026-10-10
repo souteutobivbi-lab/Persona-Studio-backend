@@ -426,7 +426,7 @@ async def serve_audio(job_id: str):
         return FileResponse(str(path), media_type="audio/mpeg")
     return JSONResponse({"error": "not found"}, status_code=404)
 
-    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex)
+def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit_color: str = "", sex: str = "female", skill_context: str = "") -> str:
     """Build podcast-style seated portrait prompt matching linakodi1_ / mayaa_speaks aesthetic.
 
     The appearance string from the persona is layered ON TOP of a hardcoded base that locks
@@ -451,8 +451,17 @@ async def serve_audio(job_id: str):
     # Persona-specific overrides (age, any unique traits from skill file)
     persona_layer = appearance if appearance else ""
 
-    # Podcast set ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fixed every time, never varies
-    if sex.lower() in ('male', 'm', 'man'):
+    # Parse PORTRAIT SCENE from skill file if present
+    custom_scene = ""
+    if skill_context and "PORTRAIT SCENE:" in skill_context:
+        _sc_start = skill_context.find("PORTRAIT SCENE:") + len("PORTRAIT SCENE:")
+        _sc_end = skill_context.find(chr(10), _sc_start)
+        custom_scene = skill_context[_sc_start:_sc_end].strip() if _sc_end > _sc_start else skill_context[_sc_start:_sc_start+300].strip()
+
+    # Podcast set - use skill file scene if defined, else sex-based default
+    if custom_scene:
+        podcast_set = custom_scene
+    elif sex.lower() in ('male', 'm', 'man'):
         podcast_set = (
             'seated facing camera in a sleek modern podcast studio chair, body leaning slightly forward, elbows resting on knees, confident CEO posture, '
             'large black podcast microphone on boom arm in front, '
@@ -673,7 +682,7 @@ async def generate_portrait(
                 ref_url = entry["url"]
                 break
 
-    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex)
+    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex, skill_context=skill_context)
     set_job(jid, {"status": "running", "progress": 0, "stage": "generating"})
 
     def _run():
@@ -1167,7 +1176,7 @@ async def swap_outfit(
     lora_url: str = Form(""),
     trigger_word: str = Form(""),
     appearance: str = Form(""),
-    sex: str = Form("female"),
+    skill_context: str = Form(""),
 ):
     """
     Swap outfit on the locked master portrait.
