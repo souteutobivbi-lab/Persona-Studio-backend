@@ -200,10 +200,10 @@ async def generate_script(
     _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
     _ceo_skill_kws = ["nutlip","homivis","mediahouz","serial tech founder","building in public"]
     if niche.lower() in ["motivation","entrepreneurship"] or any(k in topic.lower() for k in _ceo_topic_kws) or any(k in (skill_context or "").lower() for k in _ceo_skill_kws):
-        if not ("SCRIPT STRUCTURE" in (skill_context or "") or "podcast confession" in (skill_context or "").lower()):
-            has_ceo_structure = True
+        has_ceo_structure = True  # CEO/founder always uses CEO path
+
     structure_rules = ""
-    if skill_context:
+    if skill_context and not has_ceo_structure:
         sc = skill_context
         has_vivienne_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
                                    or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
