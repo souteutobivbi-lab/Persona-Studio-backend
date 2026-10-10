@@ -483,11 +483,13 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         podcast_set = custom_scene
     elif sex.lower() in ('male', 'm', 'man'):
         podcast_set = (
-            'seated facing camera in a sleek modern podcast studio chair, body leaning slightly forward, elbows resting on knees, confident CEO posture, '
-            'large black podcast microphone on boom arm in front, '
-            'background: dark charcoal acoustic panels, subtle LED strip lighting behind, clean minimal studio setup, '
-            'bright crisp studio lighting, strong key light on face, cool-white tones, professional broadcast quality, high-key portrait lighting, '
-            'camera angle straight on at eye level, tight medium shot head to mid-torso, subject looking directly into camera'
+            'seated almost side-on to camera, body angled away, '
+            'hands resting on a desk or table, leaning forward slightly as if mid-conversation with someone off-screen, '
+            'tight medium shot head to mid-chest, '
+            'bright professional studio lighting with warm key light and soft fill light, warm tones, '
+            'clean minimal podcast studio or office setup, desk or table in frame with hands visible, '
+            'large black podcast microphone on boom arm, '
+            'measured composed direct energy, no dark backgrounds, no black backgrounds, no dark curtains'
         )
     else:
         podcast_set = (
