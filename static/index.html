@@ -847,6 +847,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">◈ Cancel</button>
             <div style="display:none;flex;gap:8px;margin-top:6px;" id="postGenBtns">
+              <button class="btn ghost" style="flex:1;" onclick="enhanceVideo(this)">✦ Enhance</button>
               <button class="btn ghost" style="flex:1;" onclick="downloadVideo(S.lastVideoUrl,'mediahouz-'+((S.persona?.name||'video').replace(/\s+/g,'-').toLowerCase())+'-'+Date.now()+'.mp4')">↓ Download video</button>
               <button class="btn primary" style="flex:1;" onclick="publishVideo()">🌐 Publish</button>
             </div>
@@ -4184,6 +4185,32 @@ async function generatePortraitAndPoll(fd) {
     });
   }catch(e){console.warn('Could not load music tracks:',e);}
 })();
+
+async function enhanceVideo(btn) {
+  if(!S.lastVideoUrl){ toast('No video to enhance','err'); return; }
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Enhancing...';
+  try {
+    const fd = new FormData();
+    fd.append('video_url', S.lastVideoUrl);
+    const r = await fetch(API()+'/enhance-video', {method:'POST', body:fd});
+    const j = await r.json();
+    if(j.enhanced_url) {
+      S.lastVideoUrl = j.enhanced_url;
+      const vp = document.getElementById('videoPreview');
+      if(vp) vp.innerHTML = `<video src="${j.enhanced_url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
+      toast('✓ Video enhanced — zoom + mirror applied','ok');
+      btn.textContent = '✓ Enhanced';
+    } else {
+      toast(j.error || 'Enhancement failed','err');
+      btn.disabled = false; btn.textContent = orig;
+    }
+  } catch(e) {
+    toast('Enhance error: '+e.message,'err');
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
 </script>
 </body>
 </html>

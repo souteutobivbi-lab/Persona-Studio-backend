@@ -1607,3 +1607,84 @@ async def list_fal_files():
                  if isinstance(f, dict) and ".safetensors" in str(f.get("url","") or f.get("file_name",""))]
         return {"files": files, "raw_sample": str(data)[:500]}
 
+
+# ═══════════════════════════════════════════════════════
+# VIDEO ENHANCEMENT — ffmpeg shot-variation pass
+# ═══════════════════════════════════════════════════════
+@app.post("/enhance-video")
+async def enhance_video(video_url: str = Form(...)):
+    import subprocess, tempfile, os, json as _json
+    import httpx, fal_client
+
+    tmp_dir = tempfile.mkdtemp()
+    input_path  = os.path.join(tmp_dir, "input.mp4")
+    output_path = os.path.join(tmp_dir, "enhanced.mp4")
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.get(video_url)
+            resp.raise_for_status()
+        with open(input_path, "wb") as f:
+            f.write(resp.content)
+
+        probe = subprocess.run([
+            "ffprobe", "-v", "error", "-select_streams", "v:0",
+            "-show_entries", "stream=duration",
+            "-of", "json", input_path
+        ], capture_output=True, text=True, timeout=30)
+        try:
+            duration = float(_json.loads(probe.stdout)["streams"][0]["duration"])
+        except Exception:
+            duration = 10.0
+
+        t1 = round(duration / 3, 3)
+        t2 = round(2 * duration / 3, 3)
+
+        aprobe = subprocess.run([
+            "ffprobe", "-v", "error", "-select_streams", "a:0",
+            "-show_entries", "stream=codec_type",
+            "-of", "json", input_path
+        ], capture_output=True, text=True, timeout=15)
+        has_audio = '"audio"' in aprobe.stdout
+
+        if has_audio:
+            fc = (
+                f"[0:v]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
+                f"[0:v]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
+                f"[0:v]trim={t2},setpts=PTS-STARTPTS[v3];"
+                f"[0:a]atrim=0:{t1},asetpts=PTS-STARTPTS[a1];"
+                f"[0:a]atrim={t1}:{t2},asetpts=PTS-STARTPTS[a2];"
+                f"[0:a]atrim={t2},asetpts=PTS-STARTPTS[a3];"
+                f"[v1][a1][v2][a2][v3][a3]concat=n=3:v=1:a=1[outv][outa]"
+            )
+            maps = ["-map", "[outv]", "-map", "[outa]"]
+            acodec = ["-c:a", "aac", "-b:a", "128k"]
+        else:
+            fc = (
+                f"[0:v]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
+                f"[0:v]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
+                f"[0:v]trim={t2},setpts=PTS-STARTPTS[v3];"
+                f"[v1][v2][v3]concat=n=3:v=1:a=0[outv]"
+            )
+            maps = ["-map", "[outv]"]
+            acodec = []
+
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-filter_complex", fc,
+               *maps, "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+               *acodec, output_path]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr[-800:])
+
+        enhanced_url = fal_client.upload_file(output_path)
+        return JSONResponse({"enhanced_url": enhanced_url})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        for p in [input_path, output_path]:
+            try: os.unlink(p)
+            except: pass
+        try: os.rmdir(tmp_dir)
+        except: pass
+
