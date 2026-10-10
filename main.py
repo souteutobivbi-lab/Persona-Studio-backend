@@ -268,6 +268,10 @@ async def generate_script(
         "LENGTH: 100-140 words per script. Paragraph style only.\n"
         "No lists, no hashtags, no emojis, no stage directions.\n"
         "Each of the 5 scripts must cover a DIFFERENT angle of the topic.\n\n"
+        "QUESTION HOOK RULE: When you open with a question, do NOT answer it in the next sentence. "
+        "Let it hang. The answer should be earned through the middle and only land in the REWARD at the end.\n"
+        "REPETITION RULE: No phrase, sentence, or line may appear in more than ONE of the 5 scripts. "
+        "If a line is a persona signature, use it in one script only. Every script must feel distinct.\n\n"
         'Return ONLY a JSON array of 5 objects:\n'
         '[{"title": "Short searchable title", "script": "Full script text", "keywords": ["#tag1"]}]'
     )
