@@ -4035,9 +4035,17 @@ function renderHistory(){
       <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">${v.published?'✓ Live':'Publish'}</div>
       <button onclick="downloadVideo('${v.url}','mediahouz-${(v.persona||'video').replace(/\s+/g,'-').toLowerCase()}-${v.jid}.mp4')"
         style="background:none;border:1px solid var(--border);color:var(--p2);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:6px;flex-shrink:0;">↓</button>
+      <button onclick="deleteVideo('${v.jid}')"
+        style="background:none;border:1px solid #c0392b;color:#c0392b;padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:4px;flex-shrink:0;" title="Delete video">✕</button>
     </div>`).join('');
 }
 function togglePublish(jid){const v=S.videos.find(v=>v.jid===jid);if(!v)return;v.published=!v.published;saveAll();updateDashboard();renderHistory();renderPublic('home');toast(v.published?'Published':'Unpublished');}
+function deleteVideo(jid){
+  if(!confirm('Delete this video? This cannot be undone.'))return;
+  S.videos=S.videos.filter(v=>v.jid!==jid);
+  saveAll();updateDashboard();renderHistory();renderPublic('home');
+  toast('Video deleted');
+}
 
 // →→ PERSISTENCE →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 function saveAll(){
