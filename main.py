@@ -526,7 +526,7 @@ def save_lora_registry(registry: dict):
     if sb:
         try:
             for name, data in registry.items():
-                url = data.get("url", "") if isinstance(data, dict) else str(data)
+                url = data.get("fal_url") or data.get("url", "") if isinstance(data, dict) else str(data)
                 trigger = data.get("trigger_word", name.lower()) if isinstance(data, dict) else name.lower()
                 sb.table("loras").upsert(
                     {"persona_name": name, "lora_url": url, "trigger_word": trigger},
@@ -1102,7 +1102,9 @@ async def train_lora_from_frames(
             except: pass
 
             # Persist LoRA to registry and Supabase
-            LORA_REGISTRY[persona_id] = {"url": lora_serve_url, "trigger_word": trigger_word}
+            # Use permanent fal URL for Supabase (not local path)
+            _perm_url = permanent_lora_url if "permanent_lora_url" in dir() or "permanent_lora_url" in locals() else lora_serve_url
+            LORA_REGISTRY[persona_id] = {"url": _perm_url, "trigger_word": trigger_word}
             save_lora_registry(LORA_REGISTRY)
             print(f"[{jid}] LoRA saved to registry + Supabase: {persona_id}")
 
