@@ -1166,6 +1166,17 @@ async def swap_outfit(
     os.environ["FAL_KEY"] = FAL_KEY
 
     entry = MASTER_PORTRAITS.get(persona_id)
+    # Fallback: check Supabase if not in memory
+    if not entry and sb:
+        try:
+            rows = sb.table("portraits").select("*").execute().data
+            rows = [r for r in rows if r["persona_name"].lower() == persona_id.lower()]
+            if rows:
+                entry = {"url": rows[0]["portrait_url"]}
+                MASTER_PORTRAITS[persona_id] = entry
+                print(f"[swap_outfit] Loaded portrait for {persona_id} from Supabase")
+        except Exception as e:
+            print(f"[swap_outfit] Supabase portrait lookup error: {e}")
     # Accept master_url from the browser if server lost it (Railway ephemeral filesystem)
     master_url = (entry or {}).get("url") or master_url_override.strip() or None
     if not master_url:
