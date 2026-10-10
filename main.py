@@ -1243,7 +1243,25 @@ async def swap_outfit(
                             local_path.write_bytes(dl.content)
                             print(f"[{jid}] LoRA restored from hardcoded URL")
                         else:
-                            raise ValueError(f"LoRA not found locally and no registry entry for {persona_id} -- please retrain")
+                            # Try Supabase as final fallback
+                            sb_url = None
+                            if sb:
+                                try:
+                                    rows = sb.table("loras").select("*").execute().data
+                                    rows = [r for r in rows if r["persona_name"].lower() == persona_id.lower()]
+                                    if rows:
+                                        sb_url = rows[0]["lora_url"]
+                                        print(f"[{jid}] LoRA URL found in Supabase for {persona_id}")
+                                except Exception as se:
+                                    print(f"[{jid}] Supabase LoRA lookup error: {se}")
+                            if sb_url:
+                                dl = _req.get(sb_url, timeout=180)
+                                dl.raise_for_status()
+                                local_path.parent.mkdir(parents=True, exist_ok=True)
+                                local_path.write_bytes(dl.content)
+                                print(f"[{jid}] LoRA restored from Supabase URL")
+                            else:
+                                raise ValueError(f"LoRA not found locally and no registry entry for {persona_id} -- please retrain")
                     print(f"[{jid}] Using locally stored LoRA: {local_path}")
                     import shutil
                     shutil.copy(str(local_path), str(lora_tmp))
