@@ -1583,79 +1583,64 @@ async def enhance_video(video_url: str = Form(...)):
     import subprocess, tempfile, os, json as _json
     import httpx, fal_client
 
-    tmp_dir = tempfile.mkdtemp()
-    input_path  = os.path.join(tmp_dir, "input.mp4")
-    output_path = os.path.join(tmp_dir, "enhanced.mp4")
+    tmp = tempfile.mkdtemp()
+    inp   = os.path.join(tmp, "input.mp4")
+    s1    = os.path.join(tmp, "s1.mp4")
+    s2    = os.path.join(tmp, "s2.mp4")
+    s3    = os.path.join(tmp, "s3.mp4")
+    lst   = os.path.join(tmp, "list.txt")
+    out   = os.path.join(tmp, "enhanced.mp4")
 
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url)
             resp.raise_for_status()
-        with open(input_path, "wb") as f:
+        with open(inp, "wb") as f:
             f.write(resp.content)
 
-        probe = subprocess.run([
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "json", input_path
-        ], capture_output=True, text=True, timeout=30)
+        # Get duration from format (most reliable)
+        probe = subprocess.run(
+            ["ffprobe","-v","error","-show_entries","format=duration","-of","json", inp],
+            capture_output=True, text=True, timeout=30)
         try:
-            duration = float(_json.loads(probe.stdout)["format"]["duration"])
+            dur = float(_json.loads(probe.stdout)["format"]["duration"])
         except Exception:
-            # last resort: ask for stream duration
-            probe2 = subprocess.run([
-                "ffprobe", "-v", "error", "-select_streams", "v:0",
-                "-show_entries", "stream=duration",
-                "-of", "json", input_path
-            ], capture_output=True, text=True, timeout=30)
-            try:
-                duration = float(_json.loads(probe2.stdout)["streams"][0]["duration"])
-            except Exception:
-                duration = 8.0
+            dur = 8.0
 
-        t1 = round(duration / 3, 3)
-        t2 = round(2 * duration / 3, 3)
+        t1 = round(dur / 3, 3)
+        t2 = round(2 * dur / 3, 3)
 
-        aprobe = subprocess.run([
-            "ffprobe", "-v", "error", "-select_streams", "a:0",
-            "-show_entries", "stream=codec_type",
-            "-of", "json", input_path
-        ], capture_output=True, text=True, timeout=15)
-        has_audio = '"audio"' in aprobe.stdout
+        def run(cmd):
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if r.returncode != 0:
+                raise RuntimeError(r.stderr[-1000:])
+            return r
 
-        if has_audio:
-            fc = (
-                f"[0:v]split=3[vs1][vs2][vs3];"
-                f"[vs1]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
-                f"[vs2]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
-                f"[vs3]trim={t2},setpts=PTS-STARTPTS[v3];"
-                f"[0:a]asplit=3[as1][as2][as3];"
-                f"[as1]atrim=0:{t1},asetpts=PTS-STARTPTS[a1];"
-                f"[as2]atrim={t1}:{t2},asetpts=PTS-STARTPTS[a2];"
-                f"[as3]atrim={t2},asetpts=PTS-STARTPTS[a3];"
-                f"[v1][a1][v2][a2][v3][a3]concat=n=3:v=1:a=1[outv][outa]"
-            )
-            maps = ["-map", "[outv]", "-map", "[outa]"]
-            acodec = ["-c:a", "aac", "-b:a", "128k"]
-        else:
-            fc = (
-                f"[0:v]split=3[vs1][vs2][vs3];"
-                f"[vs1]trim=0:{t1},setpts=PTS-STARTPTS,scale=iw*1.06:ih*1.06,crop=iw/1.06:ih/1.06[v1];"
-                f"[vs2]trim={t1}:{t2},setpts=PTS-STARTPTS,hflip[v2];"
-                f"[vs3]trim={t2},setpts=PTS-STARTPTS[v3];"
-                f"[v1][v2][v3]concat=n=3:v=1:a=0[outv]"
-            )
-            maps = ["-map", "[outv]"]
-            acodec = []
+        # Segment 1: zoom in (crop 94% center then scale back up)
+        run(["ffmpeg","-y","-i",inp,"-ss","0","-t",str(t1),
+             "-vf","crop=iw*94/100:ih*94/100,scale=iw*100/94:ih*100/94",
+             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", s1])
 
-        cmd = ["ffmpeg", "-y", "-i", input_path, "-filter_complex", fc,
-               *maps, "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-               *acodec, output_path]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr[-800:])
+        # Segment 2: mirror (hflip)
+        run(["ffmpeg","-y","-i",inp,"-ss",str(t1),"-t",str(t2-t1),
+             "-vf","hflip",
+             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", s2])
 
-        enhanced_url = fal_client.upload_file(output_path)
+        # Segment 3: normal
+        run(["ffmpeg","-y","-i",inp,"-ss",str(t2),
+             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", s3])
+
+        # Concat
+        with open(lst,"w") as f:
+            f.write(f"file '{s1}'
+file '{s2}'
+file '{s3}'
+")
+
+        run(["ffmpeg","-y","-f","concat","-safe","0","-i",lst,
+             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart", out])
+
+        enhanced_url = fal_client.upload_file(out)
         return JSONResponse({"enhanced_url": enhanced_url})
 
     except Exception as e:
