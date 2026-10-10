@@ -151,7 +151,7 @@ Return ONLY a JSON array of 8 topic strings. No explanation, no numbering.
 ["Topic one", "Topic two", ...]"""
     response = client.chat.completions.create(
         model="qwen/qwen3.8-27b",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "system", "content": "ABSOLUTE RULE: Never begin any script with the phrase A man who or A woman who. Always write in first person (I, my, we) as the persona. Never describe a third-person character."}, {"role": "user", "content": prompt}],
         max_tokens=350, temperature=0.97
     )
     raw = response.choices[0].message.content.strip()
@@ -426,7 +426,7 @@ async def serve_audio(job_id: str):
         return FileResponse(str(path), media_type="audio/mpeg")
     return JSONResponse({"error": "not found"}, status_code=404)
 
-def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit_color: str = "") -> str:
+    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex)
     """Build podcast-style seated portrait prompt matching linakodi1_ / mayaa_speaks aesthetic.
 
     The appearance string from the persona is layered ON TOP of a hardcoded base that locks
@@ -462,6 +462,8 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         "camera angle at chest level, tight medium shot framing head to mid-torso, subject looking slightly off-camera to the left as if in conversation"
     )
 
+    gender_word = "man" if sex.lower() in ("male", "m", "man") else "woman"
+
     # Technical photography layer ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â locks render quality
     photo_tech = (
         "Sony A7R IV 85mm f1.4 portrait lens, "
@@ -472,7 +474,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     )
 
     return (
-        f"photorealistic portrait photograph, {persona_age} year old British-Nigerian woman, "
+        f"photorealistic portrait photograph, {persona_age} year old British-Nigerian {gender_word}, "
         f"{base_identity}, "
         f"{persona_layer}, "
         f"wearing a {color_hint}{outfit}, well-fitted, sharp and professional, "
@@ -666,7 +668,7 @@ async def generate_portrait(
                 ref_url = entry["url"]
                 break
 
-    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color)
+    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex)
     set_job(jid, {"status": "running", "progress": 0, "stage": "generating"})
 
     def _run():
@@ -1160,6 +1162,7 @@ async def swap_outfit(
     lora_url: str = Form(""),
     trigger_word: str = Form(""),
     appearance: str = Form(""),
+    sex: str = Form("female"),
 ):
     """
     Swap outfit on the locked master portrait.
