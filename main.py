@@ -203,113 +203,76 @@ async def generate_script(
         has_ceo_structure = True  # CEO/founder always uses CEO path
 
     structure_rules = ""
+    script_examples = ""
+    signoffs = ""
     if skill_context and not has_ceo_structure:
         sc = skill_context
         has_vivienne_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
                                    or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
-        # Extract script structure section
+
+        def extract_section(text, heading):
+            """Extract content between a heading and the next heading/separator."""
+            idx = text.find(heading)
+            if idx == -1:
+                return ""
+            rest = text[idx + len(heading):]
+            # Find next section heading (ALL CAPS word followed by newline, or separator line)
+            import re as _re
+            m = _re.search(r'\n(?=[A-Z][A-Z ]{3,}\n|[-=─-╿]{4,})', rest)
+            end = m.start() if m else len(rest)
+            return rest[:end].strip()
+
         if "SCRIPT STRUCTURE" in sc:
-            start = sc.find("SCRIPT STRUCTURE")
-            end = sc.find("ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â", start + 20)
-            structure_rules = sc[start:end].strip() if end > start else sc[start:start+800]
-        # Extract example scripts section
+            structure_rules = extract_section(sc, "SCRIPT STRUCTURE")
         if "EXAMPLE SCRIPTS" in sc:
-            start = sc.find("EXAMPLE SCRIPTS")
-            end = sc.find("ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â", start + 20)
-            script_examples = sc[start:end].strip() if end > start else sc[start:start+2000]
-        # Extract sign-offs
-        signoffs = ""
+            script_examples = extract_section(sc, "EXAMPLE SCRIPTS")[:2000]
         if "SIGN-OFFS" in sc:
-            start = sc.find("SIGN-OFFS")
-            end = sc.find("ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â", start + 20)
-            signoffs = sc[start:end].strip() if end > start else ""
+            signoffs = extract_section(sc, "SIGN-OFFS")
 
-    if has_ceo_structure:
-        prompt = (
-            f"You are writing 5 short-form video scripts for {persona_name}, "
-            "a serial tech founder and CEO building multiple tech companies in the UK.\n"
-            f"Topic: {topic}\n\n"
-            "VOICE: First person throughout. Speaking from inside the build, not above it.\n\n"
-            "HOOK FORMAT - open each script with ONE of these (rotate, never repeat):\n"
-            "- A specific number or fact: e.g. \"Three investors told me the same thing in one week.\"\n"
-            "- A specific moment: e.g. \"The day we pushed live, nothing worked.\"\n"
-            "- A direct statement: e.g. \"I did not start this because I saw a gap.\"\n"
-            "- A confession: e.g. \"I almost shut everything down in month eight.\"\n"
-            "HARD RULES:\n"
-            "1. NEVER start any script with A man who or A woman who - absolutely forbidden.\n"
-            "2. Every script must be written in first person (I, my, we) as {persona_name} speaking directly.\n"
-            "3. Do not write about a fictional character or describe someone from the outside.\n"
-            "- A question: e.g. \"What do you do the morning after a rejection?\"\n"
-            "Never open with A man who or A woman who.\n\n"
-            "STRUCTURE after the hook:\n"
-            "- Stay specific - name the company, the problem, the day, the feeling\n"
-            "- No abstract lessons. No motivational language. No preaching.\n"
-            "- End with one earned sign-off: \"Follow - I document this here.\" / \"More tomorrow.\" / \"This is what building looks like.\"\n\n"
-            "LENGTH: 100-140 words. Paragraph style. No lists. No stage directions.\n"
-            "TONE: Someone telling you what actually happened. Dry, honest, specific.\n\n"
-            "Return ONLY a JSON array of 5 objects:\n"
-            '[{"title": "Short searchable title", "script": "Script text", "keywords": ["#buildinpublic"]}]'
+
+    # Universal prompt builder - skill sheet drives everything
+    skill_block = ""
+    if skill_context:
+        skill_block = (
+            "\n\n" + chr(9473)*39 + "\n"
+            "PERSONA SKILL SHEET - READ AND FOLLOW:\n" +
+            chr(9473)*39 + "\n" +
+            (skill_context[:4000]) + "\n" +
+            chr(9473)*39 + "\n"
+            "The skill sheet above defines this persona's voice, structure, tone, and examples.\n"
+            "Follow it exactly. It overrides any generic defaults below."
         )
-        max_tok = 1500
-        model = "qwen/qwen3.8-27b"
-    elif has_vivienne_structure:
-        # Vivienne-spec: "A woman/man who..." hook format, 100-140 words, paragraph style
-        prompt = f"""You are writing 5 scripts for {persona_name}, aged {persona_age}, in the {niche} niche.
-Topic: {topic}
 
-HOOK FORMAT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â use this for every script:
-Open with "A woman who [specific behaviour]." or "A man who [specific behaviour]." as the first sentence.
-The behaviour described must be specific and immediately recognisable to the audience.
-Then flow directly into the body ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no "I'm Vivienne" introduction.
+    ceo_note = ""
+    if has_ceo_structure:
+        ceo_note = (
+            "\nPERSONA TYPE: Serial tech founder / CEO. Always write in first person (I, my, we).\n"
+            "NEVER describe this person from the outside. NEVER open with A man who or A woman who.\n"
+        )
 
-EXAMPLES of the opening hook pattern:
-- "A woman who holds everything together for everyone else is usually the one nobody checks on."
-- "A woman who keeps going back to the same person is not weak. She is attached to a feeling she has not yet found anywhere else."
-- "A man who was never taught how to express pain does not become someone without pain. He becomes someone you cannot reach."
-
-STRUCTURE (after the hook):
-- Validate: show you understand exactly what they are going through
-- Unpack: explain the real mechanism ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â why this happens, what it is called, what drives it
-- Turn: reframe it ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â change how they see themselves or the situation
-- CTA: one earned sign-off ("Follow.", "Save this.", "More tomorrow.", "Follow ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â I talk about this every week.")
-
-STYLE:
-- 100-140 words per script (count carefully ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â do not go under 100 or over 145)
-- Podcast confession, essay-like, never a listicle
-- Warm, direct, British cadence ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â measured, real, understated firmness
-- No hashtags, no emojis, no stage directions, no filler sentences
-- Never shame the viewer. Validate before educating.
-- Each of the 5 must cover a DIFFERENT angle of the topic
-
-{signoffs if 'signoffs' in dir() else ''}
-
-Return ONLY a JSON array of 5 objects. Each object has:
-- "script": the full script text (string)
-- "keywords": array of 4-5 hashtag strings starting with # (relevant to the script content)
-
-[{{"title": "Short searchable title", "script": "A woman who...", "keywords": ["#relationships", "#selfworth"]}}, ...]"""
-        max_tok = 1500
-        model = "qwen/qwen3.8-27b"
-    else:
-        # Generic scripts for other personas
-        skill_section = f"\n\nPERSONA SKILL:\n{skill_context[:2000]}\nMatch this persona's exact tone and style." if skill_context else ""
-        prompt = f"""You are writing 5 podcast-style talking head scripts for {persona_name}, aged {persona_age}, British, in the {niche} niche.
-Topic: {topic}{skill_section}
-
-STYLE: Podcast confession ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â emotionally honest, intimate, slightly vulnerable. A real conversation, not a pitch.
-
-Rules:
-- 100-130 words each
-- For motivation or entrepreneurship niche: write entirely in FIRST PERSON ("I", not "you" or "a person who"). Speaker shares their own experience directly.
-- For all other niches: Open with "A woman who..." or "A man who..." identity hook for at least 3 of the 5
-- Warm, direct, British cadence
-- End with an earned CTA (Follow / Save this / More tomorrow)
-- No emojis, no stage directions, no filler
-
-Return ONLY a JSON array of 5 objects with "script" and "keywords" (4-5 hashtags each).
-[{{"title": "Short searchable title", "script": "Script text here.", "keywords": ["#niche", "#topic"]}}, ...]"""
-        max_tok = 1500
-        model = "qwen/qwen3.8-27b"
+    prompt = (
+        f"You are writing 5 short-form video scripts for {persona_name}, aged {persona_age}, "
+        f"in the {niche} niche.\nTopic: {topic}\n"
+        + ceo_note + skill_block +
+        "\n\nUNIVERSAL RULES (apply to every script regardless of persona):\n\n"
+        "1. HOOK - the first 1-2 sentences must stop the scroll. Rotate these types across 5 scripts:\n"
+        "   - Provocative question  e.g. Why do the people who give the most always end up with the least?\n"
+        "   - Bold confronting truth  e.g. Nobody tells you that healing feels like grief before it feels like freedom.\n"
+        "   - Specific moment  e.g. The morning I stopped explaining myself, everything changed.\n"
+        "   - Number or fact  e.g. Three investors said the same thing to me in one week.\n"
+        "   - Confession  e.g. I nearly shut everything down in month eight.\n\n"
+        "2. MIDDLE - deliver the real value. Specific, earned, no waffle. "
+        "Follow the skill sheet structure if one is provided.\n\n"
+        "3. REWARD - last 1-2 sentences: the payoff that makes the whole watch worthwhile. "
+        "Then one earned sign-off that matches the persona voice.\n\n"
+        "LENGTH: 100-140 words per script. Paragraph style only.\n"
+        "No lists, no hashtags, no emojis, no stage directions.\n"
+        "Each of the 5 scripts must cover a DIFFERENT angle of the topic.\n\n"
+        'Return ONLY a JSON array of 5 objects:\n'
+        '[{"title": "Short searchable title", "script": "Full script text", "keywords": ["#tag1"]}]'
+    )
+    max_tok = 2500
+    model = "qwen/qwen3.8-27b"
 
     response = client.chat.completions.create(
         model=model,
