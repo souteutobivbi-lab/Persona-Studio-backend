@@ -3618,7 +3618,7 @@ async function startGen(){
           vp.innerHTML=`<video src="${url}" controls muted loop style="width:100%;height:100%;object-fit:cover;" playsinline preload="none"></video>`;
           document.getElementById('postGenBtns').style.display='flex';
           // Auto-apply effects if any were pre-selected
-          const _preChips=[...document.querySelectorAll('#effectToggles .chip.active')].map(c=>c.dataset.val||c.textContent.trim()).filter(Boolean);
+          const _preChips=[...document.querySelectorAll('.fx-chip.active')].map(c=>c.dataset.fx||c.textContent.trim()).filter(Boolean);
           if(_preChips.length){const _eb=document.getElementById('enhanceBtn');if(_eb&&!_eb.disabled){setTimeout(()=>_eb.click(),800);}}
           // Show portrait download row
           if(S.portraitFile){
