@@ -1336,7 +1336,7 @@ async def swap_outfit(
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
                     "negative_prompt": _neg_prompt,
-                    "loras": [{"path": fresh_lora_url, "scale": 1.0}],
+                    "loras": [{"path": fresh_lora_url, "scale": 0.8 if pose == "side" else 1.0}],
                     **({} if pose == "side" else {"image_url": portrait_ref_url, "strength": 0.55}),
                     "num_inference_steps": 40,
                     "guidance_scale": 3.5,
