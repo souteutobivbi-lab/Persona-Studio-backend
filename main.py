@@ -1289,15 +1289,21 @@ async def swap_outfit(
                     import shutil
                     shutil.copy(str(local_path), str(lora_tmp))
                 else:
-                    # fal CDN URL — download with auth header
-                    print(f"[{jid}] Downloading LoRA from fal CDN...")
-                    lora_resp = _req.get(
-                        raw_lora_url,
-                        headers={"Authorization": f"Key {FAL_KEY}"},
-                        timeout=120,
-                    )
-                    lora_resp.raise_for_status()
-                    lora_tmp.write_bytes(lora_resp.content)
+                    if raw_lora_url.startswith("/lora-file/"):
+                        # Local file already exists - just copy it
+                        import shutil as _shutil
+                        print(f"[{jid}] Using existing local LoRA: {local_path}")
+                        _shutil.copy(str(local_path), str(lora_tmp))
+                    else:
+                        # fal CDN URL — download with auth header
+                        print(f"[{jid}] Downloading LoRA from fal CDN...")
+                        lora_resp = _req.get(
+                            raw_lora_url,
+                            headers={"Authorization": f"Key {FAL_KEY}"},
+                            timeout=120,
+                        )
+                        lora_resp.raise_for_status()
+                        lora_tmp.write_bytes(lora_resp.content)
 
                 print(f"[{jid}] Uploading LoRA weights to fal...")
                 fresh_lora_url = _fal.upload_file(str(lora_tmp))
