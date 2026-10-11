@@ -1170,6 +1170,7 @@ async def swap_outfit(
     appearance: str = Form(""),
     sex: str = Form("female"),
     skill_context: str = Form(""),
+    pose: str = Form("side"),
 ):
     """
     Swap outfit on the locked master portrait.
