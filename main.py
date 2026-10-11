@@ -1332,8 +1332,10 @@ async def swap_outfit(
                 # Prepend trigger word so LoRA recognises the face
                 portrait_prompt = f"{tw}, {portrait_prompt}"
                 print(f"[{jid}] LoRA pathway — prompt: {portrait_prompt[:120]}...")
+                _neg_prompt = ("facing camera directly, looking straight at camera, frontal portrait, direct eye contact with lens, head-on pose, body facing forward" if pose == "side" else "")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
+                    "negative_prompt": _neg_prompt,
                     "loras": [{"path": fresh_lora_url, "scale": 1.0}],
                     **({} if pose == "side" else {"image_url": portrait_ref_url, "strength": 0.55}),
                     "num_inference_steps": 40,
