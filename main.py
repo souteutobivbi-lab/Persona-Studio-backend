@@ -457,12 +457,14 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         )
     elif sex.lower() in ('male', 'm', 'man'):
         podcast_set = (
-            'seated almost side-on to camera in a dark leather podcast chair, body angled 45 degrees, '
-            'leaning forward slightly with elbows resting on knees or a dark wood desk, '
-            'large black condenser podcast microphone on boom arm positioned to one side, '
+            'STRICT POSE REQUIREMENT: body turned 45 degrees away from camera, three-quarter side profile, '
+            'torso and shoulders angled toward left edge of frame, NOT facing camera directly, '
+            'head turned sideways ? eyes looking off to the side NOT into the lens, '
+            'seated side-on in a dark leather podcast chair, leaning slightly forward, '
+            'large black condenser podcast microphone on boom arm to one side, '
             'warm amber and gold studio lighting, moody low-key professional broadcast setup, '
             'dark charcoal or deep navy acoustic panel wall, subtle warm backlight creating depth, '
-            'tight medium shot head to mid-chest, subject angled away from camera looking composed and direct, '
+            'tight medium shot head to mid-chest, subject in three-quarter profile not looking at camera, '
             'CEO thought-leader energy, no plants, no cream furniture, no bright white backgrounds'
         )
     else:
