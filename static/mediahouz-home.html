@@ -745,16 +745,16 @@ footer {
   <!-- RIGHT: Video grid -->
   <div class="hero-right">
     <div class="video-grid">
-      <!-- Tall card: Soute — real portrait from the platform -->
-      <div class="vid-card tall vs-vivienne" id="card-soute">
+      <!-- Tall card: Vivienne Cole — featured persona -->
+      <div class="vid-card tall vs-vivienne" id="card-vivienne">
         <div class="vid-shimmer"></div>
-        <img class="vid-real-img" src="https://v3b.fal.media/files/b/0aadef17/72F-6wJuDDWTrWXSWWx3l_master_Soute.png" alt="Soute" onerror="this.style.display='none'">
+        <canvas class="vid-persona" id="cv-vivienne"></canvas>
         <div class="vid-gradient"></div>
         <div class="vid-tag">✦ Featured</div>
         <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
-        <div class="vid-label" id="label-soute">
-          <strong>Soute</strong>
-          <span>AI Persona</span>
+        <div class="vid-label">
+          <strong>Vivienne Cole</strong>
+          <span>Wellness &amp; Mindset</span>
         </div>
       </div>
       <!-- Top right — dynamic or fallback -->
@@ -821,7 +821,7 @@ const EXTRA_CARDS = [
 fetch(API_BASE + '/locked-personas')
   .then(r => r.json())
   .then(data => {
-    const personas = (data.locked || []).filter(p => p.fal_url && p.persona_id !== 'Soute');
+    const personas = (data.locked || []).filter(p => p.fal_url);
     personas.forEach((p, i) => {
       if (i >= EXTRA_CARDS.length) return;
       const img = document.getElementById(EXTRA_CARDS[i].imgId);
@@ -966,7 +966,7 @@ function drawPersona(id, opts) {
 // draw all personas after layout
 function initCanvases() {
   drawPersona('cv-vivienne', {
-    skin: '#8B5E3C', hair: '#1a0800', outfit: '#1a4a3a',
+    skin: '#C8A882', hair: '#2a1500', outfit: '#1a4a3a',
     bg: '#2a6a4a', plants: '#2d5a1a', microphone: true
   });
   drawPersona('cv-sophia', {
