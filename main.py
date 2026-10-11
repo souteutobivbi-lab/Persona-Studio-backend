@@ -1580,73 +1580,72 @@ async def list_fal_files():
 # VIDEO ENHANCEMENT — ffmpeg shot-variation pass
 # ═══════════════════════════════════════════════════════
 @app.post("/enhance-video")
-async def enhance_video(video_url: str = Form(...)):
-    import subprocess, tempfile, os, json as _json
+async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in,mirror,brighten")):
+    import subprocess, tempfile, os, json as _json, shutil
     import httpx, fal_client
-
+    effect_list = [e.strip() for e in effects.split(",") if e.strip()] or ["zoom_in","mirror","brighten"]
     tmp = tempfile.mkdtemp()
-    inp   = os.path.join(tmp, "input.mp4")
-    s1    = os.path.join(tmp, "s1.mp4")
-    s2    = os.path.join(tmp, "s2.mp4")
-    s3    = os.path.join(tmp, "s3.mp4")
-    lst   = os.path.join(tmp, "list.txt")
-    out   = os.path.join(tmp, "enhanced.mp4")
-
+    inp = os.path.join(tmp,"input.mp4")
+    out = os.path.join(tmp,"enhanced.mp4")
+    fade = 0.3
     try:
         async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.get(video_url)
-            resp.raise_for_status()
-        with open(inp, "wb") as f:
-            f.write(resp.content)
-
-        # Get duration from format (most reliable)
-        probe = subprocess.run(
-            ["ffprobe","-v","error","-show_entries","format=duration","-of","json", inp],
-            capture_output=True, text=True, timeout=30)
-        try:
-            dur = float(_json.loads(probe.stdout)["format"]["duration"])
-        except Exception:
-            dur = 8.0
-
-        t1 = round(dur / 3, 3)
-        t2 = round(2 * dur / 3, 3)
-
+            resp = await client.get(video_url); resp.raise_for_status()
+        with open(inp,"wb") as f: f.write(resp.content)
+        probe = subprocess.run(["ffprobe","-v","error","-show_entries","format=duration:stream=width,height","-of","json",inp],capture_output=True,text=True,timeout=30)
+        pd = _json.loads(probe.stdout)
+        dur = float(pd["format"]["duration"])
+        W = int(pd["streams"][0]["width"]); H = int(pd["streams"][0]["height"])
+        n = len(effect_list); seg_dur = dur / n
+        def get_vf(ef):
+            if ef=="zoom_in":
+                cw=(int(W*75/100)//2)*2; ch=(int(H*75/100)//2)*2
+                return f"crop={cw}:{ch},scale={W}:{H}", None
+            if ef=="mirror":   return "hflip", None
+            if ef=="brighten": return "eq=brightness=0.06:contrast=1.1", None
+            if ef=="contrast": return "eq=contrast=1.4:brightness=-0.02", None
+            if ef=="speed_up": return "setpts=0.8*PTS", "atempo=1.25"
+            if ef=="vignette": return "vignette=PI/4", None
+            if ef=="film_grain": return "noise=alls=20:allf=t", None
+            if ef=="letterbox":
+                bars=(int(H*0.12)//2)*2
+                return f"pad={W}:{H+bars}:0:{bars//2}:black,crop={W}:{H}", None
+            return "null", None
         def run(cmd):
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-            if r.returncode != 0:
-                raise RuntimeError(r.stderr[-1000:])
-            return r
-
-        # Segment 1: zoom in (crop 94% center then scale back up)
-        run(["ffmpeg","-y","-i",inp,"-ss","0","-t",str(t1),
-             "-vf","crop=iw*94/100:ih*94/100,scale=iw*100/94:ih*100/94",
-             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", s1])
-
-        # Segment 2: mirror (hflip)
-        run(["ffmpeg","-y","-i",inp,"-ss",str(t1),"-t",str(t2-t1),
-             "-vf","hflip",
-             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", s2])
-
-        # Segment 3: normal
-        run(["ffmpeg","-y","-i",inp,"-ss",str(t2),
-             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k", s3])
-
-        # Concat
-        with open(lst,"w") as f:
-            f.write("file '" + s1 + "'\nfile '" + s2 + "'\nfile '" + s3 + "'\n")
-
-        run(["ffmpeg","-y","-f","concat","-safe","0","-i",lst,
-             "-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart", out])
-
-        enhanced_url = fal_client.upload_file(out)
-        return JSONResponse({"enhanced_url": enhanced_url})
-
+            r=subprocess.run(cmd,capture_output=True,text=True,timeout=120)
+            if r.returncode!=0: raise RuntimeError(r.stderr[-1000:])
+        segments=[]
+        for i,ef in enumerate(effect_list):
+            sp=os.path.join(tmp,f"seg{i}.mp4")
+            ss=round(i*seg_dur,3); vf,af=get_vf(ef)
+            cmd=["ffmpeg","-y","-i",inp,"-ss",str(ss)]
+            if i<n-1: cmd+=["-t",str(round(seg_dur,3))]
+            cmd+=["-vf",vf]
+            if af: cmd+=["-filter:a",af]
+            cmd+=["-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k",sp]
+            run(cmd); segments.append(sp)
+        if n==1:
+            shutil.copy(segments[0],out)
+        else:
+            sdurs=[]
+            for seg in segments[:-1]:
+                p=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","json",seg],capture_output=True,text=True,timeout=30)
+                sdurs.append(float(_json.loads(p.stdout)["format"]["duration"]))
+            vfp=[]; afp=[]; cum=0; pv="[0:v]"; pa="[0:a]"
+            for i in range(n-1):
+                cum+=sdurs[i]; off=round(cum-fade*(i+1),3)
+                nv=f"[v{i}]" if i<n-2 else "[vout]"
+                na=f"[a{i}]" if i<n-2 else "[aout]"
+                vfp.append(f"{pv}[{i+1}:v]xfade=transition=fade:duration={fade}:offset={off}{nv}")
+                afp.append(f"{pa}[{i+1}:a]acrossfade=d={fade}{na}")
+                pv=nv; pa=na
+            fc=";".join(vfp+afp)
+            inp_args=[]
+            for seg in segments: inp_args+=["-i",seg]
+            run(["ffmpeg","-y"]+inp_args+["-filter_complex",fc,"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart",out])
+        eu=fal_client.upload_file(out)
+        return JSONResponse({"enhanced_url":eu})
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-    finally:
-        for p in [input_path, output_path]:
-            try: os.unlink(p)
-            except: pass
-        try: os.rmdir(tmp_dir)
-        except: pass
+        return JSONResponse({"error":str(e)},status_code=500)
+
 
