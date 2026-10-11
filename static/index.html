@@ -856,7 +856,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             </div>
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">◈ Cancel</button>
-            <div id="effectToggles" style="display:none;flex-wrap:wrap;gap:6px;margin-top:10px;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px;">
+            <div id="effectToggles" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px;">
               <div style="width:100%;font-size:11px;color:#888;margin-bottom:4px;letter-spacing:.5px;">SELECT EFFECTS</div>
               <button class="fx-chip active" data-fx="zoom_in">🔍 Zoom In</button>
               <button class="fx-chip active" data-fx="mirror">🔄 Mirror</button>
@@ -3615,8 +3615,11 @@ async function startGen(){
           vp.classList.remove('ratio-916','ratio-11','ratio-45','ratio-169');
           const rcls={'9:16':'ratio-916','1:1':'ratio-11','4:5':'ratio-45','16:9':'ratio-169'}[S.ratio?.label||'9:16']||'ratio-916';
           vp.classList.add(rcls);
-          vp.innerHTML=`<video src="${url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
-          document.getElementById('postGenBtns').style.display='flex';document.getElementById('effectToggles').style.display='flex';
+          vp.innerHTML=`<video src="${url}" controls muted loop style="width:100%;height:100%;object-fit:cover;" playsinline preload="none"></video>`;
+          document.getElementById('postGenBtns').style.display='flex';
+          // Auto-apply effects if any were pre-selected
+          const _preChips=[...document.querySelectorAll('#effectToggles .chip.active')].map(c=>c.dataset.val||c.textContent.trim()).filter(Boolean);
+          if(_preChips.length){const _eb=document.getElementById('enhanceBtn');if(_eb&&!_eb.disabled){setTimeout(()=>_eb.click(),800);}}
           // Show portrait download row
           if(S.portraitFile){
             const prow=document.getElementById('portraitDownloadRow');
