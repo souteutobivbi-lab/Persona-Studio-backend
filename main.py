@@ -467,7 +467,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         )
     else:
         podcast_set = (
-            'seated sideways in a cream upholstered podcast armchair, body angled 45 degrees away from camera, legs crossed at knee, turned slightly to speak to someone off-camera to the left, natural conversational pose, '
+            'STRICT POSE REQUIREMENT: body turned 45 degrees away from camera, three-quarter side profile, torso and shoulders angled toward left edge of frame, NOT facing camera directly, seated in podcast studio chair, microphone positioned in front, head turned slightly back toward camera but body remains angled sideways, legs crossed, relaxed conversational posture, '
             'hands resting naturally in lap, upper body and arms fully visible in frame, '
             'large black podcast microphone on boom arm positioned in front slightly to right, '
             'background: soft warm grey textured wall, '
