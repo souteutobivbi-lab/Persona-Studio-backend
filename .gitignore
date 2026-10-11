@@ -1,0 +1,12 @@
+# One-off fix/debug scripts
+fix_*.py
+ctx_*.py
+find_*.py
+map_*.py
+show_*.py
+add_*.py
+check_*.py
+mediahouz-homepage-standalone.html
+static/soute_b64.txt
+static/soute_small_b64.txt
+Development PDF Files/

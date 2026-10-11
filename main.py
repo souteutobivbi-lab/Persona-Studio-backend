@@ -1682,3 +1682,15 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
         return JSONResponse({"error":str(e)},status_code=500)
 
 
+
+
+@app.get("/home")
+async def homepage():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/mediahouz-home.html", media_type="text/html")
+
+
+@app.get("/home")
+async def homepage():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/mediahouz-home.html", media_type="text/html")
