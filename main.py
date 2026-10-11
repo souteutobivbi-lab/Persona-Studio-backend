@@ -384,7 +384,27 @@ async def generate_voice(
         )
     if r.status_code != 200:
         return JSONResponse({"error": r.text[:200]}, status_code=400)
-    out_path.write_bytes(r.content)
+
+    # Save raw audio then post-process for broadcast quality & slight speed boost
+    raw_path = OUTPUT_DIR / f"{jid}_voice_raw.mp3"
+    raw_path.write_bytes(r.content)
+
+    import subprocess as _sp
+    voice_af = (
+        "atempo=1.08,"                                               # 8% faster — tighter pacing
+        "acompressor=threshold=-20dB:ratio=4:attack=5:release=50,"  # voice thickener / proximity feel
+        "equalizer=f=150:width_type=o:width=2:g=3,"                 # 150 Hz warmth boost
+        "loudnorm=I=-16:TP=-1.5:LRA=11"                             # broadcast loudness
+    )
+    proc = _sp.run(
+        ["ffmpeg","-y","-i",str(raw_path),"-af",voice_af,
+         "-c:a","libmp3lame","-b:a","192k", str(out_path)],
+        capture_output=True, text=True, timeout=60
+    )
+    if proc.returncode != 0:
+        import shutil as _sh; _sh.copy(str(raw_path), str(out_path))  # fallback
+    raw_path.unlink(missing_ok=True)
+
     return {"job_id": jid, "audio_path": str(out_path), "status": "done"}
 
 @app.get("/audio/{job_id}")
@@ -1611,75 +1631,103 @@ async def download_enhanced(eid: str):
 @app.post("/enhance-video")
 async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in,mirror,brighten")):
     import subprocess, tempfile, os, json as _json, shutil
-    import httpx, fal_client
+    import httpx
     effect_list = [e.strip() for e in effects.split(",") if e.strip()] or ["zoom_in","mirror","brighten"]
     tmp = tempfile.mkdtemp()
-    inp = os.path.join(tmp,"input.mp4")
-    out = os.path.join(tmp,"enhanced.mp4")
-    fade = 0.3
+    inp       = os.path.join(tmp, "input.mp4")
+    vid_only  = os.path.join(tmp, "video_only.mp4")   # video-only after xfade
+    audio_proc= os.path.join(tmp, "audio_proc.aac")   # audio extracted & processed
+    out       = os.path.join(tmp, "enhanced.mp4")      # final mux
+    fade = 0.15  # short xfade — visual effect only, never touches audio
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url); resp.raise_for_status()
-        with open(inp,"wb") as f: f.write(resp.content)
-        probe = subprocess.run(["ffprobe","-v","error","-show_entries","format=duration:stream=width,height","-of","json",inp],capture_output=True,text=True,timeout=30)
-        pd = _json.loads(probe.stdout)
+        with open(inp, "wb") as f: f.write(resp.content)
+
+        probe = subprocess.run(
+            ["ffprobe","-v","error","-show_entries","format=duration:stream=width,height","-of","json",inp],
+            capture_output=True, text=True, timeout=30)
+        pd  = _json.loads(probe.stdout)
         dur = float(pd["format"]["duration"])
-        W = int(pd["streams"][0]["width"]); H = int(pd["streams"][0]["height"])
-        n = len(effect_list); seg_dur = dur / n
+        W   = int(pd["streams"][0]["width"])
+        H   = int(pd["streams"][0]["height"])
+        n   = len(effect_list); seg_dur = dur / n
+
         def get_vf(ef):
-            if ef=="zoom_in":
+            if ef == "zoom_in":
                 cw=(int(W*75/100)//2)*2; ch=(int(H*75/100)//2)*2
-                return f"crop={cw}:{ch},scale={W}:{H}", None
-            if ef=="mirror":   return "hflip", None
-            if ef=="brighten": return "eq=brightness=0.06:contrast=1.1", None
-            if ef=="contrast": return "eq=contrast=1.4:brightness=-0.02", None
-            if ef=="speed_up": return "setpts=0.8*PTS", "atempo=1.25"
-            if ef=="vignette": return "vignette=PI/4", None
-            if ef=="film_grain": return "noise=alls=20:allf=t", None
-            if ef=="letterbox":
+                return f"crop={cw}:{ch},scale={W}:{H}"
+            if ef == "mirror":      return "hflip"
+            if ef == "brighten":    return "eq=brightness=0.06:contrast=1.1"
+            if ef == "contrast":    return "eq=contrast=1.4:brightness=-0.02"
+            if ef == "speed_up":    return "setpts=0.8*PTS"
+            if ef == "vignette":    return "vignette=PI/4"
+            if ef == "film_grain":  return "noise=alls=20:allf=t"
+            if ef == "letterbox":
                 bars=(int(H*0.12)//2)*2
-                return f"pad={W}:{H+bars}:0:{bars//2}:black,crop={W}:{H}", None
-            return "null", None
+                return f"pad={W}:{H+bars}:0:{bars//2}:black,crop={W}:{H}"
+            return "null"
+
         def run(cmd):
-            r=subprocess.run(cmd,capture_output=True,text=True,timeout=120)
-            if r.returncode!=0: raise RuntimeError(r.stderr[-1000:])
-        segments=[]
-        for i,ef in enumerate(effect_list):
-            sp=os.path.join(tmp,f"seg{i}.mp4")
-            ss=round(i*seg_dur,3); vf,af=get_vf(ef)
-            cmd=["ffmpeg","-y","-i",inp,"-ss",str(ss)]
-            if i<n-1: cmd+=["-t",str(round(seg_dur,3))]
-            cmd+=["-vf",vf]
-            if af: cmd+=["-filter:a",af]
-            cmd+=["-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-movflags","+faststart",sp]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if r.returncode != 0: raise RuntimeError(r.stderr[-1200:])
+
+        # ── Step 1: extract + post-process audio from original (continuous track) ──
+        # Compressor → 150 Hz warmth boost → broadcast loudness normalise
+        audio_af = (
+            "acompressor=threshold=-20dB:ratio=4:attack=5:release=50,"
+            "equalizer=f=150:width_type=o:width=2:g=3,"
+            "loudnorm=I=-16:TP=-1.5:LRA=11"
+        )
+        run(["ffmpeg","-y","-i",inp,"-vn","-af",audio_af,
+             "-c:a","aac","-b:a","192k", audio_proc])
+
+        # ── Step 2: video-only segments (-an = no audio embedded) ────────────────
+        segments = []
+        for i, ef in enumerate(effect_list):
+            sp = os.path.join(tmp, f"seg{i}.mp4")
+            ss = round(i * seg_dur, 3)
+            cmd = ["ffmpeg","-y","-i",inp,"-ss",str(ss)]
+            if i < n-1: cmd += ["-t", str(round(seg_dur, 3))]
+            cmd += ["-vf", get_vf(ef), "-an",          # no audio in segment
+                    "-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p", sp]
             run(cmd); segments.append(sp)
-        if n==1:
-            shutil.copy(segments[0],out)
+
+        # ── Step 3: xfade video-only segments ────────────────────────────────────
+        if n == 1:
+            shutil.copy(segments[0], vid_only)
         else:
-            sdurs=[]
+            sdurs = []
             for seg in segments[:-1]:
-                p=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","json",seg],capture_output=True,text=True,timeout=30)
-                sdurs.append(float(_json.loads(p.stdout)["format"]["duration"]))
-            vfp=[]; afp=[]; cum=0; pv="[0:v]"; pa="[0:a]"
+                pr = subprocess.run(
+                    ["ffprobe","-v","error","-show_entries","format=duration","-of","json",seg],
+                    capture_output=True, text=True, timeout=30)
+                sdurs.append(float(_json.loads(pr.stdout)["format"]["duration"]))
+            vfp = []; cum = 0; pv = "[0:v]"
             for i in range(n-1):
-                cum+=sdurs[i]; off=round(cum-fade*(i+1),3)
-                nv=f"[v{i}]" if i<n-2 else "[vout]"
-                na=f"[a{i}]" if i<n-2 else "[aout]"
+                cum += sdurs[i]; off = round(cum - fade*(i+1), 3)
+                nv = f"[v{i}]" if i < n-2 else "[vout]"
                 vfp.append(f"{pv}[{i+1}:v]xfade=transition=fade:duration={fade}:offset={off}{nv}")
-                afp.append(f"{pa}[{i+1}:a]acrossfade=d={fade}{na}")
-                pv=nv; pa=na
-            fc=";".join(vfp+afp)
-            inp_args=[]
-            for seg in segments: inp_args+=["-i",seg]
-            run(["ffmpeg","-y"]+inp_args+["-filter_complex",fc,"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-movflags","+faststart",out])
+                pv = nv
+            fc = ";".join(vfp)
+            inp_args = []
+            for seg in segments: inp_args += ["-i", seg]
+            run(["ffmpeg","-y"] + inp_args +
+                ["-filter_complex",fc,"-map","[vout]",
+                 "-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p", vid_only])
+
+        # ── Step 4: mux processed video + processed audio ────────────────────────
+        run(["ffmpeg","-y","-i",vid_only,"-i",audio_proc,
+             "-map","0:v","-map","1:a","-c:v","copy","-c:a","copy",
+             "-shortest","-movflags","+faststart", out])
+
         import uuid as _uuid, shutil as _shutil
-        eid = str(_uuid.uuid4())[:8]
+        eid      = str(_uuid.uuid4())[:8]
         out_path = OUTPUT_DIR / f"{eid}_enhanced.mp4"
         _shutil.copy(out, str(out_path))
-        enhanced_serve_url = f"/download-enhanced/{eid}"
-        return JSONResponse({"enhanced_url": enhanced_serve_url, "eid": eid})
+        return JSONResponse({"enhanced_url": f"/download-enhanced/{eid}", "eid": eid})
     except Exception as e:
-        return JSONResponse({"error":str(e)},status_code=500)
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 
