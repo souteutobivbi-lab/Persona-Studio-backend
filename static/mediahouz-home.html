@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediaHouz</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap">
+
+<style>
+/* ─── DESIGN TOKENS ─────────────────────────────────────────────── */
+/* Layout: full-bleed dark canvas, vertical scroll, sticky nav      */
+:root {
+  --bg:       #07070F;
+  --bg-card:  #0F0F1A;
+  --bg-glass: rgba(15,15,26,0.7);
+  --surface:  #141421;
+  --border:   rgba(255,255,255,0.07);
+  --fg:       #F0EFFF;
+  --fg-muted: #8B8AA8;
+  --fg-dim:   #4A4A6A;
+  --accent:   #7B5CF5;
+  --accent-hi:#9B7FFF;
+  --gold:     #E8B84B;
+  --gold-dim: rgba(232,184,75,0.15);
+  --glow:     rgba(123,92,245,0.3);
+
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── NAV ───────────────────────────────────────────────────────── */
+nav {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(16px, 5vw, 60px);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  color: var(--fg);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-logo-mark {
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.nav-logo-mark svg { width: 18px; height: 18px; }
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--fg-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--fg); }
+.nav-ctas { display: flex; gap: 12px; align-items: center; }
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--fg); }
+.btn-primary {
+  background: var(--accent);
+  border: 1px solid transparent;
+  color: #fff;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-primary:hover { background: var(--accent-hi); }
+.nav-hamburger { display: none; background: none; border: none; color: var(--fg); cursor: pointer; }
+
+/* ─── HERO ──────────────────────────────────────────────────────── */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 88vh;
+  position: relative;
+  overflow: hidden;
+}
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(48px, 7vw, 100px) clamp(16px, 5vw, 72px) clamp(48px, 7vw, 100px) clamp(16px, 5vw, 72px);
+  position: relative;
+  z-index: 2;
+}
+.hero-left::after {
+  content: '';
+  position: absolute;
+  top: 20%; left: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(ellipse, rgba(123,92,245,0.14) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(34px, 3.8vw, 58px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  text-wrap: balance;
+  margin-bottom: 20px;
+}
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--accent-hi), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: clamp(15px, 1.4vw, 17px);
+  color: var(--fg-muted);
+  max-width: 420px;
+  margin-bottom: 36px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+.hero-ctas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-hero {
+  background: var(--accent);
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  transition: all .25s;
+  text-decoration: none;
+  display: inline-block;
+  box-shadow: 0 0 28px var(--glow);
+}
+.btn-hero:hover { background: var(--accent-hi); transform: translateY(-1px); box-shadow: 0 4px 40px var(--glow); }
+.btn-hero-outline {
+  background: none;
+  color: var(--fg);
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all .25s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-hero-outline:hover { border-color: var(--accent); color: var(--accent-hi); }
+.hero-trust {
+  margin-top: 28px;
+  font-size: 13px;
+  color: var(--fg-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-trust span { color: var(--accent-hi); font-weight: 600; }
+
+/* ─── VIDEO SHOWCASE ────────────────────────────────────────────── */
+.hero-right {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+.hero-right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--bg) 0%, transparent 18%);
+  z-index: 5;
+  pointer-events: none;
+}
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  padding: 24px 24px 24px 0;
+  width: 100%;
+  align-items: stretch;
+}
+.vid-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+  background: var(--surface);
+  aspect-ratio: 9/16;
+}
+.vid-card.tall {
+  grid-row: span 2;
+  aspect-ratio: unset;
+}
+.vid-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(7,7,15,0.9) 100%);
+  z-index: 1;
+}
+.vid-label {
+  position: absolute;
+  bottom: 12px; left: 12px; right: 12px;
+  z-index: 2;
+  color: #fff;
+}
+.vid-label strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+.vid-label span {
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 400;
+}
+.vid-tag {
+  position: absolute;
+  top: 10px; left: 10px;
+  z-index: 2;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  padding: 3px 7px;
+  border-radius: 100px;
+  text-transform: uppercase;
+}
+.vid-play {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.vid-card:hover .vid-play { opacity: 1; }
+.vid-play svg { width: 12px; height: 12px; margin-left: 2px; }
+
+/* animated shimmer backgrounds */
+.vid-shimmer {
+  position: absolute; inset: 0;
+  animation: shimmer-bg 8s ease-in-out infinite alternate;
+}
+@keyframes shimmer-bg {
+  0%   { filter: brightness(0.85); }
+  100% { filter: brightness(1.05); }
+}
+/* realistic podcast/studio scene backgrounds per persona */
+.vs-vivienne .vid-shimmer  { background: linear-gradient(165deg,#1a2a1a 0%,#0d1a10 30%,#0a1208 60%,#1a1a08 100%); }
+.vs-sophia   .vid-shimmer  { background: linear-gradient(165deg,#1a0f08 0%,#2a1a0d 35%,#1a1208 65%,#0d0a06 100%); }
+.vs-victoria .vid-shimmer  { background: linear-gradient(165deg,#08101a 0%,#0d1825 35%,#0a1020 65%,#060810 100%); }
+.vs-marcus   .vid-shimmer  { background: linear-gradient(165deg,#100a06 0%,#1a1208 35%,#0d0a06 65%,#08060a 100%); }
+.vs-james    .vid-shimmer  { background: linear-gradient(165deg,#060a10 0%,#0a0d1a 35%,#08101a 65%,#06080d 100%); }
+
+/* SVG persona art drawn per card using canvas */
+.vid-persona {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+}
+.stage-glow { display: none; }
+
+/* Real portrait images inside cards */
+.vid-real-img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 0;
+}
+
+/* ─── STATS ─────────────────────────────────────────────────────── */
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: clamp(24px, 5vw, 64px);
+  flex-wrap: wrap;
+  padding: 64px clamp(16px,5vw,60px);
+  border-top: 1px solid var(--border);
+  margin-top: 64px;
+}
+.stat { text-align: center; }
+.stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 800;
+  color: var(--fg);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-num span { color: var(--accent-hi); }
+.stat-label {
+  font-size: 13px;
+  color: var(--fg-muted);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ─── SECTION COMMONS ───────────────────────────────────────────── */
+section { padding: clamp(64px,8vw,100px) clamp(16px,5vw,60px); }
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent-hi);
+  margin-bottom: 12px;
+}
+.section-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  text-wrap: balance;
+  margin-bottom: 16px;
+}
+.section-h2 em {
+  font-style: normal;
+  color: var(--accent-hi);
+}
+.section-sub {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: var(--fg-muted);
+  max-width: 540px;
+  margin-bottom: 48px;
+}
+
+/* ─── CAPABILITIES ──────────────────────────────────────────────── */
+.caps { background: var(--bg-card); }
+.caps-inner { max-width: 1100px; margin: 0 auto; }
+.caps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2px;
+  background: var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.cap-card {
+  background: var(--bg-card);
+  padding: 36px 28px;
+  position: relative;
+  overflow: hidden;
+  transition: background .25s;
+}
+.cap-card:hover { background: #131322; }
+.cap-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0; right: 0; height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity .25s;
+}
+.cap-card:hover::before { opacity: 1; }
+.cap-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+}
+.cap-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.cap-desc {
+  font-size: 14px;
+  color: var(--fg-muted);
+  line-height: 1.7;
+}
+
+/* ─── HOW IT WORKS ──────────────────────────────────────────────── */
+.how { max-width: 1100px; margin: 0 auto; }
+.how-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 32px;
+  margin-top: 48px;
+}
+.how-step {
+  position: relative;
+  padding: 32px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.how-step-num {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--fg-dim);
+  line-height: 1;
+  margin-bottom: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.how-step-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 10px;
+}
+.how-step-desc {
+  font-size: 14px;
+  color: var(--fg-muted);
+  line-height: 1.7;
+}
+.how-connector {
+  position: absolute;
+  right: -16px; top: 50%;
+  transform: translateY(-50%);
+  width: 32px; height: 2px;
+  background: linear-gradient(90deg, var(--border), var(--accent));
+  z-index: 1;
+}
+
+/* ─── PERSONAS ──────────────────────────────────────────────────── */
+.personas-section { background: var(--bg-card); }
+.personas-inner { max-width: 1100px; margin: 0 auto; }
+.personas-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 48px;
+}
+.persona-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  transition: border-color .25s, transform .25s;
+  cursor: default;
+}
+.persona-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.persona-avatar {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--gold));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.persona-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+}
+.persona-role {
+  font-size: 12px;
+  color: var(--fg-muted);
+  line-height: 1.4;
+}
+.persona-quote {
+  font-size: 13px;
+  color: var(--accent-hi);
+  font-style: italic;
+  line-height: 1.4;
+}
+.persona-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 100px;
+  background: var(--gold-dim);
+  color: var(--gold);
+  border: 1px solid rgba(232,184,75,0.2);
+}
+
+/* ─── USE CASES ─────────────────────────────────────────────────── */
+.usecases { max-width: 1100px; margin: 0 auto; }
+.uc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 48px;
+}
+.uc-big {
+  grid-row: span 2;
+  background: linear-gradient(145deg, var(--bg-card), #0d0d20);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.uc-big::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+}
+.uc-small {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.uc-ico {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.uc-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.2;
+}
+.uc-desc {
+  font-size: 14px;
+  color: var(--fg-muted);
+  line-height: 1.7;
+}
+.uc-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.uc-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: rgba(123,92,245,0.1);
+  color: var(--accent-hi);
+  border: 1px solid rgba(123,92,245,0.2);
+}
+
+/* ─── CTA BANNER ────────────────────────────────────────────────── */
+.cta-banner {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+.cta-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+.cta-inner .section-h2 { margin-bottom: 16px; }
+.cta-inner .section-sub { margin: 0 auto 36px; }
+.cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.cta-note {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--fg-dim);
+}
+
+/* ─── FOOTER ────────────────────────────────────────────────────── */
+footer {
+  padding: 48px clamp(16px,5vw,60px) 40px;
+  border-top: 1px solid var(--border);
+}
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--fg-muted);
+}
+.footer-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+.footer-links a {
+  font-size: 13px;
+  color: var(--fg-dim);
+  text-decoration: none;
+  transition: color .2s;
+}
+.footer-links a:hover { color: var(--fg-muted); }
+.footer-copy {
+  font-size: 13px;
+  color: var(--fg-dim);
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; min-height: auto; }
+  .hero-right { min-height: 60vw; }
+  .hero-right::before { background: linear-gradient(180deg, var(--bg) 0%, transparent 15%); }
+  .video-grid { grid-template-columns: repeat(3,1fr); padding: 12px; }
+}
+@media (max-width: 700px) {
+  .nav-links { display: none; }
+  .uc-grid { grid-template-columns: 1fr; }
+  .uc-big { grid-row: auto; }
+  .footer-inner { flex-direction: column; align-items: flex-start; }
+  .how-connector { display: none; }
+}
+@media (max-width: 480px) {
+  .caps-grid { grid-template-columns: 1fr; }
+  .video-grid { grid-template-columns: repeat(2,1fr); }
+  .vid-card:last-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vid-shimmer { animation: none; }
+}
+</style>
+</head>
+<body>
+
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 18 18" fill="none">
+        <path d="M3 9L9 3L15 9L9 15L3 9Z" fill="white" opacity=".9"/>
+        <path d="M6.5 9L9 6.5L11.5 9L9 11.5L6.5 9Z" fill="white"/>
+      </svg>
+    </div>
+    MediaHouz
+  </a>
+  <ul class="nav-links">
+    <li><a href="#">Features</a></li>
+    <li><a href="#">Personas</a></li>
+    <li><a href="#">Pricing</a></li>
+    <li><a href="#">Examples</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a class="btn-ghost" href="#">Sign In</a>
+    <a class="btn-primary" href="#">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <!-- LEFT: Text + CTA -->
+  <div class="hero-left">
+    <h1>Your AI video studio,<br><em>ready to publish</em></h1>
+    <p class="hero-sub">Generate professional talking-head videos with AI personas. Promotional clips, influencer content, educational reels — no camera, no crew, no studio.</p>
+    <div class="hero-ctas">
+      <a class="btn-hero" href="#">Start Creating Free</a>
+      <a class="btn-hero-outline" href="#">Sign In</a>
+    </div>
+    <p class="hero-trust">Works on <span>TikTok · Instagram · YouTube · LinkedIn</span></p>
+  </div>
+
+  <!-- RIGHT: Video grid -->
+  <div class="hero-right">
+    <div class="video-grid">
+      <!-- Tall card: Soute — real portrait from the platform -->
+      <div class="vid-card tall vs-vivienne" id="card-soute">
+        <div class="vid-shimmer"></div>
+        <img class="vid-real-img" src="https://v3b.fal.media/files/b/0aadef17/72F-6wJuDDWTrWXSWWx3l_master_Soute.png" alt="Soute" onerror="this.style.display='none'">
+        <div class="vid-gradient"></div>
+        <div class="vid-tag">✦ Featured</div>
+        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-label" id="label-soute">
+          <strong>Soute</strong>
+          <span>AI Persona</span>
+        </div>
+      </div>
+      <!-- Top right — dynamic or fallback -->
+      <div class="vid-card vs-sophia" id="card-p2">
+        <div class="vid-shimmer" style="animation-delay:-3s"></div>
+        <img class="vid-real-img" id="img-p2" src="" alt="" style="display:none" onerror="this.style.display='none'">
+        <canvas class="vid-persona" id="cv-sophia"></canvas>
+        <div class="vid-gradient"></div>
+        <div class="vid-tag">Luxury</div>
+        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-label">
+          <strong>Sophia Hart</strong>
+          <span>Interior &amp; Taste</span>
+        </div>
+      </div>
+      <!-- Top far right -->
+      <div class="vid-card vs-victoria" id="card-p3">
+        <div class="vid-shimmer" style="animation-delay:-1.5s"></div>
+        <img class="vid-real-img" id="img-p3" src="" alt="" style="display:none" onerror="this.style.display='none'">
+        <canvas class="vid-persona" id="cv-victoria"></canvas>
+        <div class="vid-gradient"></div>
+        <div class="vid-tag">Transform</div>
+        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-label">
+          <strong>Victoria Sterling</strong>
+          <span>Age 52</span>
+        </div>
+      </div>
+      <!-- Bottom right -->
+      <div class="vid-card vs-marcus" id="card-p4">
+        <div class="vid-shimmer" style="animation-delay:-5s"></div>
+        <canvas class="vid-persona" id="cv-marcus"></canvas>
+        <div class="vid-gradient"></div>
+        <div class="vid-tag">Build</div>
+        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-label">
+          <strong>Marcus Stone</strong>
+          <span>Master Builder</span>
+        </div>
+      </div>
+      <!-- Bottom far right -->
+      <div class="vid-card vs-james" id="card-p5">
+        <div class="vid-shimmer" style="animation-delay:-2s"></div>
+        <canvas class="vid-persona" id="cv-james"></canvas>
+        <div class="vid-gradient"></div>
+        <div class="vid-tag">Finance</div>
+        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-label">
+          <strong>James Mercer</strong>
+          <span>Wealth Strategy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Fetch real locked personas and populate extra cards
+const API_BASE = 'https://persona-studio.homivis.com';
+const EXTRA_CARDS = [
+  { imgId: 'img-p2', canvasId: 'cv-sophia' },
+  { imgId: 'img-p3', canvasId: 'cv-victoria' },
+];
+fetch(API_BASE + '/locked-personas')
+  .then(r => r.json())
+  .then(data => {
+    const personas = (data.locked || []).filter(p => p.fal_url && p.persona_id !== 'Soute');
+    personas.forEach((p, i) => {
+      if (i >= EXTRA_CARDS.length) return;
+      const img = document.getElementById(EXTRA_CARDS[i].imgId);
+      const cv  = document.getElementById(EXTRA_CARDS[i].canvasId);
+      if (img) { img.src = p.fal_url; img.alt = p.persona_id; img.style.display = 'block'; }
+      if (cv)  { cv.style.display = 'none'; }
+    });
+  })
+  .catch(() => {}); // silently fall back to canvas art
+
+// Draw portrait-style persona art on each canvas card
+function drawPersona(id, opts) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  canvas.width  = parent.offsetWidth  || 200;
+  canvas.height = parent.offsetHeight || 340;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+
+  // background already set by CSS shimmer; canvas is transparent
+  ctx.clearRect(0, 0, W, H);
+
+  const { skin, outfit, bg, microphone, plants } = opts;
+
+  // optional plant/foliage blobs behind
+  if (plants) {
+    ctx.globalAlpha = 0.45;
+    const plantGrad = ctx.createRadialGradient(W*0.8,H*0.2,0, W*0.8,H*0.2, W*0.7);
+    plantGrad.addColorStop(0, plants);
+    plantGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = plantGrad;
+    ctx.beginPath();
+    ctx.ellipse(W*0.85, H*0.15, W*0.5, H*0.35, 0.3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // subtle warm lighting bloom
+  const bloom = ctx.createRadialGradient(W*0.5, H*0.25, 0, W*0.5, H*0.25, W*0.8);
+  bloom.addColorStop(0, bg + '55');
+  bloom.addColorStop(1, 'transparent');
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, 0, W, H);
+
+  // torso / outfit
+  const torsoW = W * 0.56, torsoH = H * 0.5;
+  const tx = (W - torsoW) / 2, ty = H * 0.53;
+  ctx.fillStyle = outfit;
+  ctx.beginPath();
+  ctx.moveTo(tx + torsoW*0.15, ty);
+  ctx.lineTo(tx + torsoW*0.85, ty);
+  ctx.lineTo(tx + torsoW, ty + torsoH);
+  ctx.lineTo(tx, ty + torsoH);
+  ctx.closePath();
+  ctx.fill();
+
+  // neck
+  const neckW = W * 0.13, neckH = H * 0.09;
+  const nx = (W - neckW)/2, ny = H*0.49;
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.roundRect(nx, ny, neckW, neckH, 4);
+  ctx.fill();
+
+  // head
+  const headW = W * 0.38, headH = H * 0.32;
+  const hx = (W - headW)/2, hy = H * 0.16;
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.ellipse(W/2, hy + headH*0.48, headW/2, headH/2, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // hair (simple mass on top/sides)
+  ctx.fillStyle = opts.hair || '#1a0a00';
+  ctx.beginPath();
+  ctx.ellipse(W/2, hy + headH*0.25, headW/2 + W*0.06, headH*0.52, 0, Math.PI, 0);
+  ctx.fill();
+  // extra hair volume sides
+  ctx.beginPath();
+  ctx.ellipse(W/2 - headW*0.45, hy + headH*0.5, W*0.08, headH*0.35, -0.2, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(W/2 + headW*0.45, hy + headH*0.5, W*0.08, headH*0.35, 0.2, 0, Math.PI*2);
+  ctx.fill();
+
+  // eyes
+  const eyeY = hy + headH*0.46;
+  ctx.fillStyle = '#fff';
+  [-0.13, 0.13].forEach(d => {
+    ctx.beginPath();
+    ctx.ellipse(W/2 + d*W, eyeY, W*0.04, W*0.025, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#1a0a00';
+    ctx.beginPath();
+    ctx.ellipse(W/2 + d*W*0.9, eyeY, W*0.022, W*0.022, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+  });
+
+  // mouth
+  ctx.strokeStyle = skin === '#8B5E3C' ? '#6B3F20' : '#5a2a15';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  ctx.arc(W/2, hy + headH*0.65, W*0.05, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // microphone (podcast mic beside face)
+  if (microphone) {
+    const mx = W * 0.72, my = H * 0.35;
+    // boom arm
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(W, H*0.1);
+    ctx.bezierCurveTo(W*0.9, H*0.2, mx+10, my-40, mx, my);
+    ctx.stroke();
+    // mic capsule
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.roundRect(mx - 9, my, 18, 40, 9);
+    ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.beginPath();
+    ctx.roundRect(mx - 7, my + 4, 14, 32, 7);
+    ctx.fill();
+    // mesh lines
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1;
+    for (let i = 8; i < 32; i += 5) {
+      ctx.beginPath();
+      ctx.moveTo(mx - 6, my + i);
+      ctx.lineTo(mx + 6, my + i);
+      ctx.stroke();
+    }
+  }
+}
+
+// draw all personas after layout
+function initCanvases() {
+  drawPersona('cv-vivienne', {
+    skin: '#8B5E3C', hair: '#1a0800', outfit: '#1a4a3a',
+    bg: '#2a6a4a', plants: '#2d5a1a', microphone: true
+  });
+  drawPersona('cv-sophia', {
+    skin: '#C8956A', hair: '#1a0a00', outfit: '#2a1a30',
+    bg: '#8B5CF5', plants: false, microphone: true
+  });
+  drawPersona('cv-victoria', {
+    skin: '#D4A574', hair: '#0a0a0a', outfit: '#0a1a2a',
+    bg: '#2a4a6a', plants: false, microphone: false
+  });
+  drawPersona('cv-marcus', {
+    skin: '#8B7355', hair: '#222', outfit: '#1a1a2a',
+    bg: '#4a3a1a', plants: false, microphone: true
+  });
+  drawPersona('cv-james', {
+    skin: '#C8A882', hair: '#1a1000', outfit: '#0a1228',
+    bg: '#1a2a4a', plants: false, microphone: false
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCanvases);
+} else {
+  initCanvases();
+}
+window.addEventListener('resize', initCanvases);
+</script>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">50<span>+</span></div>
+    <div class="stat-label">AI Personas</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">9<span>:</span>16</div>
+    <div class="stat-label">Native Format</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">5<span>min</span></div>
+    <div class="stat-label">Avg. Generation Time</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">4<span>K</span></div>
+    <div class="stat-label">Output Quality</div>
+  </div>
+</div>
+
+<!-- CAPABILITIES -->
+<section class="caps">
+  <div class="caps-inner">
+    <div class="section-label">What you can make</div>
+    <h2 class="section-h2">Every kind of video, <em>zero on-camera talent needed</em></h2>
+    <p class="section-sub">Choose a persona, write a script, pick a scene — MediaHouz handles the rest. Ready for TikTok, Instagram Reels, YouTube Shorts, and more.</p>
+    <div class="caps-grid">
+      <div class="cap-card">
+        <div class="cap-icon" style="background:rgba(123,92,245,0.15)">🎤</div>
+        <div class="cap-title">Influencer Content</div>
+        <p class="cap-desc">Authentic-looking talking-head videos with unique AI personas — each with a backstory, voice, and visual identity. Build a channel without showing your face.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon" style="background:rgba(232,184,75,0.12)">📣</div>
+        <div class="cap-title">Promotional Videos</div>
+        <p class="cap-desc">Product showcases, service explainers, and sales-focused reels. A persona delivers your pitch naturally — no green screens, no awkward scripts to memorize.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon" style="background:rgba(52,211,153,0.12)">📚</div>
+        <div class="cap-title">Educational Content</div>
+        <p class="cap-desc">How-to guides, explainers, and thought-leadership pieces. Match the persona's niche to your topic — from finance to wellness to home design.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon" style="background:rgba(251,113,133,0.12)">🏷️</div>
+        <div class="cap-title">Brand Campaigns</div>
+        <p class="cap-desc">Consistent branded series across a persona's entire library. Same visual tone, same voice, same credibility — ready to publish across all your channels in one session.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon" style="background:rgba(56,189,248,0.12)">🎬</div>
+        <div class="cap-title">Podcast-Style Clips</div>
+        <p class="cap-desc">Professional podcast-set visuals with microphone, moody studio lighting, and three-quarter framing — clips that feel like clipped gold from a real long-form show.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon" style="background:rgba(249,168,212,0.1)">✨</div>
+        <div class="cap-title">Video Effects & Enhancement</div>
+        <p class="cap-desc">Zoom, mirror, brighten, and cinematic color grades applied post-generation. Download a universal H.264 file that plays on every platform without conversion.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="how">
+    <div class="section-label">Simple by design</div>
+    <h2 class="section-h2">From script to <em>published reel</em> in minutes</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-step-num">01</div>
+        <div class="how-step-title">Pick a Persona</div>
+        <p class="how-step-desc">Choose from a growing library of AI personas — each with age, niche, personality, and a distinct visual aesthetic already built in.</p>
+        <div class="how-connector"></div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">02</div>
+        <div class="how-step-title">Write Your Script</div>
+        <p class="how-step-desc">Type your message or use the AI co-writer. Set the tone — informative, urgent, inspiring — and the platform formats it for the format automatically.</p>
+        <div class="how-connector"></div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">03</div>
+        <div class="how-step-title">Choose a Scene</div>
+        <p class="how-step-desc">Select your visual environment: podcast set, executive office, minimalist studio, outdoor shoot. Pose and lighting are generated to match.</p>
+        <div class="how-connector"></div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">04</div>
+        <div class="how-step-title">Generate & Publish</div>
+        <p class="how-step-desc">Render in 9:16 for Reels and Shorts, apply optional effects, then download a platform-compatible file or publish directly to your channels.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERSONAS -->
+<section class="personas-section">
+  <div class="personas-inner">
+    <div class="section-label">Meet the cast</div>
+    <h2 class="section-h2">Personas built to <em>own their niche</em></h2>
+    <p class="section-sub">Every persona comes with a backstory, a signature visual look, and a voice trained for their domain. Add your own trained LoRA model to personalise further.</p>
+    <div class="personas-row">
+      <div class="persona-card">
+        <div class="persona-avatar">VS</div>
+        <div>
+          <div class="persona-name">Victoria Sterling</div>
+          <div class="persona-role">Transformation Authority · Age 52</div>
+          <div class="persona-quote">"Potential hides in plain sight."</div>
+          <div class="persona-badge">Lifestyle</div>
+        </div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar" style="background:linear-gradient(135deg,#4A3F8A,#E8B84B)">MS</div>
+        <div>
+          <div class="persona-name">Marcus Stone</div>
+          <div class="persona-role">Master Builder · Age 58</div>
+          <div class="persona-quote">"Built right. Built once."</div>
+          <div class="persona-badge">Construction</div>
+        </div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar" style="background:linear-gradient(135deg,#6B2D8A,#E84B7B)">SH</div>
+        <div>
+          <div class="persona-name">Sophia Hart</div>
+          <div class="persona-role">Authority of Taste · Age 41</div>
+          <div class="persona-quote">"A room should feel like a decision."</div>
+          <div class="persona-badge">Interior & Luxury</div>
+        </div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar" style="background:linear-gradient(135deg,#2D6B8A,#4BE8B8)">VC</div>
+        <div>
+          <div class="persona-name">Vivienne Cole</div>
+          <div class="persona-role">Wellness & Mindset Coach · Age 36</div>
+          <div class="persona-quote">"Growth is a daily commitment."</div>
+          <div class="persona-badge">Health & Wellness</div>
+        </div>
+      </div>
+      <div class="persona-card" style="border-style:dashed;justify-content:center;align-items:center;text-align:center;opacity:.6">
+        <div style="font-size:28px;margin-bottom:8px">+</div>
+        <div class="persona-name" style="font-size:15px">Your Custom Persona</div>
+        <div class="persona-role">Train with your own LoRA model</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section>
+  <div class="usecases">
+    <div class="section-label">Who it's built for</div>
+    <h2 class="section-h2">One platform, <em>unlimited applications</em></h2>
+    <div class="uc-grid">
+      <div class="uc-big">
+        <div class="uc-ico">🚀</div>
+        <div class="uc-title">Solo Creators & Personal Brands</div>
+        <p class="uc-desc">Build and scale a content library without appearing on camera. Maintain multiple niches with separate personas, all managed from one dashboard.</p>
+        <div class="uc-tags">
+          <span class="uc-tag">TikTok</span>
+          <span class="uc-tag">Instagram Reels</span>
+          <span class="uc-tag">YouTube Shorts</span>
+          <span class="uc-tag">LinkedIn</span>
+        </div>
+      </div>
+      <div class="uc-small">
+        <div class="uc-ico">🏢</div>
+        <div class="uc-title">Agencies & Marketing Teams</div>
+        <p class="uc-desc">Deliver client campaigns at scale. Generate dozens of variations with different scripts, personas, and scenes in a single session.</p>
+      </div>
+      <div class="uc-small">
+        <div class="uc-ico">🛒</div>
+        <div class="uc-title">E-Commerce & Product Brands</div>
+        <p class="uc-desc">Product-led promotional reels with a trusted persona narrator — no hiring influencers, no usage rights negotiations.</p>
+      </div>
+      <div class="uc-small">
+        <div class="uc-ico">🎓</div>
+        <div class="uc-title">Coaches & Course Creators</div>
+        <p class="uc-desc">Turn your curriculum into a stream of social proof clips and lead-generation content without re-recording the same material each season.</p>
+      </div>
+      <div class="uc-small">
+        <div class="uc-ico">💼</div>
+        <div class="uc-title">Real Estate & Finance Pros</div>
+        <p class="uc-desc">Listing walk-throughs, market updates, and wealth-building explainers delivered by a credible on-screen presence — no public exposure required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner">
+  <div class="cta-inner">
+    <div class="section-label">Get started today</div>
+    <h2 class="section-h2">Your AI studio is <em>one click away</em></h2>
+    <p class="section-sub">No camera. No crew. No complicated software. Just your idea, a persona, and a script — MediaHouz does the rest.</p>
+    <div class="cta-buttons">
+      <a class="btn-hero" href="#">Create Your Free Account</a>
+      <a class="btn-hero-outline" href="#">Sign In</a>
+    </div>
+    <p class="cta-note">Free to start &nbsp;·&nbsp; No credit card required &nbsp;·&nbsp; First video in under 10 minutes</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">MediaHouz</div>
+    <ul class="footer-links">
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">Support</a></li>
+      <li><a href="#">API</a></li>
+    </ul>
+    <div class="footer-copy">© 2026 MediaHouz. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>
