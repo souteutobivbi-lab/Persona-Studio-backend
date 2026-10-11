@@ -720,6 +720,13 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <div class="lbl">Styling notes <span style="color:var(--dim);font-weight:400;">(optional)</span></div>
                   <input class="inp" id="loraStylingInp" placeholder="e.g. hair down and wavy, bold lip, no glasses"/>
                 </div>
+                <div class="field" style="margin-bottom:12px;">
+                  <div class="lbl">Camera pose</div>
+                  <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button id="poseFront" onclick="setPose('front')" style="flex:1;padding:8px;border-radius:8px;border:1px solid #8b5cf6;background:rgba(139,92,246,0.25);color:#c4b5fd;font-size:12px;cursor:pointer;">?? Facing camera</button>
+                    <button id="poseSide" onclick="setPose('side')" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#aaa;font-size:12px;cursor:pointer;">??? Sideways (podcast)</button>
+                  </div>
+                </div>
                 <div style="display:flex;gap:8px;align-items:stretch;">
                   <button class="gen-btn" id="loraGenBtn" style="flex:1;" onclick="event.stopPropagation();genPortraitWithLora()">✦ Generate portrait of <span id="loraGenBtnName"></span> in this outfit</button>
                   <button class="btn ghost" id="swapOutfitBtn" style="flex-shrink:0;font-size:12px;padding:0 14px;border:1px solid var(--green);color:var(--green);" onclick="event.stopPropagation();swapOutfitOnly(event)" title="Keeps face, body &amp; background pixel-perfect — only swaps the clothing">🔄 Swap outfit only</button>
@@ -2875,6 +2882,7 @@ async function genQuickPortrait(){
     fd.append('appearance', p.appearance||'');
     fd.append('outfit', outfit);
     fd.append('outfit_color', color);
+    fd.append('pose', window._selectedPose||'side');
     fd.append('count','1');
     fd.append('persona_id', pid);
     if(p.masterPortraitUrl) fd.append('master_url', p.masterPortraitUrl);
@@ -4212,7 +4220,17 @@ async function generatePortraitAndPoll(fd) {
   }catch(e){console.warn('Could not load music tracks:',e);}
 })();
 
-async document.addEventListener('click',function(e){
+async function setPose(p){
+  window._selectedPose=p;
+  document.getElementById('poseFront').style.background=p==='front'?'rgba(139,92,246,0.25)':'rgba(255,255,255,0.04)';
+  document.getElementById('poseFront').style.borderColor=p==='front'?'#8b5cf6':'rgba(255,255,255,0.12)';
+  document.getElementById('poseFront').style.color=p==='front'?'#c4b5fd':'#aaa';
+  document.getElementById('poseSide').style.background=p==='side'?'rgba(139,92,246,0.25)':'rgba(255,255,255,0.04)';
+  document.getElementById('poseSide').style.borderColor=p==='side'?'#8b5cf6':'rgba(255,255,255,0.12)';
+  document.getElementById('poseSide').style.color=p==='side'?'#c4b5fd':'#aaa';
+}
+window._selectedPose='side';
+document.addEventListener('click',function(e){
   if(e.target.classList.contains('fx-chip')){
     e.target.classList.toggle('active');
   }

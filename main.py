@@ -394,7 +394,7 @@ async def serve_audio(job_id: str):
         return FileResponse(str(path), media_type="audio/mpeg")
     return JSONResponse({"error": "not found"}, status_code=404)
 
-def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit_color: str = "", sex: str = "female", skill_context: str = "") -> str:
+def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit_color: str = "", sex: str = "female", skill_context: str = "", pose: str = "side") -> str:
     """Build podcast-style seated portrait prompt matching linakodi1_ / mayaa_speaks aesthetic.
 
     The appearance string from the persona is layered ON TOP of a hardcoded base that locks
@@ -449,6 +449,12 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     # Podcast set - use skill file scene if defined, else sex-based default
     if custom_scene:
         podcast_set = custom_scene
+    elif pose == 'front':
+        podcast_set = (
+            'seated facing directly into camera, body square to lens, '
+            'looking directly into camera with confident composed expression, '
+            'tight medium shot head to mid-chest, professional studio lighting'
+        )
     elif sex.lower() in ('male', 'm', 'man'):
         podcast_set = (
             'seated almost side-on to camera in a dark leather podcast chair, body angled 45 degrees, '
@@ -648,7 +654,8 @@ async def generate_portrait(
     outfit_color: str = Form(""),
     count: int = Form(1),
     persona_id: str = Form(""),
-    master_url: str = Form("")
+    master_url: str = Form(""),
+    pose: str = Form("side")
 ):
     """Generate podcast-style portrait.
     Returns {job_id, status:"running"} immediately.
@@ -672,7 +679,7 @@ async def generate_portrait(
                 ref_url = entry["url"]
                 break
 
-    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex, skill_context=skill_context)
+    prompt = build_portrait_prompt(appearance, persona_age, outfit, outfit_color, sex=sex, skill_context=skill_context, pose=pose)
     set_job(jid, {"status": "running", "progress": 0, "stage": "generating"})
 
     def _run():
@@ -1311,6 +1318,7 @@ async def swap_outfit(
                     outfit_color="",
                     sex=sex,
                     skill_context=skill_context,
+                    pose=pose,
                 )
                 # Prepend trigger word so LoRA recognises the face
                 portrait_prompt = f"{tw}, {portrait_prompt}"
