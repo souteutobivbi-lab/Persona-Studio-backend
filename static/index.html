@@ -4252,9 +4252,10 @@ async function enhanceVideo(btn) {
     const r = await fetch(API()+'/enhance-video', {method:'POST', body:fd});
     const j = await r.json();
     if(j.enhanced_url) {
-      S.lastVideoUrl = j.enhanced_url;
+      const _eurl = j.enhanced_url.startsWith("/") ? API()+j.enhanced_url : j.enhanced_url;
+      S.lastVideoUrl = _eurl;
       const vp = document.getElementById('videoPreview');
-      if(vp) vp.innerHTML = `<video src="${j.enhanced_url}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
+      if(vp) vp.innerHTML = `<video src="${_eurl}" controls autoplay muted loop style="width:100%;height:100%;object-fit:cover;" playsinline></video>`;
       toast('✓ Video enhanced — zoom + mirror applied','ok');
       btn.textContent = '✓ Enhanced';
     } else {

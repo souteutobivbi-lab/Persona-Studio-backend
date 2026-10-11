@@ -1597,6 +1597,17 @@ async def list_fal_files():
 # ═══════════════════════════════════════════════════════
 # VIDEO ENHANCEMENT — ffmpeg shot-variation pass
 # ═══════════════════════════════════════════════════════
+@app.get("/download-enhanced/{eid}")
+async def download_enhanced(eid: str):
+    import re
+    if not re.match(r"^[a-f0-9]{8}$", eid):
+        return JSONResponse({"error": "invalid id"}, status_code=400)
+    p = OUTPUT_DIR / f"{eid}_enhanced.mp4"
+    if not p.exists():
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(str(p), media_type="video/mp4", filename=f"mediahouz-enhanced-{eid}.mp4")
+
+
 @app.post("/enhance-video")
 async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in,mirror,brighten")):
     import subprocess, tempfile, os, json as _json, shutil
@@ -1640,7 +1651,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
             if i<n-1: cmd+=["-t",str(round(seg_dur,3))]
             cmd+=["-vf",vf]
             if af: cmd+=["-filter:a",af]
-            cmd+=["-c:v","libx264","-preset","fast","-crf","18","-c:a","aac","-b:a","192k",sp]
+            cmd+=["-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-movflags","+faststart",sp]
             run(cmd); segments.append(sp)
         if n==1:
             shutil.copy(segments[0],out)
@@ -1660,9 +1671,13 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
             fc=";".join(vfp+afp)
             inp_args=[]
             for seg in segments: inp_args+=["-i",seg]
-            run(["ffmpeg","-y"]+inp_args+["-filter_complex",fc,"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","fast","-crf","18","-c:a","aac","-b:a","192k","-movflags","+faststart",out])
-        eu=fal_client.upload_file(out)
-        return JSONResponse({"enhanced_url":eu})
+            run(["ffmpeg","-y"]+inp_args+["-filter_complex",fc,"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-movflags","+faststart",out])
+        import uuid as _uuid, shutil as _shutil
+        eid = str(_uuid.uuid4())[:8]
+        out_path = OUTPUT_DIR / f"{eid}_enhanced.mp4"
+        _shutil.copy(out, str(out_path))
+        enhanced_serve_url = f"/download-enhanced/{eid}"
+        return JSONResponse({"enhanced_url": enhanced_serve_url, "eid": eid})
     except Exception as e:
         return JSONResponse({"error":str(e)},status_code=500)
 
