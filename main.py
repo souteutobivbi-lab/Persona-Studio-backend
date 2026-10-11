@@ -447,7 +447,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
             break
 
     # Podcast set - use skill file scene if defined, else sex-based default
-    if custom_scene:
+    if custom_scene and pose != 'side':
         podcast_set = custom_scene
     elif pose == 'front':
         podcast_set = (
@@ -1328,7 +1328,7 @@ async def swap_outfit(
                     "prompt": portrait_prompt,
                     "loras": [{"path": fresh_lora_url, "scale": 1.0}],
                     "image_url": portrait_ref_url,
-                    "strength": 0.55,
+                    "strength": 0.3 if pose == "side" else 0.55,
                     "num_inference_steps": 40,
                     "guidance_scale": 3.5,
                     "num_images": 1,
