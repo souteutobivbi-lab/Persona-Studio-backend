@@ -1638,7 +1638,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
             if i<n-1: cmd+=["-t",str(round(seg_dur,3))]
             cmd+=["-vf",vf]
             if af: cmd+=["-filter:a",af]
-            cmd+=["-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k",sp]
+            cmd+=["-c:v","libx264","-preset","fast","-crf","18","-c:a","aac","-b:a","192k",sp]
             run(cmd); segments.append(sp)
         if n==1:
             shutil.copy(segments[0],out)
@@ -1658,7 +1658,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
             fc=";".join(vfp+afp)
             inp_args=[]
             for seg in segments: inp_args+=["-i",seg]
-            run(["ffmpeg","-y"]+inp_args+["-filter_complex",fc,"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","fast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart",out])
+            run(["ffmpeg","-y"]+inp_args+["-filter_complex",fc,"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","fast","-crf","18","-c:a","aac","-b:a","192k","-movflags","+faststart",out])
         eu=fal_client.upload_file(out)
         return JSONResponse({"enhanced_url":eu})
     except Exception as e:
