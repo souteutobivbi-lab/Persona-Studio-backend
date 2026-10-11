@@ -745,66 +745,56 @@ footer {
   <!-- RIGHT: Video grid -->
   <div class="hero-right">
     <div class="video-grid">
-      <!-- Tall card: Vivienne Cole — featured persona -->
-      <div class="vid-card tall vs-vivienne" id="card-vivienne">
-        <div class="vid-shimmer"></div>
-        <canvas class="vid-persona" id="cv-vivienne"></canvas>
+      <!-- Tall card: Marcus Stone — real platform video -->
+      <div class="vid-card tall" id="card-v1">
+        <video class="vid-real-img" src="https://v3b.fal.media/files/b/0aacc225/VOTJ7FdrfI3lpaeSOgNas_vid_1790940188464_final.mp4" autoplay muted loop playsinline preload="metadata" style="object-position:center top;"></video>
         <div class="vid-gradient"></div>
-        <div class="vid-tag">✦ Featured</div>
-        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-tag">✦ Live</div>
         <div class="vid-label">
-          <strong>Vivienne Cole</strong>
-          <span>Wellness &amp; Mindset</span>
+          <strong>Marcus Stone</strong>
+          <span>Property</span>
         </div>
       </div>
-      <!-- Top right — dynamic or fallback -->
-      <div class="vid-card vs-sophia" id="card-p2">
-        <div class="vid-shimmer" style="animation-delay:-3s"></div>
-        <img class="vid-real-img" id="img-p2" src="" alt="" style="display:none" onerror="this.style.display='none'">
-        <canvas class="vid-persona" id="cv-sophia"></canvas>
+      <!-- Top right: Sophia Hart -->
+      <div class="vid-card" id="card-v2">
+        <video class="vid-real-img" src="https://persona-studio.homivis.com/download/vid_1790938210589" autoplay muted loop playsinline preload="metadata" style="object-position:center top;"></video>
         <div class="vid-gradient"></div>
-        <div class="vid-tag">Luxury</div>
-        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-tag">Interior</div>
         <div class="vid-label">
           <strong>Sophia Hart</strong>
-          <span>Interior &amp; Taste</span>
+          <span>Interior Design</span>
         </div>
       </div>
-      <!-- Top far right -->
-      <div class="vid-card vs-victoria" id="card-p3">
-        <div class="vid-shimmer" style="animation-delay:-1.5s"></div>
-        <img class="vid-real-img" id="img-p3" src="" alt="" style="display:none" onerror="this.style.display='none'">
-        <canvas class="vid-persona" id="cv-victoria"></canvas>
+      <!-- Top far right: Marcus Stone #2 -->
+      <div class="vid-card" id="card-v3">
+        <video class="vid-real-img" src="https://persona-studio.homivis.com/download/vid_1790934819962" autoplay muted loop playsinline preload="metadata" style="object-position:center top;"></video>
         <div class="vid-gradient"></div>
-        <div class="vid-tag">Transform</div>
-        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
-        <div class="vid-label">
-          <strong>Victoria Sterling</strong>
-          <span>Age 52</span>
-        </div>
-      </div>
-      <!-- Bottom right -->
-      <div class="vid-card vs-marcus" id="card-p4">
-        <div class="vid-shimmer" style="animation-delay:-5s"></div>
-        <canvas class="vid-persona" id="cv-marcus"></canvas>
-        <div class="vid-gradient"></div>
-        <div class="vid-tag">Build</div>
-        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
+        <div class="vid-tag">Property</div>
         <div class="vid-label">
           <strong>Marcus Stone</strong>
           <span>Master Builder</span>
         </div>
       </div>
-      <!-- Bottom far right -->
-      <div class="vid-card vs-james" id="card-p5">
-        <div class="vid-shimmer" style="animation-delay:-2s"></div>
-        <canvas class="vid-persona" id="cv-james"></canvas>
+      <!-- Bottom right: placeholder -->
+      <div class="vid-card vs-marcus" id="card-v4">
+        <div class="vid-shimmer" style="animation-delay:-5s"></div>
+        <canvas class="vid-persona" id="cv-marcus"></canvas>
         <div class="vid-gradient"></div>
         <div class="vid-tag">Finance</div>
-        <div class="vid-play"><svg viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg></div>
         <div class="vid-label">
           <strong>James Mercer</strong>
           <span>Wealth Strategy</span>
+        </div>
+      </div>
+      <!-- Bottom far right: placeholder -->
+      <div class="vid-card vs-james" id="card-v5">
+        <div class="vid-shimmer" style="animation-delay:-2s"></div>
+        <canvas class="vid-persona" id="cv-james"></canvas>
+        <div class="vid-gradient"></div>
+        <div class="vid-tag">Lifestyle</div>
+        <div class="vid-label">
+          <strong>Victoria Sterling</strong>
+          <span>Transformation</span>
         </div>
       </div>
     </div>
@@ -812,27 +802,7 @@ footer {
 </div>
 
 <script>
-// Fetch real locked personas and populate extra cards
-const API_BASE = 'https://persona-studio.homivis.com';
-const EXTRA_CARDS = [
-  { imgId: 'img-p2', canvasId: 'cv-sophia' },
-  { imgId: 'img-p3', canvasId: 'cv-victoria' },
-];
-fetch(API_BASE + '/locked-personas')
-  .then(r => r.json())
-  .then(data => {
-    const personas = (data.locked || []).filter(p => p.fal_url);
-    personas.forEach((p, i) => {
-      if (i >= EXTRA_CARDS.length) return;
-      const img = document.getElementById(EXTRA_CARDS[i].imgId);
-      const cv  = document.getElementById(EXTRA_CARDS[i].canvasId);
-      if (img) { img.src = p.fal_url; img.alt = p.persona_id; img.style.display = 'block'; }
-      if (cv)  { cv.style.display = 'none'; }
-    });
-  })
-  .catch(() => {}); // silently fall back to canvas art
-
-// Draw portrait-style persona art on each canvas card
+// Draw portrait-style persona art on placeholder canvas cards
 function drawPersona(id, opts) {
   const canvas = document.getElementById(id);
   if (!canvas) return;
@@ -965,18 +935,6 @@ function drawPersona(id, opts) {
 
 // draw all personas after layout
 function initCanvases() {
-  drawPersona('cv-vivienne', {
-    skin: '#C8A882', hair: '#2a1500', outfit: '#1a4a3a',
-    bg: '#2a6a4a', plants: '#2d5a1a', microphone: true
-  });
-  drawPersona('cv-sophia', {
-    skin: '#C8956A', hair: '#1a0a00', outfit: '#2a1a30',
-    bg: '#8B5CF5', plants: false, microphone: true
-  });
-  drawPersona('cv-victoria', {
-    skin: '#D4A574', hair: '#0a0a0a', outfit: '#0a1a2a',
-    bg: '#2a4a6a', plants: false, microphone: false
-  });
   drawPersona('cv-marcus', {
     skin: '#8B7355', hair: '#222', outfit: '#1a1a2a',
     bg: '#4a3a1a', plants: false, microphone: true
