@@ -378,10 +378,10 @@ async def generate_voice(
     out_path = OUTPUT_DIR / f"{jid}_voice.mp3"
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=mp3_44100_192",
             headers={"xi-api-key": ELEVENLABS_KEY, "Content-Type": "application/json"},
             json={"text": script, "model_id": "eleven_multilingual_v2",
-                  "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": 1.05}}
+                  "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "use_speaker_boost": enhance}}
         )
     if r.status_code != 200:
         return JSONResponse({"error": r.text[:200]}, status_code=400)

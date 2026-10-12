@@ -670,7 +670,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
     <div style="font-size:11px;color:var(--dim);">Speed · compression · warmth EQ · loudnorm</div>
   </div>
 </label>
-<button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:8px;cursor:pointer;">
+                  <input type="checkbox" id="voiceEnhanceToggle" style="accent-color:#8b5cf6;width:16px;height:16px;">
+                  ✨ Enhance voice (ElevenLabs speaker boost)
+                </label>
+                <button class="gen-btn" id="genVoiceBtn" onclick="genVoice()">🎙 Generate voiceover</button>
             <div id="voiceResult" style="display:none;">
               <div class="card"><div class="card-hd">Preview</div><audio controls style="width:100%;" id="audioEl"></audio></div>
               <!-- Background Music — lives here so users set it alongside the voice -->
