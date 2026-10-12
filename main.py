@@ -381,12 +381,34 @@ async def generate_voice(
             f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
             headers={"xi-api-key": ELEVENLABS_KEY, "Content-Type": "application/json"},
             json={"text": script, "model_id": "eleven_multilingual_v2",
-                  "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
+                  "voice_settings": {"stability": 0.38, "similarity_boost": 0.90, "style": 0.60, "use_speaker_boost": True}}
         )
     if r.status_code != 200:
         return JSONResponse({"error": r.text[:200]}, status_code=400)
 
     out_path.write_bytes(r.content)
+
+    _crowd = pathlib.Path(__file__).parent / "crowd_ambience.mp3"
+    if _crowd.exists():
+        import subprocess, shutil as _shutil
+        _tmp = out_path.with_name(out_path.stem + "_mixed.mp3")
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y",
+                 "-i", str(out_path),
+                 "-stream_loop", "-1", "-i", str(_crowd),
+                 "-filter_complex",
+                 "[0:a]volume=1.0[voice];[1:a]volume=0.12[crowd];"
+                 "[voice][crowd]amix=inputs=2:duration=first:dropout_transition=2[out]",
+                 "-map", "[out]",
+                 "-codec:a", "libmp3lame", "-q:a", "4",
+                 str(_tmp)],
+                check=True, capture_output=True)
+            _shutil.move(str(_tmp), str(out_path))
+        except Exception:
+            if _tmp.exists():
+                _tmp.unlink(missing_ok=True)
+
 
     return {"job_id": jid, "audio_path": str(out_path), "status": "done"}
 
