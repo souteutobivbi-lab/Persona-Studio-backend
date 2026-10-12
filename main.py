@@ -398,7 +398,7 @@ async def generate_voice(
                  "-i", str(out_path),
                  "-stream_loop", "-1", "-i", str(_crowd),
                  "-filter_complex",
-                 "[0:a]volume=1.0[voice];[1:a]volume=0.12[crowd];"
+                 "[0:a]volume=1.0[voice];[1:a]volume=0.25[crowd];"
                  "[voice][crowd]amix=inputs=2:duration=first:dropout_transition=2[out]",
                  "-map", "[out]",
                  "-codec:a", "libmp3lame", "-q:a", "4",
