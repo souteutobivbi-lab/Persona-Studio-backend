@@ -1742,3 +1742,45 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
 async def homepage():
     from fastapi.responses import FileResponse
     return FileResponse("static/mediahouz-home.html", media_type="text/html")
+
+# -- ONE-SHOT: repair cp1252 mojibake in jobs.json ----------------------------
+@app.post("/admin/fix-encoding")
+async def admin_fix_encoding(secret: str = Form(...)):
+    if secret != os.environ.get("ADMIN_SECRET", "fix-encoding-2026"):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+
+    def fix_str(s):
+        if not isinstance(s, str): return s
+        out = []; i = 0
+        while i < len(s):
+            if ord(s[i]) <= 0x7F:
+                out.append(s[i]); i += 1; continue
+            j = i
+            while j < len(s) and ord(s[j]) > 0x7F: j += 1
+            chunk = s[i:j]; recovered = None
+            for n in range(len(chunk), 0, -1):
+                try:
+                    bs = bytearray()
+                    for c in chunk[:n]:
+                        cp = ord(c)
+                        bs.append(cp if 0x80 <= cp <= 0x9F else ord(c.encode("cp1252")))
+                    dec = bs.decode("utf-8")
+                    recovered = (dec, n); break
+                except: pass
+            if recovered:
+                out.append(recovered[0]); i += recovered[1]
+            else:
+                out.append(chunk[0]); i += 1
+        return "".join(out)
+
+    def fix_val(v):
+        if isinstance(v, str):  return fix_str(v)
+        if isinstance(v, list): return [fix_val(x) for x in v]
+        if isinstance(v, dict): return {k: fix_val(x) for k, x in v.items()}
+        return v
+
+    jobs = load_jobs()
+    fixed = fix_val(jobs)
+    save_jobs(fixed)
+    changed = sum(1 for jid in fixed if str(fixed[jid]) != str(jobs.get(jid,{})))
+    return {"status": "done", "jobs_processed": len(fixed)}
