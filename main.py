@@ -467,13 +467,13 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
             custom_scene = _line.lstrip(":").strip()
             break
 
-    # Podcast set - use skill file scene if defined, else sex-based default
-    if custom_scene and pose != 'side':
-        podcast_set = custom_scene
-    elif pose == 'front':
+    # Podcast set — front pose always faces camera; custom_scene only used for side
+    if pose == 'front':
         podcast_set = (
             'seated facing directly into camera, body square to lens, '
-            'looking directly into camera with confident composed expression, '
+            'eyes making direct intense eye contact with the camera lens, '
+            'looking straight into camera with confident composed expression, '
+            'NOT looking to the side NOT looking away, '
             'tight medium shot head to mid-chest, professional studio lighting'
         )
     elif sex.lower() in ('male', 'm', 'man'):
@@ -490,13 +490,19 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         )
     else:
         podcast_set = (
-            'STRICT POSE REQUIREMENT: body turned 45 degrees away from camera, three-quarter side profile, torso and shoulders angled toward left edge of frame, NOT facing camera directly, seated in podcast studio chair, microphone positioned in front, head turned slightly back toward camera but body remains angled sideways, legs crossed, relaxed conversational posture, '
+            'STRICT POSE REQUIREMENT: body turned 45 degrees away from camera, three-quarter side profile, '
+            'torso and shoulders angled toward left edge of frame, body NOT square to camera, '
+            'seated in podcast studio chair, legs crossed, relaxed conversational posture, '
+            'HEAD TURNED TOWARD CAMERA: face rotated back to look directly into the lens, '
+            'direct eye contact with camera, eyes looking straight into the lens, '
             'hands resting naturally in lap, upper body and arms fully visible in frame, '
             'large black podcast microphone on boom arm positioned in front slightly to right, '
             'background: soft warm grey textured wall, '
             'large lush tropical areca palm plant with long green fronds behind right shoulder, '
-            'bright professional studio lighting, key light and fill light setup, soft diffused light on face and shoulders, warm amber tones, high-key studio portrait lighting, shallow depth of field, bokeh background, '
-            'camera angle at chest level, tight medium shot framing head to mid-torso, subject looking slightly off-camera to the left as if in conversation'
+            'bright professional studio lighting, key light and fill light setup, '
+            'soft diffused light on face and shoulders, warm amber tones, '
+            'high-key studio portrait lighting, shallow depth of field, bokeh background, '
+            'camera angle at chest level, tight medium shot framing head to mid-torso'
         )
     photo_tech = (
         "Sony A7R IV 85mm f1.4 portrait lens, "
