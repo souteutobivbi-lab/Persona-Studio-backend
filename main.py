@@ -381,31 +381,12 @@ async def generate_voice(
             f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
             headers={"xi-api-key": ELEVENLABS_KEY, "Content-Type": "application/json"},
             json={"text": script, "model_id": "eleven_multilingual_v2",
-                  "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
+                  "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": 1.05}}
         )
     if r.status_code != 200:
         return JSONResponse({"error": r.text[:200]}, status_code=400)
 
-    # Save raw audio then post-process for broadcast quality & slight speed boost
-    raw_path = OUTPUT_DIR / f"{jid}_voice_raw.mp3"
-    raw_path.write_bytes(r.content)
-
-    import subprocess as _sp
-    voice_af = (
-        "highpass=f=80,"
-        "equalizer=f=3000:width_type=o:width=1:g=2.5,"
-        "equalizer=f=8000:width_type=o:width=1:g=-2.5,"
-        "acompressor=threshold=-18dB:ratio=2.5:attack=10:release=100:makeup=2,"
-        "loudnorm=I=-14:TP=-1.5:LRA=7"
-    )
-    proc = _sp.run(
-        ["ffmpeg","-y","-i",str(raw_path),"-af",voice_af,
-         "-c:a","libmp3lame","-b:a","192k", str(out_path)],
-        capture_output=True, text=True, timeout=60
-    )
-    if proc.returncode != 0:
-        import shutil as _sh; _sh.copy(str(raw_path), str(out_path))  # fallback
-    raw_path.unlink(missing_ok=True)
+    out_path.write_bytes(r.content)
 
     return {"job_id": jid, "audio_path": str(out_path), "status": "done"}
 
