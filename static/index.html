@@ -568,11 +568,11 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
         <!-- CREATE VIDEO -->
         <div id="panel-create" class="tab-panel">
           <div class="step-tabs">
-            <div class="step-t on" onclick="goStep(1)">1 ┬À Persona</div>
-            <div class="step-t" onclick="goStep(2)">2 ┬À Script</div>
-            <div class="step-t" onclick="goStep(3)">3 ┬À Voice</div>
-            <div class="step-t" onclick="goStep(4)">4 ┬À Scene</div>
-            <div class="step-t" onclick="goStep(5)">5 ┬À Generate</div>
+            <div class="step-t on" onclick="goStep(1)">1 · Persona</div>
+            <div class="step-t" onclick="goStep(2)">2 · Script</div>
+            <div class="step-t" onclick="goStep(3)">3 · Voice</div>
+            <div class="step-t" onclick="goStep(4)">4 · Scene</div>
+            <div class="step-t" onclick="goStep(5)">5 · Generate</div>
           </div>
 
           <!-- Step 1 -->
@@ -626,7 +626,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
             </div>
             <button class="gen-btn" id="genScriptBtn" onclick="generateScript()">✦ Generate scripts with AI</button>
             <div id="scriptCard" style="display:none;" class="card">
-              <div class="card-hd">Choose a script <span class="badge" id="wcBadge">5 options ┬À ~20 seconds each</span></div>
+              <div class="card-hd">Choose a script <span class="badge" id="wcBadge">5 options · ~20 seconds each</span></div>
               <input type="search" id="scriptSearch" class="inp" placeholder="Search scripts..." oninput="filterScripts()" style="margin-bottom:8px;">
               <div id="scriptOptions"></div>
               <div class="card-hd" style="margin-top:12px;">Edit</div>
@@ -642,7 +642,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- Step 3 -->
           <div id="sp3" class="step-panel">
             <div class="card">
-              <div class="card-hd">Select voice <span class="badge" id="voiceFilterBadge">British ┬À Female</span></div>
+              <div class="card-hd">Select voice <span class="badge" id="voiceFilterBadge">British · Female</span></div>
               <div id="voiceLockedBanner" style="display:none;align-items:center;padding:8px 10px;background:var(--g2);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;margin-bottom:10px;"></div>
               <div class="voice-list" id="voiceList"><div style="color:var(--muted);font-size:12px;padding:8px;">Loading voices...</div></div>
               <div id="voicePreviewArea" style="display:none;margin-top:10px;">
@@ -738,7 +738,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <button class="gen-btn" id="loraGenBtn" style="flex:1;" onclick="event.stopPropagation();genPortraitWithLora()">✦ Generate portrait of <span id="loraGenBtnName"></span> in this outfit</button>
                   <button class="btn ghost" id="swapOutfitBtn" style="flex-shrink:0;font-size:12px;padding:0 14px;border:1px solid var(--green);color:var(--green);" onclick="event.stopPropagation();swapOutfitOnly(event)" title="Keeps face, body &amp; background pixel-perfect — only swaps the clothing">🔄 Swap outfit only</button>
                 </div>
-                <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:center;">✦ Generate = new image of same face &nbsp;┬À&nbsp; 🔄 Swap = same photo, clothes only change</div>
+                <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:center;">✦ Generate = new image of same face &nbsp;·&nbsp; 🔄 Swap = same photo, clothes only change</div>
                 <button class="btn ghost" style="width:100%;margin-top:10px;font-size:12px;color:var(--dim);border-color:var(--border);" onclick="skipOutfitToVideo()" title="Proceed to video using the existing locked portrait, no outfit change needed">✓ Skip — use current outfit &amp; proceed to video →</button>
                 <div id="portraitLoraResult" style="display:none;margin-top:14px;">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;margin-bottom:10px;">
@@ -812,7 +812,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div class="pipeline" id="pipelineEl">
                 <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Preparing portrait</div><div class="pipe-sub">Background removal</div></div></div>
                 <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Building scene</div><div class="pipe-sub">Portrait + background composite</div></div></div>
-                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generating talking video</div><div class="pipe-sub">AI lip sync ┬À ~30–90 seconds</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generating talking video</div><div class="pipe-sub">AI lip sync · ~30–90 seconds</div></div></div>
                 <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Processing video</div><div class="pipe-sub">Colour grade + export</div></div></div>
                 <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-lbl">Uploading</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
               </div>
@@ -949,7 +949,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
           <!-- →→ QUICK PORTRAIT (PuLID) — no LoRA needed →→ -->
           <div class="card" style="border-color:rgba(124,58,237,.4);background:linear-gradient(135deg,var(--p3),var(--card));">
-            <div class="card-hd">⚡ Quick Portrait — Podcast style <span class="badge" style="background:var(--p3);color:var(--p2);">~$0.05 ┬À No LoRA needed</span></div>
+            <div class="card-hd">⚡ Quick Portrait — Podcast style <span class="badge" style="background:var(--p3);color:var(--p2);">~$0.05 · No LoRA needed</span></div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
               Generate a seated podcast portrait instantly. If you've set a master portrait below, PuLID locks that face — same person every time. Otherwise FLUX generates a new face from the appearance prompt.
             </div>
@@ -1015,7 +1015,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
           <div style="display:flex;align-items:center;gap:12px;margin:4px 0;">
             <div style="flex:1;height:1px;background:var(--border);"></div>
-            <div style="font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Or train a permanent identity lock (LoRA ┬À ~$2 one-time)</div>
+            <div style="font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Or train a permanent identity lock (LoRA · ~$2 one-time)</div>
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
 
@@ -1043,17 +1043,17 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
           <!-- Stage indicator (Pathway A) -->
           <div id="pathwayA-stages" style="display:flex;gap:0;margin-bottom:4px;">
-            <div class="id-stage on" id="idstage-1" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;border-bottom:2px solid var(--purple);color:var(--p2);cursor:pointer;" onclick="showIdStage(1)">1 ┬À Master</div>
-            <div class="id-stage" id="idstage-2" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(2)">2 ┬À Angles</div>
-            <div class="id-stage" id="idstage-3" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(3)">3 ┬À Train LoRA</div>
-            <div class="id-stage" id="idstage-4" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(4)">4 ┬À Test</div>
-            <div class="id-stage" id="idstage-5" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(5)">5 ┬À Lock</div>
+            <div class="id-stage on" id="idstage-1" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;border-bottom:2px solid var(--purple);color:var(--p2);cursor:pointer;" onclick="showIdStage(1)">1 · Master</div>
+            <div class="id-stage" id="idstage-2" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(2)">2 · Angles</div>
+            <div class="id-stage" id="idstage-3" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(3)">3 · Train LoRA</div>
+            <div class="id-stage" id="idstage-4" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(4)">4 · Test</div>
+            <div class="id-stage" id="idstage-5" style="flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:500;border-bottom:2px solid var(--border);color:var(--dim);cursor:pointer;" onclick="showIdStage(5)">5 · Lock</div>
           </div>
 
           <!-- PATHWAY B: Upload real frames directly -->
           <div id="pathwayB-panel" style="display:none;">
             <div class="card">
-              <div class="card-hd">📸 Upload training images <span class="badge amber">10–20 images ┬À Real video frames</span></div>
+              <div class="card-hd">📸 Upload training images <span class="badge amber">10–20 images · Real video frames</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
                 Upload frames extracted from your video — different expressions, same person. The LoRA will learn their face from real photos, no AI angle generation needed.
               </div>
@@ -1063,7 +1063,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                 onmouseenter="this.style.borderColor='var(--purple)'" onmouseleave="this.style.borderColor='var(--border)'">
                 <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
                 <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Click to select images</div>
-                <div style="font-size:11px;color:var(--dim);">10–20 frames recommended ┬À JPG or PNG ┬À Same person, different expressions</div>
+                <div style="font-size:11px;color:var(--dim);">10–20 frames recommended · JPG or PNG · Same person, different expressions</div>
                 <input type="file" id="frameUploadInput" accept="image/*" multiple style="display:none;" onchange="handleFrameUpload(this)"/>
               </label>
 
@@ -1099,7 +1099,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- STAGE 1: Master portrait -->
           <div id="idpanel-1">
             <div class="card">
-              <div class="card-hd">◉ Generate master portrait <span class="badge">Front facing ┬À White background ┬À Waist up</span></div>
+              <div class="card-hd">◉ Generate master portrait <span class="badge">Front facing · White background · Waist up</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
                 This is the foundation image. Get the face, age and appearance exactly right before proceeding. Everything else is built from this.
               </div>
@@ -1132,7 +1132,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
                   <div style="flex:1;">
                     <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Is this the right face?</div>
                     <div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px;">
-                      Check: correct age appearance ┬À right ethnicity ┬À right bone structure ┬À white background clean ┬À waist up framing<br><br>
+                      Check: correct age appearance · right ethnicity · right bone structure · white background clean · waist up framing<br><br>
                       If not right, regenerate below. Once you're happy, proceed to generate the 9 angle variations.
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1148,7 +1148,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- STAGE 2: 9 angle variations -->
           <div id="idpanel-2" style="display:none;">
             <div class="card">
-              <div class="card-hd">⊞ Generate 9 angle variations <span class="badge">Same person ┬À Different angles</span></div>
+              <div class="card-hd">⊞ Generate 9 angle variations <span class="badge">Same person · Different angles</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
                 These 9 images plus your master portrait give the LoRA 10 views of the same face. Each angle is specified precisely so the model learns the full facial structure.
               </div>
@@ -1173,7 +1173,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <!-- STAGE 3: Train LoRA -->
           <div id="idpanel-3" style="display:none;">
             <div class="card">
-              <div class="card-hd">⚡ Train identity LoRA <span class="badge amber">One time ┬À ~15-20 minutes ┬À ~$2</span></div>
+              <div class="card-hd">⚡ Train identity LoRA <span class="badge amber">One time · ~15-20 minutes · ~$2</span></div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
                 The LoRA learns this persona's face from all 10 images. After training, every future portrait generation will use the trigger word to reproduce the same face exactly — regardless of outfit, hair, jewellery or scene.
               </div>
@@ -1352,7 +1352,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
               <div class="field"><div class="lbl">Name</div><input class="inp" id="npName" placeholder="e.g. Emma Clarke"/></div>
               <div class="field"><div class="lbl">Age</div><input class="inp" id="npAge" placeholder="34"/></div>
             </div>
-            <div class="field" style="margin-top:10px;"><div class="lbl">Role &amp; niche</div><input class="inp" id="npRole" placeholder="e.g. Financial Coach ┬À Wealth"/></div>
+            <div class="field" style="margin-top:10px;"><div class="lbl">Role &amp; niche</div><input class="inp" id="npRole" placeholder="e.g. Financial Coach · Wealth"/></div>
             <div class="field" style="margin-top:10px;"><div class="lbl">Catchphrase</div><input class="inp" id="npCatch" placeholder="e.g. Potential hides in plain sight."/></div>
             <div class="field" style="margin-top:10px;"><div class="lbl">Gender</div><div style="display:flex;gap:8px;"><button id="npSexF" onclick="window._npSex='female';this.style.background='var(--purple)';this.style.color='#fff';document.getElementById('npSexM').style.cssText+='background:transparent;color:var(--muted)';" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border2);background:var(--purple);color:#fff;cursor:pointer;font-size:12px;">Female</button><button id="npSexM" onclick="window._npSex='male';this.style.background='var(--purple)';this.style.color='#fff';document.getElementById('npSexF').style.cssText+='background:transparent;color:var(--muted)';" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;">Male</button></div></div>
             <div class="field" style="margin-top:10px;"><div class="lbl">Appearance prompt</div>
@@ -1407,7 +1407,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
           <div class="p-av" id="rpAv" style="background:var(--purple);width:42px;height:42px;font-size:15px;border:2px solid rgba(255,255,255,.08);">VS</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:600;" id="rpName">Victoria Sterling</div>
-            <div style="font-size:10px;color:var(--dim);" id="rpRole">Transformation Authority ┬À 52</div>
+            <div style="font-size:10px;color:var(--dim);" id="rpRole">Transformation Authority · 52</div>
           </div>
           <button class="btn ghost sm" onclick="viewPersonaDetail()">View</button>
         </div>
@@ -1543,10 +1543,10 @@ function renderVideoGrid(){
 
   // Group by ratio
   const ratioGroups={
-    '9:16':{label:'TikTok ┬À Shorts ┬À Reels (9:16)', rowClass:'ratio-row-916', videos:[]},
+    '9:16':{label:'TikTok · Shorts · Reels (9:16)', rowClass:'ratio-row-916', videos:[]},
     '4:5': {label:'Instagram Reels (4:5)',           rowClass:'ratio-row-45',  videos:[]},
     '1:1': {label:'Instagram Square (1:1)',           rowClass:'ratio-row-11',  videos:[]},
-    '16:9':{label:'YouTube ┬À Landscape (16:9)',       rowClass:'ratio-row-169', videos:[]}
+    '16:9':{label:'YouTube · Landscape (16:9)',       rowClass:'ratio-row-169', videos:[]}
   };
 
   published.forEach((v,i)=>{
@@ -1653,7 +1653,7 @@ function renderPublicPersonas(){
         <div class="pcp-av" style="background:${p.color};">${avHtml}</div>
         <div>
           <div class="pcp-name">${p.name}</div>
-          <div class="pcp-role">${p.role} ┬À Age ${p.age}</div>
+          <div class="pcp-role">${p.role} · Age ${p.age}</div>
           <div class="pcp-catchphrase">"${p.catchphrase||''}"</div>
         </div>
       </div>
@@ -1792,7 +1792,7 @@ function renderSidePersonas(){
   S.personas.forEach(p=>{
     const div=document.createElement('div');
     div.className='p-pill'+(S.persona?.name===p.name?' on':'');
-    div.innerHTML=`<div class="p-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div><div><div class="p-nm">${p.name}</div><div class="p-ro">${p.role.split('┬À')[0].trim()} ┬À ${p.age}</div></div>`;
+    div.innerHTML=`<div class="p-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div><div><div class="p-nm">${p.name}</div><div class="p-ro">${p.role.split('·')[0].trim()} · ${p.age}</div></div>`;
     div.onclick=()=>activatePersona(p,div);
     stack.insertBefore(div,addBtn);
   });
@@ -1806,7 +1806,7 @@ function activatePersona(p,pillEl){
   av.style.background=p.color;
   av.innerHTML=p.portrait?`<img src="${p.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:`${p.initials}`;
   document.getElementById('rpName').textContent=p.name;
-  document.getElementById('rpRole').textContent=p.role+' ┬À '+p.age;
+  document.getElementById('rpRole').textContent=p.role+' · '+p.age;
   document.getElementById('rpSkill').innerHTML=p.skillName
     ?`<span style="color:var(--green);">✓</span> <span style="color:var(--text);font-weight:500;">${p.skillName}</span>`
     :'No skill loaded.';
@@ -1825,7 +1825,7 @@ function renderCreatePersonas(){
   el.innerHTML=S.personas.map(p=>`
     <div class="p-pill ${S.persona?.name===p.name?'on':''}" onclick="pickCreatePersona(this,'${p.name}')">
       <div class="p-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div>
-      <div><div class="p-nm">${p.name}</div><div class="p-ro">${p.role} ┬À ${p.age}</div></div>
+      <div><div class="p-nm">${p.name}</div><div class="p-ro">${p.role} · ${p.age}</div></div>
     </div>`).join('');
 }
 
@@ -1838,7 +1838,7 @@ function pickCreatePersona(el,name){
   document.getElementById('rpAv').style.background=p.color;
   document.getElementById('rpAv').innerHTML=p.portrait?`<img src="${p.portrait}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:`${p.initials}`;
   document.getElementById('rpName').textContent=p.name;
-  document.getElementById('rpRole').textContent=p.role+' ┬À '+p.age;
+  document.getElementById('rpRole').textContent=p.role+' · '+p.age;
   if(p.appearance)document.getElementById('portraitPrompt').value=p.appearance;
   S.niche=p.niche||'wealth';
   // Update niche chip — find closest match
@@ -1880,7 +1880,7 @@ function showPersonaDetail(p){
       <div class="pd-av" style="background:${p.color};">${p.portrait?`<img src="${p.portrait}"/>`:`${p.initials}`}</div>
       <div style="flex:1;">
         <div class="pd-name">${p.name}</div>
-        <div class="pd-role">${p.role} ┬À Age ${p.age}</div>
+        <div class="pd-role">${p.role} · Age ${p.age}</div>
         <div class="pd-catch">"${p.catchphrase||''}"</div>
         <div style="display:flex;gap:7px;margin-top:14px;">
           <button class="btn primary sm" onclick="startFor('${p.name}')">´╝ï Create video</button>
@@ -2013,15 +2013,15 @@ function parseSkillForUI(text, updateTopic=true){
 
   // →→ Niche detection →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
   const nicheMap={
-    wealth:['niche: wealth','niche: finance','wealth ┬À ','finance ┬À '],
-    property:['niche: property','property ┬À ','master builder','property development'],
-    'interior design':['niche: interior','interior design ┬À ','authority of taste'],
-    health:['niche: health','health & wellness','health ┬À '],
-    relationships:['niche: relationships','relationships ┬À '],
-    mindset:['niche: mindset','mindset ┬À ','personal development'],
+    wealth:['niche: wealth','niche: finance','wealth · ','finance · '],
+    property:['niche: property','property · ','master builder','property development'],
+    'interior design':['niche: interior','interior design · ','authority of taste'],
+    health:['niche: health','health & wellness','health · '],
+    relationships:['niche: relationships','relationships · '],
+    mindset:['niche: mindset','mindset · ','personal development'],
     'luxury lifestyle':['niche: luxury','luxury lifestyle'],
     entrepreneurship:['niche: entrepreneurship','tech founder','startup','serial founder'],
-    motivation:['niche: motivation','motivation ┬À ','ceo','founder','serial tech founder','proptech','building in public']
+    motivation:['niche: motivation','motivation · ','ceo','founder','serial tech founder','proptech','building in public']
   };
   for(const [niche,kws] of Object.entries(nicheMap)){
     if(kws.some(kw=>text.toLowerCase().includes(kw))){
@@ -2154,7 +2154,7 @@ function parseSkillForUI(text, updateTopic=true){
     const upper=line.trim().toUpperCase();
     if(/^[-=]{4,}$/.test(line.trim())) continue;
     if(upper.startsWith('OUTFIT STYLE')||upper.startsWith('OUTFIT')) { inOutfit=true; continue; }
-    if(inOutfit && upper.length>3 && /^[A-Z][A-Z\s&┬À]{5,}$/.test(line.trim()) && !line.trim().startsWith('-')) { inOutfit=false; continue; }
+    if(inOutfit && upper.length>3 && /^[A-Z][A-Z\s&·]{5,}$/.test(line.trim()) && !line.trim().startsWith('-')) { inOutfit=false; continue; }
     if(!inOutfit) continue;
     const trimmed=line.trim();
     if(!trimmed) continue;
@@ -2194,7 +2194,7 @@ async function loadSkill(input){
         if(p.niche){S.niche=p.niche;document.querySelectorAll('.niche-chip').forEach(c=>c.classList.toggle('on',c.textContent.toLowerCase().includes(p.niche.toLowerCase())));}
         const detected=[p.name,p.age?'Age '+p.age:'',p.niche,p.catchphrase?'"'+p.catchphrase+'"':''].filter(Boolean);
         document.getElementById('skillPreview').style.display='block';
-        document.getElementById('skillPreview').innerHTML='✓ '+detected.join(' ┬À ');
+        document.getElementById('skillPreview').innerHTML='✓ '+detected.join(' · ');
         toast('Skill parsed — '+detected.filter(Boolean).length+' fields');
       }
     }catch(e){}
@@ -2228,7 +2228,7 @@ async function loadNpSkill(input){
         if(p.catchphrase)document.getElementById('npCatch').value=p.catchphrase;
         const detected=[p.name,p.age?'Age '+p.age:'',p.role,p.niche?'Niche: '+p.niche:'',p.catchphrase?'"'+p.catchphrase+'"':''].filter(Boolean);
         document.getElementById('npSkillParsed').style.display='block';
-        document.getElementById('npSkillParsed').innerHTML='✓ Auto-filled: '+detected.join(' ┬À ');
+        document.getElementById('npSkillParsed').innerHTML='✓ Auto-filled: '+detected.join(' · ');
         toast('Fields auto-filled from skill file');
       }
     }catch(err){}
@@ -2291,7 +2291,7 @@ async function generateScript(){
       document.getElementById('scriptBox').textContent=scripts[idx];
       const wc=scripts[idx].split(' ').length;
       const secs=Math.round(wc/2.8);
-      document.getElementById('wcBadge').textContent=wc+' words ┬À ~'+secs+'s';
+      document.getElementById('wcBadge').textContent=wc+' words · ~'+secs+'s';
     });
     toast('5 scripts ready');
   }catch(e){toast('Error: '+e.message,'err');}
@@ -2421,7 +2421,7 @@ function renderVoiceList(voices){
   // Update filter badge
   const gender=window._voiceGender||detectPersonaGender(S.persona);
   const badge=document.getElementById('voiceFilterBadge');
-  if(badge) badge.textContent=`British ┬À ${gender==='male'?'Male':'Female'} ┬À ${voices.length} voices`;
+  if(badge) badge.textContent=`British · ${gender==='male'?'Male':'Female'} · ${voices.length} voices`;
   const lockedId=S.persona?.voiceId||null;
   document.getElementById('voiceList').innerHTML=voices.map(v=>{
     const isActive=v.id===S.voiceId;
@@ -3642,7 +3642,7 @@ async function startGen(){
             }
           }
           btn.textContent='✦ Generate another';btn.disabled=false;
-          const vid={jid:job,title:(S.persona?.name||'Persona')+' ┬À '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
+          const vid={jid:job,title:(S.persona?.name||'Persona')+' · '+S.niche,persona:S.persona?.name||'',color:S.persona?.color||'#7c3aed',niche:S.niche,time:new Date().toLocaleString(),url,published:false,ratio:S.ratio.label};
           S.videos.unshift(vid);saveAll();updateDashboard();toast('Video ready in '+total+'s');
           // Auto-generate social media descriptions from the active script
           const activeScript = (document.getElementById('scriptBox')?.innerText || document.getElementById('qsScript')?.innerText || '').trim();
@@ -3966,7 +3966,7 @@ function renderDocs(tab){
     el.innerHTML=S.skills.length?S.skills.map((s,i)=>`
       <div class="doc-item">
         <div class="doc-item-icon">📱</div>
-        <div style="flex:1;"><div class="doc-item-name">${s.name}</div><div class="doc-item-meta">${s.persona||''}${s.added?' ┬À '+s.added:''}</div></div>
+        <div style="flex:1;"><div class="doc-item-name">${s.name}</div><div class="doc-item-meta">${s.persona||''}${s.added?' · '+s.added:''}</div></div>
         <div class="doc-item-actions">
           <button class="btn ghost sm" onclick="loadSkillFromStore(${i})">Load</button>
           <button class="btn ghost sm" onclick="deleteSkill(${i})" style="color:var(--red);">◈</button>
@@ -3979,7 +3979,7 @@ function renderDocs(tab){
       <div class="doc-item" style="flex-direction:column;align-items:flex-start;">
         <div style="display:flex;align-items:center;gap:8px;width:100%;">
           <div class="doc-item-icon">📄</div>
-          <div style="flex:1;"><div class="doc-item-name">${s.persona} ┬À ${s.niche}</div><div class="doc-item-meta">${s.time}</div></div>
+          <div style="flex:1;"><div class="doc-item-name">${s.persona} · ${s.niche}</div><div class="doc-item-meta">${s.time}</div></div>
           <div class="doc-item-actions">
             <button class="btn ghost sm" onclick="loadSavedScript(${i})">Use</button>
             <button class="btn ghost sm" onclick="S.savedScripts.splice(${i},1);saveAll();renderDocs('scripts')" style="color:var(--red);">◈</button>
@@ -4067,7 +4067,7 @@ function renderHistory(){
   list.innerHTML=S.videos.map(v=>`
     <div class="vid-row">
       <div style="font-size:16px;color:${v.color};cursor:pointer;" onclick="openVideoModal('${v.url}','${v.title}','${v.time}','${v.ratio||'9:16'}')">🎬</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time} ┬À ${v.ratio||'9:16'}</div></div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:10px;color:var(--dim);">${v.time} · ${v.ratio||'9:16'}</div></div>
       <div class="pub-badge ${v.published?'pub':'unpub'}" onclick="togglePublish('${v.jid}')">${v.published?'✓ Live':'Publish'}</div>
       <button onclick="downloadVideo('${v.url}','mediahouz-${(v.persona||'video').replace(/\s+/g,'-').toLowerCase()}-${v.jid}.mp4')"
         style="background:none;border:1px solid var(--border);color:var(--p2);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:6px;flex-shrink:0;">↓</button>
@@ -4141,7 +4141,7 @@ renderCreatePersonas();
 document.getElementById('rpAv').style.background=S.persona.color;
 document.getElementById('rpAv').textContent=S.persona.initials;
 document.getElementById('rpName').textContent=S.persona.name;
-document.getElementById('rpRole').textContent=S.persona.role+' ┬À '+S.persona.age;
+document.getElementById('rpRole').textContent=S.persona.role+' · '+S.persona.age;
 updateDashboard();
 updateDocCounts();
 setDocTab('skills');
