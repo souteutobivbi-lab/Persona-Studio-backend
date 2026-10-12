@@ -392,10 +392,11 @@ async def generate_voice(
 
     import subprocess as _sp
     voice_af = (
-        "atempo=1.08,"                                               # 8% faster — tighter pacing
-        "acompressor=threshold=-20dB:ratio=4:attack=5:release=50,"  # voice thickener / proximity feel
-        "equalizer=f=150:width_type=o:width=2:g=3,"                 # 150 Hz warmth boost
-        "loudnorm=I=-16:TP=-1.5:LRA=11"                             # broadcast loudness
+        "highpass=f=80,"
+        "equalizer=f=3000:width_type=o:width=1:g=2.5,"
+        "equalizer=f=8000:width_type=o:width=1:g=-2.5,"
+        "acompressor=threshold=-18dB:ratio=2.5:attack=10:release=100:makeup=2,"
+        "loudnorm=I=-14:TP=-1.5:LRA=7"
     )
     proc = _sp.run(
         ["ffmpeg","-y","-i",str(raw_path),"-af",voice_af,
