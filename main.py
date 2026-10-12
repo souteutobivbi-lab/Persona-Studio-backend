@@ -1,4 +1,4 @@
-import asyncio, os, random, subprocess, uuid, json
+﻿import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
@@ -388,7 +388,7 @@ async def generate_voice(
 
     out_path.write_bytes(r.content)
 
-    _crowd = pathlib.Path(__file__).parent / "crowd_ambience.mp3"
+    _crowd = Path(__file__).parent / "crowd_ambience.mp3"
     if _crowd.exists():
         import subprocess, shutil as _shutil
         _tmp = out_path.with_name(out_path.stem + "_mixed.mp3")
