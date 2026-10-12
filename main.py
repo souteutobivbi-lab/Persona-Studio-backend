@@ -372,7 +372,7 @@ async def generate_voice(
     script: str = Form(...),
     voice_id: str = Form("EXAVITQu4vr4xnSDxMaL"),
     job_id: str = Form(None),
-    enhance: bool = Form(False),   # True → studio post-processing (speed + EQ + compress)
+
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     out_path = OUTPUT_DIR / f"{jid}_voice.mp3"
