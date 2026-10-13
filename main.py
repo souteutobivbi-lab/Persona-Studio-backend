@@ -252,7 +252,26 @@ async def generate_script(
 
     niche_note = ""
     _niche_lower = niche.lower()
-    if any(k in _niche_lower for k in ["relationship", "love", "dating", "connection", "self-worth", "motivation", "mindset", "healing", "grief"]):
+    if any(k in _niche_lower for k in ["motivation", "mindset", "purpose", "resilience", "growth", "discipline", "strength"]) and not any(k in _niche_lower for k in ["relationship", "love", "dating", "self-worth", "healing", "grief"]):
+        niche_note = """
+NICHE: Motivation / Mindset / Personal Growth
+
+WRITING MANDATE:
+- Write like someone who has genuinely been in the dark and found a way through - not a hype coach
+- The hook must challenge a belief the viewer holds that is quietly keeping them stuck
+- The middle must reframe something ordinary into something powerful - shift their perspective completely
+- The reward must feel like permission - permission to start, to rest, to stop apologising, to try again
+- Every script must make the viewer stop scrolling because they feel personally called out in the best way
+- FORBIDDEN: toxic positivity, hustle porn, generic "you can do it", "level up", "grind", "success mindset", cliches
+- TONE: honest, grounded, quietly powerful - like the most real person in the room speaking
+- Examples of good hooks:
+  "What if the version of you that keeps giving up is actually trying to protect you?"
+  "Why do we only start believing in ourselves after someone else does first?"
+  "What if rest is not a reward for finishing - what if it is how you finish?"
+- The scripts must move people - not pump them up. Move them to tears, to action, to DM someone they love
+- Each script must end with one line the viewer will screenshot and save
+"""
+    elif any(k in _niche_lower for k in ["relationship", "love", "dating", "connection", "self-worth", "healing", "grief"]):
         niche_note = """
 NICHE: Relationships / Emotional Wellbeing / Self-Worth
 
