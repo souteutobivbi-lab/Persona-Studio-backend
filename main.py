@@ -256,39 +256,39 @@ async def generate_script(
         niche_note = """
 NICHE: Motivation / Mindset / Personal Growth
 
-WRITING MANDATE:
-- Write like someone who has genuinely been in the dark and found a way through - not a hype coach
-- The hook must challenge a belief the viewer holds that is quietly keeping them stuck
-- The middle must reframe something ordinary into something powerful - shift their perspective completely
-- The reward must feel like permission - permission to start, to rest, to stop apologising, to try again
-- Every script must make the viewer stop scrolling because they feel personally called out in the best way
-- FORBIDDEN: toxic positivity, hustle porn, generic "you can do it", "level up", "grind", "success mindset", cliches
-- TONE: honest, grounded, quietly powerful - like the most real person in the room speaking
+WRITING MANDATE - this overrides all generic defaults:
+- Write DIRECTLY TO THE VIEWER about THEIR blocks, THEIR fears, THEIR potential right now
+- NEVER narrate the persona's journey - this is entirely about the VIEWER
+- The hook must call out a specific self-sabotaging thought the viewer recognises in themselves
+- The middle must flip their understanding of something they thought was a weakness or failure
+- The reward must give them one clear, quiet, powerful truth they can act on today
+- FORBIDDEN: "I used to", "I learned", "my journey", hustle culture, toxic positivity, vague inspiration
+- TONE: like the best version of themselves is speaking directly to them
+- LENGTH: 55-65 words MAXIMUM. 20-second video. Every word must earn its place.
 - Examples of good hooks:
-  "What if the version of you that keeps giving up is actually trying to protect you?"
-  "Why do we only start believing in ourselves after someone else does first?"
-  "What if rest is not a reward for finishing - what if it is how you finish?"
-- The scripts must move people - not pump them up. Move them to tears, to action, to DM someone they love
-- Each script must end with one line the viewer will screenshot and save
+  "You are not lazy. You are overwhelmed and you have been calling it failure."
+  "The reason you keep starting over is not weakness. It is because you keep raising your own bar."
+  "You did not give up. You protected yourself from something that was never going to give you what you needed."
+- Each script must end with ONE sentence the viewer will save or send to someone who needs it
 """
     elif any(k in _niche_lower for k in ["relationship", "love", "dating", "connection", "self-worth", "healing", "grief"]):
         niche_note = """
 NICHE: Relationships / Emotional Wellbeing / Self-Worth
 
 WRITING MANDATE - this overrides all generic defaults:
-- Write like a trusted friend who has been through it, not a coach selling a course
-- Every script must be IMMEDIATELY shareable - the viewer must think "I need to send this to someone"
-- Language must be plain, warm, direct - no metaphors involving business, tech, finance, or investment
-- The hook must name a feeling or situation the viewer has never heard named so precisely before
-- The middle must validate something the viewer secretly believes but has never heard said out loud
-- The reward must be a truth that lands like relief, not advice
-- FORBIDDEN: CEO metaphors, investor language, "redeploy", "asset", "infrastructure", "ROI", "workflow", "operating system", "upgrade", "capital", "inventory", "migration", "platform"
-- TONE: warm, honest, a little raw, never preachy, never clinical
+- Write DIRECTLY TO THE VIEWER about THEIR life, THEIR feelings, THEIR situation - not the persona's story
+- NEVER use "I used to", "I spent years", "I remember" - no personal anecdotes from the persona
+- The hook must describe a specific feeling the viewer recognises INSTANTLY in themselves
+- The middle must name the exact truth behind why they do what they do - the thing they have never articulated
+- The reward must be one sentence that gives them relief, clarity, or permission
+- FORBIDDEN: persona personal stories, CEO metaphors, business language, "redeploy", "asset", "capital"
+- TONE: like the most honest voice in the viewer's own head finally speaking out loud
+- LENGTH: 55-65 words MAXIMUM. 20-second video. Every word must earn its place.
 - Examples of good hooks:
-  "Why do you keep forgiving people who have never once asked for it?"
-  "What does it mean when you miss someone you were never even happy with?"
-  "Why is it so much easier to stay than to admit you have been unhappy for years?"
-- Each script must make the viewer feel SEEN, not taught
+  "You are not forgiving them because you are kind. You are forgiving them because silence terrifies you."
+  "You do not miss them. You miss who you were when you still believed it could work."
+  "You are not too much. You have just been around people who needed you to be less."
+- Each script must end with ONE line the viewer will screenshot, save, or send to someone they love
 """
 
     prompt = (
@@ -307,7 +307,7 @@ WRITING MANDATE - this overrides all generic defaults:
         "Follow the skill sheet structure if one is provided.\n\n"
         "3. REWARD - last 1-2 sentences: the payoff that makes the whole watch worthwhile. "
         "Then one earned sign-off that matches the persona voice.\n\n"
-        "LENGTH: 100-140 words per script. Paragraph style only.\n"
+        "LENGTH: 55-65 words per script MAXIMUM. 20-second video. Paragraph style only.\n"
         "No lists, no hashtags, no emojis, no stage directions.\n"
         "Each of the 5 scripts must cover a DIFFERENT angle of the topic.\n\n"
         "QUESTION HOOK RULE: When you open with a question, do NOT answer it in the next sentence. "
