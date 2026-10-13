@@ -250,10 +250,32 @@ async def generate_script(
             "NEVER describe this person from the outside. NEVER open with A man who or A woman who.\n"
         )
 
+    niche_note = ""
+    _niche_lower = niche.lower()
+    if any(k in _niche_lower for k in ["relationship", "love", "dating", "connection", "self-worth", "motivation", "mindset", "healing", "grief"]):
+        niche_note = """
+NICHE: Relationships / Emotional Wellbeing / Self-Worth
+
+WRITING MANDATE - this overrides all generic defaults:
+- Write like a trusted friend who has been through it, not a coach selling a course
+- Every script must be IMMEDIATELY shareable - the viewer must think "I need to send this to someone"
+- Language must be plain, warm, direct - no metaphors involving business, tech, finance, or investment
+- The hook must name a feeling or situation the viewer has never heard named so precisely before
+- The middle must validate something the viewer secretly believes but has never heard said out loud
+- The reward must be a truth that lands like relief, not advice
+- FORBIDDEN: CEO metaphors, investor language, "redeploy", "asset", "infrastructure", "ROI", "workflow", "operating system", "upgrade", "capital", "inventory", "migration", "platform"
+- TONE: warm, honest, a little raw, never preachy, never clinical
+- Examples of good hooks:
+  "Why do you keep forgiving people who have never once asked for it?"
+  "What does it mean when you miss someone you were never even happy with?"
+  "Why is it so much easier to stay than to admit you have been unhappy for years?"
+- Each script must make the viewer feel SEEN, not taught
+"""
+
     prompt = (
         f"You are writing 5 short-form video scripts for {persona_name}, aged {persona_age}, "
         f"in the {niche} niche.\nTopic: {topic}\n"
-        + ceo_note + skill_block +
+        + ceo_note + niche_note + skill_block +
         "\n\nUNIVERSAL RULES (apply to every script regardless of persona):\n\n"
         "1. HOOK - every script MUST open with a provocative question (first sentence only).\n"
         "   Do NOT answer the question in the next sentence or anywhere in the middle.\n"
