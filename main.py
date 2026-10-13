@@ -557,6 +557,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         "natural skin texture visible pores real human skin, "
         "photorealistic authentic photography not airbrushed not CGI, "
         "sharp crisp face soft blurred background, "
+        "outfit colour is exact and pure with no colour bleed from other sources, "
         "professional editorial portrait photography, high resolution"
     )
 
