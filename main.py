@@ -439,8 +439,8 @@ async def generate_voice(
                  "-i", str(out_path),
                  "-stream_loop", "-1", "-i", str(_crowd),
                  "-filter_complex",
-                 "[1:a]volume=0.08[ambient];"
-                 "[1:a]volume=0.35,afade=t=in:st=0:d=2,afade=t=out:st=0:d=2[swell];"
+                 "[1:a]volume=0.05[ambient];"
+                 "[1:a]volume=0.12,afade=t=in:st=0:d=2,afade=t=out:st=0:d=2[swell];"
                  "[ambient][swell]amix=inputs=2:duration=longest[crowd];"
                  "[0:a]volume=1.0[voice];"
                  "[voice][crowd]amix=inputs=2:duration=first:dropout_transition=2[out]",
@@ -1027,7 +1027,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "-stream_loop", "-1", "-i", music_path,
                 "-vf", vf,
                 "-filter_complex",
-                "[1:a]volume=0.12,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "[1:a]volume=0.07,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                 "-c:a", "aac", "-b:a", "128k",
