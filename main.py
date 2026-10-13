@@ -519,12 +519,32 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         "professional editorial portrait photography, high resolution"
     )
 
+    _override_keywords = (
+        "white british", "white woman", "white man", "white female", "white male",
+        "tanned", "brunette", "blonde", "fair skin", "pale skin", "olive skin",
+        "caucasian", "european", "light skin", "medium skin",
+    )
+    _app_lower = appearance.lower() if appearance else ""
+    if appearance and any(kw in _app_lower for kw in _override_keywords):
+        base_identity = appearance
+        persona_layer = ""
+
+    _scene_keywords = ("kitchen", "seated at", "background:", "island", "worktop", "counter", "standing in")
+    _identity_has_scene = appearance and any(kw in _app_lower for kw in _scene_keywords)
+
+    if _identity_has_scene:
+        scene = base_identity
+    elif custom_scene:
+        scene = custom_scene
+    else:
+        scene = podcast_set
+
     return (
-        f"photorealistic portrait photograph, {persona_age} year old British-Nigerian {gender_word}, "
+        f"photorealistic portrait photograph, {persona_age} year old {gender_word}, "
         f"{base_identity}, "
         f"{persona_layer}, "
         f"wearing a {color_hint}{outfit}, well-fitted, sharp and professional, "
-        f"{podcast_set}, "
+        f"{scene}, "
         f"{photo_tech}"
     )
 

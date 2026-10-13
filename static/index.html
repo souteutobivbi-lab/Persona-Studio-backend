@@ -8318,6 +8318,22 @@ setDocTab('skills');
 
         console.log('Restored identity lock for', persona_id);
 
+
+      } else {
+        S.personas.push({
+          name: persona_id,
+          portrait: fal_url,
+          masterPortraitUrl: fal_url,
+          savedPortraits: [fal_url],
+          gender: 'female',
+          age: '',
+          appearance: '',
+          voice: '',
+          skill: '',
+          skillName: ''
+        });
+        changed = true;
+        console.log('Recovered missing persona:', persona_id);
       }
 
     });
