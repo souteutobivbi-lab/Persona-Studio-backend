@@ -153,9 +153,7 @@ Return ONLY a JSON array of 8 topic strings. No explanation, no numbering.
 ["Topic one", "Topic two", ...]"""
     response = client.chat.completions.create(
         model="qwen/qwen3.8-27b",
-        messages=[{"role": "system", "content": "ABSOLUTE RULE: Never begin any script with the phrase A man who or A woman who. Always write in first person (I, my, we,
-            max_tokens=350
-        )) as the persona. Never describe a third-person character."}, {"role": "user", "content": prompt}],
+        messages=[{"role": "system", "content": "ABSOLUTE RULE: Never begin any script with the phrase A man who or A woman who. Always write in first person (I, my, we, as the persona. Never describe a third-person character."}, {"role": "user", "content": prompt}],
         max_tokens=350, temperature=0.97
     )
     raw = response.choices[0].message.content.strip()
