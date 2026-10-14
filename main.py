@@ -104,7 +104,9 @@ Extract the following fields from the skill file text below and return them as a
 Skill file:
 {skill_text[:3000]}
 
-Extract these fields (leave empty string if not found):
+Extract these fields (leave empty string if not found,
+            max_tokens=350
+        )):
 - name: persona's full name
 - age: persona's age as a number string
 - role: their role and niche (e.g. "Transformation Authority  -  Wealth")
@@ -151,7 +153,9 @@ Return ONLY a JSON array of 8 topic strings. No explanation, no numbering.
 ["Topic one", "Topic two", ...]"""
     response = client.chat.completions.create(
         model="qwen/qwen3.8-27b",
-        messages=[{"role": "system", "content": "ABSOLUTE RULE: Never begin any script with the phrase A man who or A woman who. Always write in first person (I, my, we) as the persona. Never describe a third-person character."}, {"role": "user", "content": prompt}],
+        messages=[{"role": "system", "content": "ABSOLUTE RULE: Never begin any script with the phrase A man who or A woman who. Always write in first person (I, my, we,
+            max_tokens=350
+        )) as the persona. Never describe a third-person character."}, {"role": "user", "content": prompt}],
         max_tokens=350, temperature=0.97
     )
     raw = response.choices[0].message.content.strip()
@@ -1102,8 +1106,11 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     with open(_clist, "w") as _cf:
                         _cf.write(f"file '{_hook_card}'\nfile '{final_path}'\n")
                     _cr = subprocess.run([
-                        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                        "-i", _clist,
+                        "ffmpeg", "-y",
+                        "-i", _hook_card,
+                        "-i", final_path,
+                        "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
+                        "-map", "[v]", "-map", "[a]",
                         "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                         "-c:a", "aac", "-b:a", "128k",
                         "-pix_fmt", "yuv420p",
@@ -1111,7 +1118,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     ], capture_output=True)
                     print(f"[{jid}] Concat rc={_cr.returncode}")
                     if _cr.returncode != 0:
-                        print(f"[{jid}] Concat stderr: {_cr.stderr.decode()[:400]}")
+                        print(f"[{jid}] Concat stderr: {_cr.stderr.decode()[:800]}")
                     if _cr.returncode == 0 and Path(_hooked).exists():
                         final_path = _hooked
                         print(f"[{jid}] Hook card prepended OK")
