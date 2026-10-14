@@ -1023,10 +1023,16 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # Vignette filter
         vignette = ",vignette=PI/4"
 
-        # Simple reliable vf: scale to 5% oversized then crop = constant slight zoom-in
+        # Opening zoom-in 1.0x -> 1.08x over first 1.5s (45 frames @ 25fps)
+        zoom_filter = (
+            "zoompan=z='if(lte(on,45),1.0+0.08*(on/45),1.08)'"
+            ":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+            ":d=1:s=720x1280,"
+        )
         vf = (
             "scale=760:1352,"
             "crop=720:1280,"
+            + zoom_filter +
             "noise=alls=8:allf=t+u,"
             "unsharp=5:5:1.2:5:5:0.0,"
             "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
