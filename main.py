@@ -1041,7 +1041,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 t_start = ci * chunk_dur
                 t_end = t_start + chunk_dur
                 # Escape special chars for FFmpeg drawtext
-                safe = chunk.replace("'", "’").replace(":", "\:").replace("\", "\\")
+                safe = chunk.replace("'", "’").replace(":", "\\:").replace("\\", "\\\\")
                 lines.append(
                     f"drawtext=text='{safe}'"
                     f":fontsize=44:fontcolor=white:font=Arial:bold=1"
