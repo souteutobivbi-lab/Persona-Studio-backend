@@ -998,7 +998,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         print(f"[{jid}] Starting flashtalk...")
         result = fal_client.subscribe(
             "fal-ai/flashtalk",
-            arguments={"image_url": portrait_url, "audio_url": audio_url}
+            arguments={"image_url": portrait_url, "audio_url": audio_url, "enhance_quality": True, "sync_mode": "high"}
         )
         print(f"[{jid}] Flashtalk done: duration={result.get('duration')}s")
         output_url = result.get("video", {}).get("url")
@@ -1044,7 +1044,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "-stream_loop", "-1", "-i", music_path,
                 "-vf", vf,
                 "-filter_complex",
-                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=1.6[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=2.2[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
@@ -1055,7 +1055,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "ffmpeg", "-i", raw_path,
                 "-vf", vf,
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                "-af", "volume=1.6", "-c:a", "aac", "-b:a", "128k",
+                "-af", "volume=2.2", "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
                 final_path, "-y"
             ], capture_output=True)
@@ -1073,7 +1073,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 import re as _re
                 _sent = _re.split(r'[.!?]', script_text)[0].strip()
                 _words = _sent.split()
-                _chunks = [' '.join(_words[i:i+4]) for i in range(0, len(_words), 3)]
+                _chunks = [' '.join(_words[i:i+3]) for i in range(0, len(_words), 3)]
                 _l1 = _chunks[0] if len(_chunks) > 0 else ''
                 _l2 = _chunks[1] if len(_chunks) > 1 else ''
                 _l3 = _chunks[2] if len(_chunks) > 2 else ''
@@ -1808,8 +1808,8 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
         def get_vf(ef):
             if ef == "zoom_in":
                 cw=(int(W*75/100)//2)*2; ch=(int(H*75/100)//2)*2
-                return f"crop={cw}:{ch},scale={W}:{H}"
-            if ef == "mirror":      return "hflip"
+                return f"crop={cw}:{ch}:enable='gte(t,1.5)',scale={W}:{H}"
+            if ef == "mirror":      return "hflip=enable='gte(t,1.5)'"
             if ef == "brighten":    return "eq=brightness=0.06:contrast=1.1"
             if ef == "contrast":    return "eq=contrast=1.4:brightness=-0.02"
             if ef == "speed_up":    return "null"  # disabled: would break lip sync
