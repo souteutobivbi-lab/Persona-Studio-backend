@@ -1044,7 +1044,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "-stream_loop", "-1", "-i", music_path,
                 "-vf", vf,
                 "-filter_complex",
-                "[1:a]volume=0.04,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                 "-af", "volume=1.6", "-c:a", "aac", "-b:a", "128k",
@@ -1813,7 +1813,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
             if ef == "mirror":      return "hflip"
             if ef == "brighten":    return "eq=brightness=0.06:contrast=1.1"
             if ef == "contrast":    return "eq=contrast=1.4:brightness=-0.02"
-            if ef == "speed_up":    return "setpts=0.8*PTS"
+            if ef == "speed_up":    return "null"  # disabled: would break lip sync
             if ef == "vignette":    return "vignette=PI/4"
             if ef == "film_grain":  return "noise=alls=20:allf=t"
             if ef == "letterbox":
