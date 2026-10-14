@@ -936,7 +936,7 @@ async def generate_video(
     audio: UploadFile = File(...),
     scene: Optional[UploadFile] = File(None),
     job_id: str = Form(None),
-    bg_music: str = Form("")   # track id from MUSIC_TRACKS, empty = no music
+    bg_music: str = Form(""),  # track id from MUSIC_TRACKS, empty = no music
     script: Optional[str] = Form(None),
     caption_style: Optional[str] = Form(None),
 ):
