@@ -1016,60 +1016,17 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
         # scale to height 1280 then center-crop to 720 wide.
         # ?? Build video filters ?????????????????????????????????????????????
-        # Get audio duration for caption timing
-        import json as _json
-        _probe = subprocess.run([
-            "ffprobe", "-v", "quiet", "-print_format", "json",
-            "-show_streams", audio_path
-        ], capture_output=True)
-        try:
-            _dur = float(_json.loads(_probe.stdout)["streams"][0]["duration"])
-        except Exception:
-            _dur = 30.0
-
-        # Build caption drawtext filters
-        caption_filters = ""
-        if script_text and caption_style and caption_style != "none":
-            import re as _re
-            # Split into chunks of ~5 words
-            words = script_text.split()
-            chunk_size = 5
-            chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
-            chunk_dur = _dur / max(len(chunks), 1)
-            lines = []
-            for ci, chunk in enumerate(chunks):
-                t_start = ci * chunk_dur
-                t_end = t_start + chunk_dur
-                # Escape special chars for FFmpeg drawtext
-                safe = chunk.replace("'", "’").replace(":", "\\:").replace("\\", "\\\\")
-                lines.append(
-                    f"drawtext=text='{safe}'"
-                    f":fontsize=44:fontcolor=white:font=Arial:bold=1"
-                    f":x=(w-text_w)/2:y=h*0.78"
-                    f":box=1:boxcolor=black@0.55:boxborderw=10"
-                    f":enable='between(t,{t_start:.2f},{t_end:.2f})'"
-                )
-            caption_filters = "," + ",".join(lines)
-
         # Vignette filter
         vignette = ",vignette=PI/4"
 
-        # Opening zoom-in: push in from 1.0x to 1.08x over first 1.5 seconds
-        zoom_filter = (
-            "zoompan=z='if(lte(on,45),1.0+0.08*(on/45),1.08)'"
-            ":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-            ":d=1:s=720x1280:fps=25,"
-        )
-
+        # Simple reliable vf: scale to 5% oversized then crop = constant slight zoom-in
         vf = (
-            "scale=-2:1280,"
+            "scale=760:1352,"
             "crop=720:1280,"
-            + zoom_filter +
             "noise=alls=8:allf=t+u,"
             "unsharp=5:5:1.2:5:5:0.0,"
             "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
             + vignette
-            + caption_filters
         )
         if music_path and Path(music_path).exists():
             print(f"[{jid}] Mixing background music: {music_path}")
