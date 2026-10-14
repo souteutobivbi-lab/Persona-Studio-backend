@@ -16,6 +16,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 FAL_KEY        = os.environ.get("FAL_KEY", "")
+PEXELS_KEY     = os.environ.get("PEXELS_KEY", "")
 
 UPLOAD_DIR = Path("/app/uploads")
 OUTPUT_DIR = Path("/app/outputs")
