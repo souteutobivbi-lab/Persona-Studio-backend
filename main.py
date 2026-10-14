@@ -1077,7 +1077,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 # Use bundled local images (shipped with container)
                 _preroll_dir = Path("/app/static/preroll")
                 _photos = sorted([str(p) for p in _preroll_dir.glob("couple*.jpg")])[:5]
-                print(f"[{jid}] Using {len(_photos)} bundled photos")
+                print(f"[{jid}] Using {len(_photos)} bundled photos from {_preroll_dir} exists={_preroll_dir.exists()} files={list(_preroll_dir.iterdir()) if _preroll_dir.exists() else []}")
 
                 # Camera snap sound (synthesised)
                 _snap = str(_par / f"{jid}_snap.aac")
