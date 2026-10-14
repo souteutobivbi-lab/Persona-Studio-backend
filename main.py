@@ -1070,21 +1070,26 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # -- Pre-roll hook card --------------------------------------------------
         if script_text:
             try:
-                # First 8 words only, split into 2 lines of 4 words - safe width at fontsize 48
-                _first = script_text.split('.')[0].strip()
-                _words = _first.split()[:8]
-                _l1 = ' '.join(_words[:4])
-                _l2 = ' '.join(_words[4:])
+                # Full first sentence split into lines of 4 words, up to 3 lines, fontsize 44
+                import re as _re
+                _sent = _re.split(r'[.!?]', script_text)[0].strip()
+                _words = _sent.split()
+                _chunks = [' '.join(_words[i:i+4]) for i in range(0, min(len(_words), 12), 4)]
+                _l1 = _chunks[0] if len(_chunks) > 0 else ''
+                _l2 = _chunks[1] if len(_chunks) > 1 else ''
+                _l3 = _chunks[2] if len(_chunks) > 2 else ''
                 def _esc(t):
                     return t.replace('\\', '\\\\').replace("'", "\u2019").replace(':', '\\:').replace('%', '\\%')
                 _hook_card = str(Path(final_path).parent / f"{jid}_hook.mp4")
                 _hooked    = str(Path(final_path).parent / f"{jid}_hooked.mp4")
                 _clist     = str(Path(final_path).parent / f"{jid}_concat.txt")
-                # Zoompan + drawtext: text zooms from 1.0x to 1.12x over 1.2s (30 frames)
-                _zoom = "zoompan=z='min(1.0+0.12*(on/30),1.12)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=720x1280,"
-                _dt1 = f"drawtext=text='{_esc(_l1)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2-58"
-                _dt2 = f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2+18" if _l2 else ""
-                _vf = _zoom + _dt1 + _dt2
+                # drawtext FIRST then zoompan so text itself zooms over 1.2s (30 frames)
+                _y_base = 'h/2-90' if _l3 else 'h/2-55'
+                _dt1 = f"drawtext=text='{_esc(_l1)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y={_y_base}"
+                _dt2 = f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h/2+12" if _l2 else ""
+                _dt3 = f",drawtext=text='{_esc(_l3)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h/2+78" if _l3 else ""
+                _zoom = ",zoompan=z='min(1.0+0.12*(on/30),1.12)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=720x1280"
+                _vf = _dt1 + _dt2 + _dt3 + _zoom
                 _hr = subprocess.run([
                     "ffmpeg", "-y",
                     "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.2",
