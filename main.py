@@ -1074,48 +1074,15 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 _par = Path(final_path).parent
 
                 # 1. Fetch 5 portrait photos from Pexels
-                _photos = []
-                if PEXELS_KEY:
-                    _q = "couple+love+relationship"
-                    _px = f"https://api.pexels.com/v1/search?query={_q}&per_page=5&orientation=portrait&page=1"
-                    try:
-                        import ssl as _ssl
-                        _ctx = _ssl.create_default_context()
-                        _req = _ur.Request(_px, headers={
-                            "Authorization": PEXELS_KEY,
-                            "User-Agent": "Mozilla/5.0 (compatible; VideoApp/1.0)"
-                        })
-                        with _ur.urlopen(_req, timeout=15, context=_ctx) as _res:
-                            _pdata = _json2.loads(_res.read())
-                        _photos = [p["src"]["portrait"] for p in _pdata.get("photos", [])[:5]]
-                        print(f"[{jid}] Pexels: {len(_photos)} photos")
-                    except Exception as _pe:
-                        print(f"[{jid}] Pexels fetch error: {_pe}")
-                        # Fallback: curated Pexels portrait URLs (no API needed)
-                        _photos = [
-                            "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?w=720&h=1280&fit=crop",
-                            "https://images.pexels.com/photos/1537910/pexels-photo-1537910.jpeg?w=720&h=1280&fit=crop",
-                            "https://images.pexels.com/photos/1730877/pexels-photo-1730877.jpeg?w=720&h=1280&fit=crop",
-                            "https://images.pexels.com/photos/935789/pexels-photo-935789.jpeg?w=720&h=1280&fit=crop",
-                            "https://images.pexels.com/photos/1024960/pexels-photo-1024960.jpeg?w=720&h=1280&fit=crop",
-                        ]
-                        print(f"[{jid}] Using fallback curated photos: {len(_photos)}")
+                # Use bundled local images (shipped with container)
+                _preroll_dir = Path("/app/static/preroll")
+                _photos = sorted([str(p) for p in _preroll_dir.glob("couple*.jpg")])[:5]
+                print(f"[{jid}] Using {len(_photos)} bundled photos")
 
-                # 2. Camera snap sound (synthesised)
-                _snap = str(_par / f"{jid}_snap.aac")
-                subprocess.run([
-                    "ffmpeg", "-y", "-f", "lavfi", "-i",
-                    "anoisesrc=d=0.08:c=white:a=0.5,highpass=f=3500,lowpass=f=9000,afade=t=out:st=0.05:d=0.03,volume=4",
-                    "-t", "0.08", "-c:a", "aac", "-b:a", "64k", _snap
-                ], capture_output=True)
-
-                # 3. Build 1s clip per photo
-                _photo_clips = []
-                for _pi, _purl in enumerate(_photos):
+                for _pi, _img in enumerate(_photos):
                     _img  = str(_par / f"{jid}_px{_pi}.jpg")
                     _clip = str(_par / f"{jid}_px{_pi}.mp4")
                     try:
-                        _ur.urlretrieve(_purl, _img)
                         _pr = subprocess.run([
                             "ffmpeg", "-y",
                             "-loop", "1", "-i", _img,
