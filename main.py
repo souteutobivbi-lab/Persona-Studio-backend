@@ -1102,6 +1102,44 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         if not Path(final_path).exists():
             final_path = raw_path
 
+        # ── Pre-roll hook card ───────────────────────────────────────────────────────────
+        if script_text:
+            try:
+                _first = script_text.split('.')[0].strip()
+                if len(_first) > 55:
+                    _first = _first[:52] + "..."
+                _hook_safe = _first.replace("\\", "\\\\").replace("'", "\u2019").replace(":", "\\:").replace("%", "\\%")
+                _hook_card = str(Path(final_path).parent / f"{jid}_hook.mp4")
+                _hooked    = str(Path(final_path).parent / f"{jid}_hooked.mp4")
+                _clist     = str(Path(final_path).parent / f"{jid}_concat.txt")
+                _hr = subprocess.run([
+                    "ffmpeg", "-y",
+                    "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.2",
+                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                    "-vf", f"drawtext=text='{_hook_safe}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
+                    "-t", "1.2",
+                    "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                    "-c:a", "aac", "-b:a", "128k",
+                    "-pix_fmt", "yuv420p",
+                    _hook_card
+                ], capture_output=True)
+                if _hr.returncode == 0:
+                    with open(_clist, "w") as _cf:
+                        _cf.write(f"file '{_hook_card}'\nfile '{final_path}'\n")
+                    _cr = subprocess.run([
+                        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                        "-i", _clist, "-c", "copy", _hooked
+                    ], capture_output=True)
+                    if _cr.returncode == 0 and Path(_hooked).exists():
+                        final_path = _hooked
+                        print(f"[{jid}] Hook card prepended")
+                    else:
+                        print(f"[{jid}] Concat failed: {_cr.stderr.decode()[:300]}")
+                else:
+                    print(f"[{jid}] Hook card failed: {_hr.stderr.decode()[:300]}")
+            except Exception as _he:
+                print(f"[{jid}] Hook card error (non-fatal): {_he}")
+
         # Upload final video to fal.ai storage for permanent URL
         print(f"[{jid}] Uploading final video to fal.ai storage...")
         final_url = fal_client.upload_file(final_path)
