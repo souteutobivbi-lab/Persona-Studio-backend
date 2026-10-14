@@ -1070,28 +1070,21 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # -- Pre-roll hook card --------------------------------------------------
         if script_text:
             try:
-                # Take first sentence, split into 2 lines of ~22 chars
+                # First 8 words only, split into 2 lines of 4 words - safe width at fontsize 48
                 _first = script_text.split('.')[0].strip()
-                _words = _first.split()
-                _line1_words, _line2_words = [], []
-                _cur = 0
-                for _w in _words:
-                    if _cur + len(_w) <= 22:
-                        _line1_words.append(_w)
-                        _cur += len(_w) + 1
-                    else:
-                        _line2_words.append(_w)
-                _l1 = ' '.join(_line1_words)
-                _l2 = ' '.join(_line2_words[:5])  # cap line 2
+                _words = _first.split()[:8]
+                _l1 = ' '.join(_words[:4])
+                _l2 = ' '.join(_words[4:])
                 def _esc(t):
                     return t.replace('\\', '\\\\').replace("'", "\u2019").replace(':', '\\:').replace('%', '\\%')
                 _hook_card = str(Path(final_path).parent / f"{jid}_hook.mp4")
                 _hooked    = str(Path(final_path).parent / f"{jid}_hooked.mp4")
                 _clist     = str(Path(final_path).parent / f"{jid}_concat.txt")
-                # Build drawtext filter - two lines centred
-                _vf = f"drawtext=text='{_esc(_l1)}':fontcolor=white:fontsize=56:x=(w-text_w)/2:y=h/2-60"
-                if _l2:
-                    _vf += f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=56:x=(w-text_w)/2:y=h/2+20"
+                # Zoompan + drawtext: text zooms from 1.0x to 1.12x over 1.2s (30 frames)
+                _zoom = "zoompan=z='min(1.0+0.12*(on/30),1.12)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=720x1280,"
+                _dt1 = f"drawtext=text='{_esc(_l1)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2-58"
+                _dt2 = f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2+18" if _l2 else ""
+                _vf = _zoom + _dt1 + _dt2
                 _hr = subprocess.run([
                     "ffmpeg", "-y",
                     "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.2",
