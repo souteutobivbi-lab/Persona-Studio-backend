@@ -1044,10 +1044,9 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "-stream_loop", "-1", "-i", music_path,
                 "-vf", vf,
                 "-filter_complex",
-                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=1.6[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                "-af", "volume=1.6", "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
                 final_path, "-y"
             ], capture_output=True)
@@ -1095,7 +1094,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.2",
                     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
                     "-vf", _vf,
-                    "-t", str(_hook_dur),
+                    "-t", "1.5",
                     "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                     "-c:a", "aac", "-b:a", "128k",
                     "-pix_fmt", "yuv420p",
