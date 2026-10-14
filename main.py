@@ -1046,7 +1046,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "-filter_complex",
                 "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=1.6[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
-                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
                 final_path, "-y"
             ], capture_output=True)
@@ -1073,7 +1073,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 import re as _re
                 _sent = _re.split(r'[.!?]', script_text)[0].strip()
                 _words = _sent.split()
-                _chunks = [' '.join(_words[i:i+4]) for i in range(0, min(len(_words), 12), 4)]
+                _chunks = [' '.join(_words[i:i+4]) for i in range(0, len(_words), 4)]
                 _l1 = _chunks[0] if len(_chunks) > 0 else ''
                 _l2 = _chunks[1] if len(_chunks) > 1 else ''
                 _l3 = _chunks[2] if len(_chunks) > 2 else ''
