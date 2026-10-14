@@ -1067,65 +1067,117 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         if not Path(final_path).exists():
             final_path = raw_path
 
-        # -- Pre-roll hook card --------------------------------------------------
+        # -- Photo montage + hook card pre-roll ---------------------------------
         if script_text:
             try:
-                # Full first sentence split into lines of 4 words, up to 3 lines, fontsize 44
-                import re as _re
-                _sent = _re.split(r'[.!?]', script_text)[0].strip()
+                import re as _re, urllib.request as _ur, json as _json2
+                _par = Path(final_path).parent
+
+                # 1. Fetch 5 portrait photos from Pexels
+                _photos = []
+                if PEXELS_KEY:
+                    _q = "couple love relationship"
+                    _px = f"https://api.pexels.com/v1/search?query={_q.replace(' ','+')}&per_page=5&orientation=portrait"
+                    try:
+                        _req = _ur.Request(_px, headers={"Authorization": PEXELS_KEY})
+                        with _ur.urlopen(_req, timeout=10) as _res:
+                            _pdata = _json2.loads(_res.read())
+                        _photos = [p["src"]["portrait"] for p in _pdata.get("photos", [])[:5]]
+                        print(f"[{jid}] Pexels: {len(_photos)} photos")
+                    except Exception as _pe:
+                        print(f"[{jid}] Pexels fetch error: {_pe}")
+
+                # 2. Camera snap sound (synthesised)
+                _snap = str(_par / f"{jid}_snap.aac")
+                subprocess.run([
+                    "ffmpeg", "-y", "-f", "lavfi", "-i",
+                    "anoisesrc=d=0.08:c=white:a=0.5,highpass=f=3500,lowpass=f=9000,afade=t=out:st=0.05:d=0.03,volume=4",
+                    "-t", "0.08", "-c:a", "aac", "-b:a", "64k", _snap
+                ], capture_output=True)
+
+                # 3. Build 1s clip per photo
+                _photo_clips = []
+                for _pi, _purl in enumerate(_photos):
+                    _img  = str(_par / f"{jid}_px{_pi}.jpg")
+                    _clip = str(_par / f"{jid}_px{_pi}.mp4")
+                    try:
+                        _ur.urlretrieve(_purl, _img)
+                        _pr = subprocess.run([
+                            "ffmpeg", "-y",
+                            "-loop", "1", "-i", _img,
+                            "-i", _snap,
+                            "-vf", "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
+                            "-t", "1", "-c:v", "libx264", "-crf", "20", "-preset", "fast",
+                            "-c:a", "aac", "-b:a", "64k", "-pix_fmt", "yuv420p", "-r", "25",
+                            _clip
+                        ], capture_output=True)
+                        if _pr.returncode == 0:
+                            _photo_clips.append(_clip)
+                            print(f"[{jid}] Photo clip {_pi} ok")
+                        else:
+                            print(f"[{jid}] Photo clip {_pi} err: {_pr.stderr.decode()[:200]}")
+                    except Exception as _pie:
+                        print(f"[{jid}] Photo {_pi} error: {_pie}")
+
+                # 4. Hook card (black screen + text)
+                _sent = _re.search(r'[^.!?]+[.!?]', script_text)
+                _sent = _sent.group(0).strip() if _sent else script_text.split("\n")[0].strip()
                 _words = _sent.split()
-                _chunks = [' '.join(_words[i:i+3]) for i in range(0, len(_words), 3)]
-                _l1 = _chunks[0] if len(_chunks) > 0 else ''
-                _l2 = _chunks[1] if len(_chunks) > 1 else ''
-                _l3 = _chunks[2] if len(_chunks) > 2 else ''
+                _chunks = [" ".join(_words[i:i+3]) for i in range(0, len(_words), 3)]
+                _l1 = _chunks[0] if len(_chunks) > 0 else ""
+                _l2 = _chunks[1] if len(_chunks) > 1 else ""
+                _l3 = _chunks[2] if len(_chunks) > 2 else ""
                 def _esc(t):
-                    return t.replace('\\', '\\\\').replace("'", "\u2019").replace(':', '\\:').replace('%', '\\%')
-                _hook_card = str(Path(final_path).parent / f"{jid}_hook.mp4")
-                _hooked    = str(Path(final_path).parent / f"{jid}_hooked.mp4")
-                _clist     = str(Path(final_path).parent / f"{jid}_concat.txt")
-                # drawtext FIRST then zoompan so text itself zooms over 1.2s (30 frames)
-                _y_base = 'h/2-102' if _l3 else 'h/2-34'
+                    return t.replace("\\", "\\\\").replace("'", "\u2019").replace(":", "\\:").replace("%", "\\%")
+                _hook_card = str(_par / f"{jid}_hook.mp4")
+                _y_base = "h/2-102" if _l3 else "h/2-34"
                 _dt1 = f"drawtext=text='{_esc(_l1)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y={_y_base}"
-                _dt2 = f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h/2+34" if _l2 else ""
-                _dt3 = f",drawtext=text='{_esc(_l3)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h/2+102" if _l3 else ""
+                _dt2 = f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2+34" if _l2 else ""
+                _dt3 = f",drawtext=text='{_esc(_l3)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2+102" if _l3 else ""
                 _zoom = ",zoompan=z='min(1.0+0.12*(on/30),1.12)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=720x1280"
-                _vf = _dt1 + _dt2 + _dt3 + _zoom
-                _hr = subprocess.run([
+                _hvf = _dt1 + _dt2 + _dt3 + _zoom
+                _hhr = subprocess.run([
                     "ffmpeg", "-y",
-                    "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.2",
+                    "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.5",
                     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-                    "-vf", _vf,
-                    "-t", "1.5",
+                    "-vf", _hvf, "-t", "1.5",
                     "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                    "-c:a", "aac", "-b:a", "128k",
-                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p",
                     _hook_card
                 ], capture_output=True)
-                print(f"[{jid}] Hook card rc={_hr.returncode}")
-                if _hr.returncode != 0:
-                    print(f"[{jid}] Hook stderr: {_hr.stderr.decode()[:400]}")
-                if _hr.returncode == 0:
-                    with open(_clist, "w") as _cf:
-                        _cf.write(f"file '{_hook_card}'\nfile '{final_path}'\n")
-                    _cr = subprocess.run([
-                        "ffmpeg", "-y",
-                        "-i", _hook_card,
-                        "-i", final_path,
-                        "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
-                        "-map", "[v]", "-map", "[a]",
-                        "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                        "-c:a", "aac", "-b:a", "128k",
-                        "-pix_fmt", "yuv420p",
-                        _hooked
-                    ], capture_output=True)
-                    print(f"[{jid}] Concat rc={_cr.returncode}")
+                print(f"[{jid}] Hook card rc={_hhr.returncode}")
+                if _hhr.returncode != 0:
+                    print(f"[{jid}] Hook stderr: {_hhr.stderr.decode()[:300]}")
+
+                # 5. Concat: photos + hook card + main video
+                _all_clips = list(_photo_clips)
+                if _hhr.returncode == 0 and Path(_hook_card).exists():
+                    _all_clips.append(_hook_card)
+                _all_clips.append(final_path)
+                if len(_all_clips) > 1:
+                    _hooked = str(_par / f"{jid}_hooked.mp4")
+                    _n = len(_all_clips)
+                    _inputs = []
+                    for _c in _all_clips:
+                        _inputs += ["-i", _c]
+                    _fc = "".join(f"[{i}:v][{i}:a]" for i in range(_n))
+                    _fc += f"concat=n={_n}:v=1:a=1[v][a]"
+                    _cr = subprocess.run(
+                        ["ffmpeg", "-y"] + _inputs + [
+                            "-filter_complex", _fc,
+                            "-map", "[v]", "-map", "[a]",
+                            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                            "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p",
+                            _hooked
+                        ], capture_output=True)
+                    print(f"[{jid}] Montage concat rc={_cr.returncode}")
                     if _cr.returncode != 0:
-                        print(f"[{jid}] Concat stderr: {_cr.stderr.decode()[:800]}")
+                        print(f"[{jid}] Montage stderr: {_cr.stderr.decode()[:800]}")
                     if _cr.returncode == 0 and Path(_hooked).exists():
                         final_path = _hooked
-                        print(f"[{jid}] Hook card prepended OK")
+                        print(f"[{jid}] Montage OK ({_n} clips total)")
             except Exception as _he:
-                print(f"[{jid}] Hook card error (non-fatal): {_he}")
+                print(f"[{jid}] Montage error (non-fatal): {_he}")
 
         # Upload final video to fal.ai storage for permanent URL
         # Upload final video to fal.ai storage for permanent URL
