@@ -1083,7 +1083,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 _snap = str(_par / f"{jid}_snap.aac")
                 subprocess.run([
                     "ffmpeg", "-y", "-f", "lavfi", "-i",
-                    "anoisesrc=d=0.08:c=white:a=0.5,highpass=f=3500,lowpass=f=9000,afade=t=out:st=0.05:d=0.03,volume=4",
+                    "anoisesrc=d=0.08:c=white:a=0.9,aeval=val(ch)*exp(-200*t),bandpass=f=5000:width_type=h:w=8000,volume=12,afade=t=out:st=0.04:d=0.04",
                     "-t", "0.08", "-c:a", "aac", "-b:a", "64k", _snap
                 ], capture_output=True)
 
