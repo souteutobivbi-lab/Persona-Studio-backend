@@ -1883,7 +1883,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
         for i, ef in enumerate(effect_list):
             sp = os.path.join(tmp, f"seg{i}.mp4")
             ss = round(i * seg_dur, 3)
-            cmd = ["ffmpeg","-y","-i",inp,"-ss",str(ss)]
+            cmd = ["ffmpeg","-y","-ss",str(ss),"-i",inp]
             if i < n-1: cmd += ["-t", str(round(seg_dur, 3))]
             cmd += ["-vf", get_vf(ef), "-an",          # no audio in segment
                     "-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p", sp]
@@ -1893,29 +1893,23 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
         if n == 1:
             shutil.copy(segments[0], vid_only)
         else:
-            sdurs = []
-            for seg in segments[:-1]:
-                pr = subprocess.run(
-                    ["ffprobe","-v","error","-show_entries","format=duration","-of","json",seg],
-                    capture_output=True, text=True, timeout=30)
-                sdurs.append(float(_json.loads(pr.stdout)["format"]["duration"]))
-            vfp = []; cum = 0; pv = "[0:v]"
-            for i in range(n-1):
-                cum += sdurs[i]; off = round(cum - fade*(i+1), 3)
-                nv = f"[v{i}]" if i < n-2 else "[vout]"
-                vfp.append(f"{pv}[{i+1}:v]xfade=transition=fade:duration={fade}:offset={off}{nv}")
-                pv = nv
-            fc = ";".join(vfp)
+            # Hard cuts only - xfade blends frames which breaks lip sync
             inp_args = []
             for seg in segments: inp_args += ["-i", seg]
+            fc = "".join(f"[{i}:v]" for i in range(n))
+            fc += f"concat=n={n}:v=1:a=0[vout]"
             run(["ffmpeg","-y"] + inp_args +
                 ["-filter_complex",fc,"-map","[vout]",
                  "-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p", vid_only])
 
         # ── Step 4: mux processed video + processed audio ────────────────────────
+        _vp2 = subprocess.run(
+            ["ffprobe","-v","error","-show_entries","format=duration","-of","json",vid_only],
+            capture_output=True, text=True, timeout=30)
+        _vid_dur = float(_json.loads(_vp2.stdout)["format"]["duration"])
         run(["ffmpeg","-y","-i",vid_only,"-i",audio_proc,
-             "-map","0:v","-map","1:a","-c:v","copy","-c:a","copy",
-             "-shortest","-movflags","+faststart", out])
+             "-map","0:v","-map","1:a","-c:v","copy","-c:a","aac","-b:a","192k",
+             "-t",str(round(_vid_dur,3)),"-movflags","+faststart", out])
 
         import uuid as _uuid, shutil as _shutil
         eid      = str(_uuid.uuid4())[:8]
