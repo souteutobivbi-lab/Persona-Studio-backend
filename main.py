@@ -1091,7 +1091,6 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 _photo_clips = []
 
                 for _pi, _img in enumerate(_photos):
-                    _img  = str(_par / f"{jid}_px{_pi}.jpg")
                     _clip = str(_par / f"{jid}_px{_pi}.mp4")
                     try:
                         _pr = subprocess.run([
@@ -1100,14 +1099,14 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                             "-i", _snap,
                             "-vf", "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
                             "-t", "1", "-c:v", "libx264", "-crf", "20", "-preset", "fast",
-                            "-c:a", "aac", "-b:a", "64k", "-pix_fmt", "yuv420p", "-r", "25",
+                            "-af", "apad=whole_dur=1", "-c:a", "aac", "-b:a", "64k", "-pix_fmt", "yuv420p", "-r", "25",
                             _clip
                         ], capture_output=True)
                         if _pr.returncode == 0:
                             _photo_clips.append(_clip)
                             print(f"[{jid}] Photo clip {_pi} ok")
                         else:
-                            print(f"[{jid}] Photo clip {_pi} err: {_pr.stderr.decode()[:200]}")
+                            print(f"[{jid}] Photo clip {_pi} err: {_pr.stderr.decode()[-2000:]}")
                     except Exception as _pie:
                         print(f"[{jid}] Photo {_pi} error: {_pie}")
 
@@ -1853,8 +1852,8 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
         def get_vf(ef):
             if ef == "zoom_in":
                 cw=(int(W*75/100)//2)*2; ch=(int(H*75/100)//2)*2
-                return f"crop={cw}:{ch}:enable='gte(t,1.5)',scale={W}:{H}"
-            if ef == "mirror":      return "hflip=enable='gte(t,1.5)'"
+                return f"crop={cw}:{ch}:enable='gte(t,6.5)',scale={W}:{H}"
+            if ef == "mirror":      return "hflip=enable='gte(t,6.5)'"
             if ef == "brighten":    return "eq=brightness=0.06:contrast=1.1"
             if ef == "contrast":    return "eq=contrast=1.4:brightness=-0.02"
             if ef == "speed_up":    return "null"  # disabled: would break lip sync
