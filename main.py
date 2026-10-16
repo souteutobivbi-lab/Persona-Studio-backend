@@ -756,7 +756,9 @@ async def generate_portrait(
     count: int = Form(1),
     persona_id: str = Form(""),
     master_url: str = Form(""),
-    pose: str = Form("side")
+    pose: str = Form("side"),
+    sex: str = Form("female"),
+    skill_context: str = Form("")
 ):
     """Generate podcast-style portrait.
     Returns {job_id, status:"running"} immediately.
