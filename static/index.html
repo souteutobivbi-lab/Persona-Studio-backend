@@ -7810,7 +7810,7 @@ async function npGenPortrait(){
 
   try{
 
-    const fd=new FormData();fd.append('persona_name',document.getElementById('npName').value||'persona');fd.append('persona_age',document.getElementById('npAge').value||'36');fd.append('appearance',appearance);fd.append('count','1');
+    const fd=new FormData();fd.append('persona_name',document.getElementById('npName').value||'persona');fd.append('persona_age',document.getElementById('npAge').value||'36');fd.append('appearance',appearance);fd.append('sex',window._npSex||'female');fd.append('count','1');
 
     const d=await generatePortraitAndPoll(fd);
 
