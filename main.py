@@ -1,4 +1,4 @@
-﻿import asyncio, os, random, subprocess, uuid, json
+import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
@@ -85,8 +85,8 @@ if static_path.exists():
 
 MUSIC_DIR = Path(__file__).parent / "static" / "music"
 MUSIC_TRACKS = {
-    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth — warm harp"},
-    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone — meditation ambience"},
+    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth � warm harp"},
+    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone � meditation ambience"},
 }
 
 @app.get("/music-tracks")
@@ -110,7 +110,7 @@ Extract these fields (leave empty string if not found,
         )):
 - name: persona's full name
 - age: persona's age as a number string
-- role: their role and niche (e.g. "Transformation Authority  -  Wealth")
+- role: their role and niche (e.g. "Transformation Authority �-  Wealth")
 - niche: primary niche keyword (e.g. "wealth", "property", "interior design", "health", "relationships", "mindset", "luxury lifestyle")
 - appearance: physical description for image generation
 - catchphrase: their signature phrase
@@ -197,7 +197,7 @@ async def generate_script(
     from groq import Groq
     client = Groq(api_key=GROQ_KEY)
 
-    # Detect Vivienne-style skill vs generic — look for structure markers
+    # Detect Vivienne-style skill vs generic � look for structure markers
     has_vivienne_structure = False
     has_ceo_structure = False
     _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
@@ -221,7 +221,7 @@ async def generate_script(
             rest = text[idx + len(heading):]
             # Find next section heading (ALL CAPS word followed by newline, or separator line)
             import re as _re
-            m = _re.search(r'\n(?=[A-Z][A-Z ]{3,}\n|[-=─-╿]{4,})', rest)
+            m = _re.search(r'\n(?=[A-Z][A-Z ]{3,}\n|[-=--?]{4,})', rest)
             end = m.start() if m else len(rest)
             return rest[:end].strip()
 
@@ -378,7 +378,7 @@ WRITING MANDATE - this overrides all generic defaults:
     if not 'all_titles' in dir():
         all_titles = [f'Script {j+1}' for j in range(len(scripts))]
     elif not scripts:
-        scripts = ["Script generation failed — please try again."]
+        scripts = ["Script generation failed � please try again."]
         all_keywords = [[]]
 
     return {
@@ -479,7 +479,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     _is_male = sex.lower() in ("male", "m", "man")
     gender_word = "man" if _is_male else "woman"
 
-    # Base identity layer — branches by sex
+    # Base identity layer � branches by sex
     if _is_male:
         base_identity = (
             "deep rich warm dark brown skin, sharp angular jawline, high cheekbones, "
@@ -504,7 +504,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     # Persona-specific overrides (age, any unique traits from skill file)
     persona_layer = appearance if appearance else ""
 
-    # Parse PORTRAIT SCENE from skill file — handles both "PORTRAIT SCENE: x" and section header format
+    # Parse PORTRAIT SCENE from skill file � handles both "PORTRAIT SCENE: x" and section header format
     custom_scene = ""
     if skill_context and "PORTRAIT SCENE" in skill_context:
         idx = skill_context.find("PORTRAIT SCENE")
@@ -512,13 +512,13 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
         for _line in rest.splitlines():
             _line = _line.strip()
             # Skip the colon-only line, dividers, and blank lines
-            if not _line or _line == ":" or all(c in "━─═-=" for c in _line):
+            if not _line or _line == ":" or all(c in "?---=" for c in _line):
                 continue
             # If inline (PORTRAIT SCENE: content), strip leading colon
             custom_scene = _line.lstrip(":").strip()
             break
 
-    # Podcast set — front pose always faces camera; custom_scene only used for side
+    # Podcast set � front pose always faces camera; custom_scene only used for side
     if pose == 'front':
         podcast_set = (
             'seated facing directly into camera, body square to lens, '
@@ -594,8 +594,8 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     )
 
 def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
-    """Compare two face images using insightface buffalo_l. Returns cosine similarity 0.0–1.0.
-    Used only as a post-generation quality check — never as a retry trigger for generation."""
+    """Compare two face images using insightface buffalo_l. Returns cosine similarity 0.0�1.0.
+    Used only as a post-generation quality check � never as a retry trigger for generation."""
     try:
         import insightface
         import numpy as np
@@ -622,7 +622,7 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
         print(f"Face similarity error (skipping): {e}")
         return -1.0
 
-# Persistent master portrait store — survives Railway restarts
+# Persistent master portrait store � survives Railway restarts
 # Saved to /app/master_portraits.json; fal CDN URLs are permanent
 PORTRAITS_FILE = Path("/app/master_portraits.json")
 LORAS_FILE = Path("/app/loras.json")
@@ -696,7 +696,7 @@ def save_master_portraits(portraits: dict):
         except Exception as e:
             print(f"Supabase portrait save error: {e}")
 
-MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id → {"local": path, "url": fal_url}
+MASTER_PORTRAITS: dict = load_master_portraits()  # persona_id ? {"local": path, "url": fal_url}
 
 @app.post("/set-master-portrait")
 async def set_master_portrait(
@@ -766,7 +766,7 @@ async def generate_portrait(
     os.environ["FAL_KEY"] = FAL_KEY
     jid = str(uuid.uuid4())[:8]
 
-    # Resolve master portrait URL — must be a public https URL for fal
+    # Resolve master portrait URL � must be a public https URL for fal
     ref_url = master_url.strip()
     if ref_url and not ref_url.startswith("http"):
         ref_url = ""
@@ -1016,7 +1016,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # Stage 6: Fix aspect ratio + grain filter + optional background music
         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
-        # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
+        # Scale to true 9:16 (720x1280) � flashtalk outputs landscape so we
         # scale to height 1280 then center-crop to 720 wide.
         # ?? Build video filters ?????????????????????????????????????????????
         # Vignette filter
@@ -1209,7 +1209,7 @@ async def download_video(job_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Outfit swap — preserves face, body & background; replaces only clothing
+# Outfit swap � preserves face, body & background; replaces only clothing
 # Uses SAM2 for clothing segmentation mask + FLUX inpainting
 # ---------------------------------------------------------------------------
 # LoRA training from real uploaded frames (Pathway B)
@@ -1243,7 +1243,7 @@ async def train_lora_from_frames(
 
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
 
-            # ── Write frames + captions to disk ──────────────────────────
+            # -- Write frames + captions to disk --------------------------
             set_job(jid, {"status": "running", "progress": 5, "stage": "preparing"})
             caption = (
                 f"{trigger_word}, "
@@ -1258,7 +1258,7 @@ async def train_lora_from_frames(
                 (img_dir / fname).write_bytes(data)
                 (img_dir / f"{stem}.txt").write_text(caption)
 
-            # ── Zip everything up ─────────────────────────────────────────
+            # -- Zip everything up -----------------------------------------
             zip_path = tmp_dir / "training.zip"
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for p in img_dir.iterdir():
@@ -1266,9 +1266,9 @@ async def train_lora_from_frames(
 
             set_job(jid, {"status": "running", "progress": 15, "stage": "uploading_zip"})
             zip_fal_url = _fal.upload_file(str(zip_path))
-            print(f"[{jid}] Training zip uploaded → {zip_fal_url[:60]}")
+            print(f"[{jid}] Training zip uploaded ? {zip_fal_url[:60]}")
 
-            # ── Submit LoRA training job ──────────────────────────────────
+            # -- Submit LoRA training job ----------------------------------
             set_job(jid, {"status": "running", "progress": 20, "stage": "training"})
             print(f"[{jid}] Submitting LoRA training for '{trigger_word}' ({len(frame_data)} images)...")
 
@@ -1288,9 +1288,9 @@ async def train_lora_from_frames(
             if not lora_url:
                 raise ValueError(f"LoRA training returned no weights: {result}")
 
-            print(f"[{jid}] LoRA trained → {str(lora_url)[:60]}")
+            print(f"[{jid}] LoRA trained ? {str(lora_url)[:60]}")
 
-            # ── Persist LoRA weights permanently on our server ────────────
+            # -- Persist LoRA weights permanently on our server ------------
             # fal CDN URLs expire in ~24h. Download and store locally so
             # the weights survive restarts (Railway volume) or at least the
             # current deployment lifetime.
@@ -1304,7 +1304,7 @@ async def train_lora_from_frames(
                 dl = _req2.get(lora_url, headers={"Authorization": f"Key {FAL_KEY}"}, timeout=180)
                 dl.raise_for_status()
                 lora_local.write_bytes(dl.content)
-                print(f"[{jid}] LoRA saved locally → {lora_local} ({len(dl.content)//1024}KB)")
+                print(f"[{jid}] LoRA saved locally ? {lora_local} ({len(dl.content)//1024}KB)")
                 # Use a self-hosted URL so it never expires
                 lora_serve_url = f"/lora-file/{safe_trigger}"
             except Exception as e:
@@ -1336,7 +1336,7 @@ async def train_lora_from_frames(
             try: tmp_dir.rmdir()
             except: pass
 
-            # Registry already saved above with correct fal_url key — duplicate removed
+            # Registry already saved above with correct fal_url key � duplicate removed
 
             set_job(jid, {
                 "status":       "complete",
@@ -1392,7 +1392,7 @@ async def swap_outfit(
 ):
     """
     Swap outfit on the locked master portrait.
-    If lora_url is provided: use FLUX Dev + LoRA (generates entire image — best quality).
+    If lora_url is provided: use FLUX Dev + LoRA (generates entire image � best quality).
     Otherwise: FASHN virtual try-on + smart composite fallback.
     Returns {job_id, status:"running"} immediately.
     Poll /portrait-status/{jid} for completion.
@@ -1415,7 +1415,7 @@ async def swap_outfit(
     # Accept master_url from the browser if server lost it (Railway ephemeral filesystem)
     master_url = (entry or {}).get("url") or master_url_override.strip() or None
     if not master_url:
-        return JSONResponse({"error": f"No locked portrait for '{persona_id}' — lock a master portrait first"}, status_code=400)
+        return JSONResponse({"error": f"No locked portrait for '{persona_id}' � lock a master portrait first"}, status_code=400)
     # Restore to in-memory dict so subsequent calls also work
     if not entry and master_url:
         MASTER_PORTRAITS[persona_id] = {"local": "", "url": master_url}
@@ -1435,10 +1435,10 @@ async def swap_outfit(
 
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
 
-            # ══════════════════════════════════════════════════════════════
-            # PATHWAY A — LoRA + FLUX Dev (best quality, full regeneration)
+            # --------------------------------------------------------------
+            # PATHWAY A � LoRA + FLUX Dev (best quality, full regeneration)
             # Used when the persona has a trained LoRA URL.
-            # ══════════════════════════════════════════════════════════════
+            # --------------------------------------------------------------
             if use_lora:
                 set_job(jid, {"status": "running", "progress": 10, "stage": "lora_generating"})
                 tw = trigger_word.strip() or "person"
@@ -1451,7 +1451,7 @@ async def swap_outfit(
                 lora_tmp = tmp_dir / "lora_weights.safetensors"
 
                 if raw_lora_url.startswith("/lora-file/"):
-                    # Locally stored — read directly from disk
+                    # Locally stored � read directly from disk
                     pid_slug = raw_lora_url.split("/lora-file/")[-1]
                     safe_slug = "".join(c for c in pid_slug if c.isalnum() or c in "-_")
                     local_path = pathlib.Path("/app/loras") / f"{safe_slug}.safetensors"
@@ -1511,7 +1511,7 @@ async def swap_outfit(
                         print(f"[{jid}] Using existing local LoRA: {local_path}")
                         _shutil.copy(str(local_path), str(lora_tmp))
                     else:
-                        # fal CDN URL — download with auth header
+                        # fal CDN URL � download with auth header
                         print(f"[{jid}] Downloading LoRA from fal CDN...")
                         lora_resp = _req.get(
                             raw_lora_url,
@@ -1523,7 +1523,7 @@ async def swap_outfit(
 
                 print(f"[{jid}] Uploading LoRA weights to fal...")
                 fresh_lora_url = _fal.upload_file(str(lora_tmp))
-                print(f"[{jid}] LoRA ready → {fresh_lora_url[:60]}")
+                print(f"[{jid}] LoRA ready ? {fresh_lora_url[:60]}")
 
                 # Upload master portrait as image reference so pose/props are preserved
                 set_job(jid, {"status": "running", "progress": 20, "stage": "uploading_reference"})
@@ -1532,9 +1532,9 @@ async def swap_outfit(
                 img_resp.raise_for_status()
                 tmp_portrait.write_bytes(img_resp.content)
                 portrait_ref_url = _fal.upload_file(str(tmp_portrait))
-                print(f"[{jid}] Portrait reference uploaded → {portrait_ref_url[:60]}")
+                print(f"[{jid}] Portrait reference uploaded ? {portrait_ref_url[:60]}")
 
-                # Use sex form field directly — skill files don't always have SEX: line
+                # Use sex form field directly � skill files don't always have SEX: line
                 # Use build_portrait_prompt so PORTRAIT SCENE from skill file is respected
                 portrait_prompt = build_portrait_prompt(
                     appearance=base_appearance,
@@ -1547,7 +1547,7 @@ async def swap_outfit(
                 )
                 # Prepend trigger word so LoRA recognises the face
                 portrait_prompt = f"{tw}, {portrait_prompt}"
-                print(f"[{jid}] LoRA pathway — prompt: {portrait_prompt[:120]}...")
+                print(f"[{jid}] LoRA pathway � prompt: {portrait_prompt[:120]}...")
                 _neg_prompt = ("facing camera directly, looking straight at camera, frontal portrait, direct eye contact with lens, head-on pose, body facing forward" if pose == "side" else "")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
@@ -1565,14 +1565,14 @@ async def swap_outfit(
                 if not gen_imgs:
                     raise ValueError(f"LoRA generation returned no images: {gen_result}")
                 out_url = gen_imgs[0]["url"] if isinstance(gen_imgs[0], dict) else gen_imgs[0]
-                print(f"[{jid}] LoRA result → {str(out_url)[:60]}")
+                print(f"[{jid}] LoRA result ? {str(out_url)[:60]}")
 
                 set_job(jid, {"status": "running", "progress": 85, "stage": "saving"})
                 out_bytes = _req.get(out_url, timeout=60).content
                 out_img = Image.open(io.BytesIO(out_bytes)).convert("RGB")
                 out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
                 out_img.save(str(out_path), "PNG")
-                print(f"[{jid}] LoRA result saved → {out_path}")
+                print(f"[{jid}] LoRA result saved ? {out_path}")
 
                 set_job(jid, {
                     "status": "complete",
@@ -1582,13 +1582,13 @@ async def swap_outfit(
                     "outfit": outfit_prompt,
                 })
                 print(f"[{jid}] Outfit swap complete (LoRA pathway)")
-                return  # ← done, skip FASHN pathway below
+                return  # ? done, skip FASHN pathway below
 
-            # ══════════════════════════════════════════════════════════════
-            # PATHWAY B — FASHN virtual try-on + smart composite (fallback)
-            # ══════════════════════════════════════════════════════════════
+            # --------------------------------------------------------------
+            # PATHWAY B � FASHN virtual try-on + smart composite (fallback)
+            # --------------------------------------------------------------
 
-            # ── Step 1: Download master portrait & upload to fal.ai ───────
+            # -- Step 1: Download master portrait & upload to fal.ai -------
             set_job(jid, {"status": "running", "progress": 5, "stage": "uploading_portrait"})
             print(f"[{jid}] Fetching master portrait...")
             tmp_portrait = tmp_dir / "portrait.png"
@@ -1596,9 +1596,9 @@ async def swap_outfit(
             img_resp.raise_for_status()
             tmp_portrait.write_bytes(img_resp.content)
             portrait_fal_url = _fal.upload_file(str(tmp_portrait))
-            print(f"[{jid}] Portrait uploaded → {portrait_fal_url[:60]}")
+            print(f"[{jid}] Portrait uploaded ? {portrait_fal_url[:60]}")
 
-            # ── Step 2: Generate flat-lay garment image from text prompt ──
+            # -- Step 2: Generate flat-lay garment image from text prompt --
             # Strengthen the colour name so FLUX doesn't drift to similar hues
             set_job(jid, {"status": "running", "progress": 20, "stage": "generating_garment"})
             # Extract any colour words and amplify them
@@ -1624,9 +1624,9 @@ async def swap_outfit(
             if not garment_imgs:
                 raise ValueError(f"FLUX garment generation returned no images: {garment_result}")
             garment_url = garment_imgs[0]["url"]
-            print(f"[{jid}] Garment image generated → {garment_url[:60]}")
+            print(f"[{jid}] Garment image generated ? {garment_url[:60]}")
 
-            # ── Step 3: FASHN v1.6 Virtual Try-On ─────────────────────────
+            # -- Step 3: FASHN v1.6 Virtual Try-On -------------------------
             set_job(jid, {"status": "running", "progress": 50, "stage": "tryon"})
             print(f"[{jid}] Running FASHN v1.6 try-on...")
             tryon_result = _fal.subscribe("fal-ai/fashn/tryon/v1.6", arguments={
@@ -1643,9 +1643,9 @@ async def swap_outfit(
             if not tryon_imgs:
                 raise ValueError(f"FASHN try-on returned no images: {tryon_result}")
             out_url = tryon_imgs[0]["url"] if isinstance(tryon_imgs[0], dict) else tryon_imgs[0]
-            print(f"[{jid}] Try-on result → {str(out_url)[:60]}")
+            print(f"[{jid}] Try-on result ? {str(out_url)[:60]}")
 
-            # ── Step 4: Smart composite — restore background, hands, face ─
+            # -- Step 4: Smart composite � restore background, hands, face -
             # FASHN rewrites the whole image; we want ONLY the clothing pixels
             # from FASHN and everything else (background, microphone, hands,
             # face, jewellery) from the original portrait.
@@ -1671,8 +1671,8 @@ async def swap_outfit(
             person_mask = np.array(person_mask_raw.convert("L")).astype(np.float32) / 255.0
 
             # Restrict to clothing zone only:
-            #   - exclude top 22 % → face, neck, hair
-            #   - exclude bottom 20 % → hands, lap, lower legs
+            #   - exclude top 22 % ? face, neck, hair
+            #   - exclude bottom 20 % ? hands, lap, lower legs
             clothing_mask = person_mask.copy()
             face_cut = int(h * 0.22)
             hand_cut = int(h * 0.80)
@@ -1693,11 +1693,11 @@ async def swap_outfit(
 
             out_img = Image.fromarray(composited, "RGBA").convert("RGB")
 
-            # ── Step 5: Save output ────────────────────────────────────────
+            # -- Step 5: Save output ----------------------------------------
             set_job(jid, {"status": "running", "progress": 90, "stage": "saving"})
             out_path = OUTPUT_DIR / f"{jid}_portrait_0.png"
             out_img.save(str(out_path), "PNG")
-            print(f"[{jid}] Composited result saved → {out_path}")
+            print(f"[{jid}] Composited result saved ? {out_path}")
 
             # Clean up temp files
             for f in tmp_dir.iterdir():
@@ -1743,14 +1743,14 @@ The video script is:
 
 Write platform-optimised captions for this video. Return ONLY a JSON object with these keys:
 {{
-  "tiktok": "TikTok caption — hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
-  "instagram": "Instagram caption — 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
-  "youtube": "YouTube Shorts description — 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading — not a throwaway line."
+  "tiktok": "TikTok caption � hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
+  "instagram": "Instagram caption � 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
+  "youtube": "YouTube Shorts description � 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading � not a throwaway line."
 }}
 
 Rules:
-- Keep the voice and tone of the script — warm, direct, specific
-- Never use generic hashtags like #motivation #love — make them specific to the content
+- Keep the voice and tone of the script � warm, direct, specific
+- Never use generic hashtags like #motivation #love � make them specific to the content
 - The hook line for TikTok should mirror the script opening or amplify the claim
 - No emojis except sparingly on Instagram (1-2 max)
 - Do not invent facts not in the script
@@ -1760,7 +1760,7 @@ Return only the JSON object, nothing else."""
 
     try:
         resp = client.chat.completions.create(
-            model="openai/gpt-oss-20b",  # fast model — no thinking phase, responds in ~3s
+            model="openai/gpt-oss-20b",  # fast model � no thinking phase, responds in ~3s
             messages=[{"role": "user", "content": prompt}],
             max_tokens=700,
             temperature=0.7,
@@ -1810,9 +1810,9 @@ async def list_fal_files():
         return {"files": files, "raw_sample": str(data)[:500]}
 
 
-# ═══════════════════════════════════════════════════════
-# VIDEO ENHANCEMENT — ffmpeg shot-variation pass
-# ═══════════════════════════════════════════════════════
+# -------------------------------------------------------
+# VIDEO ENHANCEMENT � ffmpeg shot-variation pass
+# -------------------------------------------------------
 @app.get("/download-enhanced/{eid}")
 async def download_enhanced(eid: str):
     import re
@@ -1834,7 +1834,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
     vid_only  = os.path.join(tmp, "video_only.mp4")   # video-only after xfade
     audio_proc= os.path.join(tmp, "audio_proc.aac")   # audio extracted & processed
     out       = os.path.join(tmp, "enhanced.mp4")      # final mux
-    fade = 0.15  # short xfade — visual effect only, never touches audio
+    fade = 0.15  # short xfade � visual effect only, never touches audio
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url); resp.raise_for_status()
@@ -1868,8 +1868,8 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             if r.returncode != 0: raise RuntimeError(r.stderr[-1200:])
 
-        # ── Step 1: extract + post-process audio from original (continuous track) ──
-        # Compressor → 150 Hz warmth boost → broadcast loudness normalise
+        # -- Step 1: extract + post-process audio from original (continuous track) --
+        # Compressor ? 150 Hz warmth boost ? broadcast loudness normalise
         audio_af = (
             "acompressor=threshold=-20dB:ratio=4:attack=5:release=50,"
             "equalizer=f=150:width_type=o:width=2:g=3,"
@@ -1878,7 +1878,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
         run(["ffmpeg","-y","-i",inp,"-vn","-af",audio_af,
              "-c:a","aac","-b:a","192k", audio_proc])
 
-        # ── Step 2: video-only segments (-an = no audio embedded) ────────────────
+        # -- Step 2: video-only segments (-an = no audio embedded) ----------------
         segments = []
         for i, ef in enumerate(effect_list):
             sp = os.path.join(tmp, f"seg{i}.mp4")
@@ -1889,7 +1889,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
                     "-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p", sp]
             run(cmd); segments.append(sp)
 
-        # ── Step 3: xfade video-only segments ────────────────────────────────────
+        # -- Step 3: xfade video-only segments ------------------------------------
         if n == 1:
             shutil.copy(segments[0], vid_only)
         else:
@@ -1902,7 +1902,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
                 ["-filter_complex",fc,"-map","[vout]",
                  "-c:v","libx264","-preset","fast","-crf","18","-pix_fmt","yuv420p", vid_only])
 
-        # ── Step 4: mux processed video + processed audio ────────────────────────
+        # -- Step 4: mux processed video + processed audio ------------------------
         _vp2 = subprocess.run(
             ["ffprobe","-v","error","-show_entries","format=duration","-of","json",vid_only],
             capture_output=True, text=True, timeout=30)
