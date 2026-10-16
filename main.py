@@ -85,8 +85,8 @@ if static_path.exists():
 
 MUSIC_DIR = Path(__file__).parent / "static" / "music"
 MUSIC_TRACKS = {
-    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth — warm harp"},
-    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone — meditation ambience"},
+    "village-hearth-harp":  {"file": "village-hearth-harp.mp3",  "label": "Village Hearth ï¿½ warm harp"},
+    "warm-drone-ambience":  {"file": "warm-drone-ambience.mp3",   "label": "Warm Drone ï¿½ meditation ambience"},
 }
 
 @app.get("/music-tracks")
@@ -110,7 +110,7 @@ Extract these fields (leave empty string if not found,
         )):
 - name: persona's full name
 - age: persona's age as a number string
-- role: their role and niche (e.g. "Transformation Authority  -  Wealth")
+- role: their role and niche (e.g. "Transformation Authority ï¿½-  Wealth")
 - niche: primary niche keyword (e.g. "wealth", "property", "interior design", "health", "relationships", "mindset", "luxury lifestyle")
 - appearance: physical description for image generation
 - catchphrase: their signature phrase
@@ -197,7 +197,7 @@ async def generate_script(
     from groq import Groq
     client = Groq(api_key=GROQ_KEY)
 
-    # Detect Vivienne-style skill vs generic — look for structure markers
+    # Detect Vivienne-style skill vs generic ï¿½ look for structure markers
     has_vivienne_structure = False
     has_ceo_structure = False
     _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
@@ -378,7 +378,7 @@ WRITING MANDATE - this overrides all generic defaults:
     if not 'all_titles' in dir():
         all_titles = [f'Script {j+1}' for j in range(len(scripts))]
     elif not scripts:
-        scripts = ["Script generation failed — please try again."]
+        scripts = ["Script generation failed ï¿½ please try again."]
         all_keywords = [[]]
 
     return {
@@ -479,7 +479,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     _is_male = sex.lower() in ("male", "m", "man")
     gender_word = "man" if _is_male else "woman"
 
-    # Base identity layer — branches by sex
+    # Base identity layer ï¿½ branches by sex
     if _is_male:
         base_identity = (
             "deep rich warm dark brown skin, sharp angular jawline, high cheekbones, "
@@ -504,7 +504,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     # Persona-specific overrides (age, any unique traits from skill file)
     persona_layer = appearance if appearance else ""
 
-    # Parse PORTRAIT SCENE from skill file — handles both "PORTRAIT SCENE: x" and section header format
+    # Parse PORTRAIT SCENE from skill file ï¿½ handles both "PORTRAIT SCENE: x" and section header format
     custom_scene = ""
     if skill_context and "PORTRAIT SCENE" in skill_context:
         idx = skill_context.find("PORTRAIT SCENE")
@@ -518,7 +518,7 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
             custom_scene = _line.lstrip(":").strip()
             break
 
-    # Podcast set — front pose always faces camera; custom_scene only used for side
+    # Podcast set ï¿½ front pose always faces camera; custom_scene only used for side
     if pose == 'front':
         podcast_set = (
             'seated facing directly into camera, body square to lens, '
@@ -594,8 +594,8 @@ def build_portrait_prompt(appearance: str, persona_age: str, outfit: str, outfit
     )
 
 def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
-    """Compare two face images using insightface buffalo_l. Returns cosine similarity 0.0–1.0.
-    Used only as a post-generation quality check — never as a retry trigger for generation."""
+    """Compare two face images using insightface buffalo_l. Returns cosine similarity 0.0ï¿½1.0.
+    Used only as a post-generation quality check ï¿½ never as a retry trigger for generation."""
     try:
         import insightface
         import numpy as np
@@ -622,7 +622,7 @@ def get_face_similarity(img_path_a: str, img_path_b: str) -> float:
         print(f"Face similarity error (skipping): {e}")
         return -1.0
 
-# Persistent master portrait store — survives Railway restarts
+# Persistent master portrait store ï¿½ survives Railway restarts
 # Saved to /app/master_portraits.json; fal CDN URLs are permanent
 PORTRAITS_FILE = Path("/app/master_portraits.json")
 LORAS_FILE = Path("/app/loras.json")
@@ -766,7 +766,7 @@ async def generate_portrait(
     os.environ["FAL_KEY"] = FAL_KEY
     jid = str(uuid.uuid4())[:8]
 
-    # Resolve master portrait URL — must be a public https URL for fal
+    # Resolve master portrait URL ï¿½ must be a public https URL for fal
     ref_url = master_url.strip()
     if ref_url and not ref_url.startswith("http"):
         ref_url = ""
@@ -1016,7 +1016,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         # Stage 6: Fix aspect ratio + grain filter + optional background music
         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
-        # Scale to true 9:16 (720x1280) — flashtalk outputs landscape so we
+        # Scale to true 9:16 (720x1280) ï¿½ flashtalk outputs landscape so we
         # scale to height 1280 then center-crop to 720 wide.
         # ?? Build video filters ?????????????????????????????????????????????
         # Vignette filter
@@ -1209,7 +1209,7 @@ async def download_video(job_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Outfit swap — preserves face, body & background; replaces only clothing
+# Outfit swap ï¿½ preserves face, body & background; replaces only clothing
 # Uses SAM2 for clothing segmentation mask + FLUX inpainting
 # ---------------------------------------------------------------------------
 # LoRA training from real uploaded frames (Pathway B)
@@ -1336,7 +1336,7 @@ async def train_lora_from_frames(
             try: tmp_dir.rmdir()
             except: pass
 
-            # Registry already saved above with correct fal_url key — duplicate removed
+            # Registry already saved above with correct fal_url key ï¿½ duplicate removed
 
             set_job(jid, {
                 "status":       "complete",
@@ -1392,7 +1392,7 @@ async def swap_outfit(
 ):
     """
     Swap outfit on the locked master portrait.
-    If lora_url is provided: use FLUX Dev + LoRA (generates entire image — best quality).
+    If lora_url is provided: use FLUX Dev + LoRA (generates entire image ï¿½ best quality).
     Otherwise: FASHN virtual try-on + smart composite fallback.
     Returns {job_id, status:"running"} immediately.
     Poll /portrait-status/{jid} for completion.
@@ -1415,7 +1415,7 @@ async def swap_outfit(
     # Accept master_url from the browser if server lost it (Railway ephemeral filesystem)
     master_url = (entry or {}).get("url") or master_url_override.strip() or None
     if not master_url:
-        return JSONResponse({"error": f"No locked portrait for '{persona_id}' — lock a master portrait first"}, status_code=400)
+        return JSONResponse({"error": f"No locked portrait for '{persona_id}' ï¿½ lock a master portrait first"}, status_code=400)
     # Restore to in-memory dict so subsequent calls also work
     if not entry and master_url:
         MASTER_PORTRAITS[persona_id] = {"local": "", "url": master_url}
@@ -1436,7 +1436,7 @@ async def swap_outfit(
             tmp_dir = pathlib.Path(tempfile.mkdtemp())
 
             # --------------------------------------------------------------
-            # PATHWAY A — LoRA + FLUX Dev (best quality, full regeneration)
+            # PATHWAY A ï¿½ LoRA + FLUX Dev (best quality, full regeneration)
             # Used when the persona has a trained LoRA URL.
             # --------------------------------------------------------------
             if use_lora:
@@ -1451,7 +1451,7 @@ async def swap_outfit(
                 lora_tmp = tmp_dir / "lora_weights.safetensors"
 
                 if raw_lora_url.startswith("/lora-file/"):
-                    # Locally stored — read directly from disk
+                    # Locally stored ï¿½ read directly from disk
                     pid_slug = raw_lora_url.split("/lora-file/")[-1]
                     safe_slug = "".join(c for c in pid_slug if c.isalnum() or c in "-_")
                     local_path = pathlib.Path("/app/loras") / f"{safe_slug}.safetensors"
@@ -1511,7 +1511,7 @@ async def swap_outfit(
                         print(f"[{jid}] Using existing local LoRA: {local_path}")
                         _shutil.copy(str(local_path), str(lora_tmp))
                     else:
-                        # fal CDN URL — download with auth header
+                        # fal CDN URL ï¿½ download with auth header
                         print(f"[{jid}] Downloading LoRA from fal CDN...")
                         lora_resp = _req.get(
                             raw_lora_url,
@@ -1534,7 +1534,7 @@ async def swap_outfit(
                 portrait_ref_url = _fal.upload_file(str(tmp_portrait))
                 print(f"[{jid}] Portrait reference uploaded ? {portrait_ref_url[:60]}")
 
-                # Use sex form field directly — skill files don't always have SEX: line
+                # Use sex form field directly ï¿½ skill files don't always have SEX: line
                 # Use build_portrait_prompt so PORTRAIT SCENE from skill file is respected
                 portrait_prompt = build_portrait_prompt(
                     appearance=base_appearance,
@@ -1547,7 +1547,7 @@ async def swap_outfit(
                 )
                 # Prepend trigger word so LoRA recognises the face
                 portrait_prompt = f"{tw}, {portrait_prompt}"
-                print(f"[{jid}] LoRA pathway — prompt: {portrait_prompt[:120]}...")
+                print(f"[{jid}] LoRA pathway ï¿½ prompt: {portrait_prompt[:120]}...")
                 _neg_prompt = ("facing camera directly, looking straight at camera, frontal portrait, direct eye contact with lens, head-on pose, body facing forward" if pose == "side" else "")
                 gen_result = _fal.subscribe("fal-ai/flux-lora", arguments={
                     "prompt": portrait_prompt,
@@ -1585,7 +1585,7 @@ async def swap_outfit(
                 return  # ? done, skip FASHN pathway below
 
             # --------------------------------------------------------------
-            # PATHWAY B — FASHN virtual try-on + smart composite (fallback)
+            # PATHWAY B ï¿½ FASHN virtual try-on + smart composite (fallback)
             # --------------------------------------------------------------
 
             # -- Step 1: Download master portrait & upload to fal.ai -------
@@ -1645,7 +1645,7 @@ async def swap_outfit(
             out_url = tryon_imgs[0]["url"] if isinstance(tryon_imgs[0], dict) else tryon_imgs[0]
             print(f"[{jid}] Try-on result ? {str(out_url)[:60]}")
 
-            # -- Step 4: Smart composite — restore background, hands, face -
+            # -- Step 4: Smart composite ï¿½ restore background, hands, face -
             # FASHN rewrites the whole image; we want ONLY the clothing pixels
             # from FASHN and everything else (background, microphone, hands,
             # face, jewellery) from the original portrait.
@@ -1743,14 +1743,14 @@ The video script is:
 
 Write platform-optimised captions for this video. Return ONLY a JSON object with these keys:
 {{
-  "tiktok": "TikTok caption — hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
-  "instagram": "Instagram caption — 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
-  "youtube": "YouTube Shorts description — 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading — not a throwaway line."
+  "tiktok": "TikTok caption ï¿½ hook line, 2-3 lines max, 3-5 relevant hashtags, ends with a CTA question",
+  "instagram": "Instagram caption ï¿½ 3-5 sentences expanding slightly on the script's core truth, line breaks between thoughts, 5-8 hashtags on a new line at the end",
+  "youtube": "YouTube Shorts description ï¿½ 3 to 5 sentences: open with a strong hook that names the core truth of the video, expand on why it matters, add a line inviting the viewer to follow for more content like this, then 5-8 relevant hashtags on a new line. Rich, complete and worth reading ï¿½ not a throwaway line."
 }}
 
 Rules:
-- Keep the voice and tone of the script — warm, direct, specific
-- Never use generic hashtags like #motivation #love — make them specific to the content
+- Keep the voice and tone of the script ï¿½ warm, direct, specific
+- Never use generic hashtags like #motivation #love ï¿½ make them specific to the content
 - The hook line for TikTok should mirror the script opening or amplify the claim
 - No emojis except sparingly on Instagram (1-2 max)
 - Do not invent facts not in the script
@@ -1760,7 +1760,7 @@ Return only the JSON object, nothing else."""
 
     try:
         resp = client.chat.completions.create(
-            model="openai/gpt-oss-20b",  # fast model — no thinking phase, responds in ~3s
+            model="openai/gpt-oss-20b",  # fast model ï¿½ no thinking phase, responds in ~3s
             messages=[{"role": "user", "content": prompt}],
             max_tokens=700,
             temperature=0.7,
@@ -1811,7 +1811,7 @@ async def list_fal_files():
 
 
 # -------------------------------------------------------
-# VIDEO ENHANCEMENT — ffmpeg shot-variation pass
+# VIDEO ENHANCEMENT ï¿½ ffmpeg shot-variation pass
 # -------------------------------------------------------
 @app.get("/download-enhanced/{eid}")
 async def download_enhanced(eid: str):
@@ -1834,7 +1834,7 @@ async def enhance_video(video_url: str = Form(...), effects: str = Form("zoom_in
     vid_only  = os.path.join(tmp, "video_only.mp4")   # video-only after xfade
     audio_proc= os.path.join(tmp, "audio_proc.aac")   # audio extracted & processed
     out       = os.path.join(tmp, "enhanced.mp4")      # final mux
-    fade = 0.15  # short xfade — visual effect only, never touches audio
+    fade = 0.15  # short xfade ï¿½ visual effect only, never touches audio
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.get(video_url); resp.raise_for_status()
