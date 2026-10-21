@@ -968,17 +968,17 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         from PIL import Image
         from rembg import remove as rembg_remove
         os.environ["FAL_KEY"] = FAL_KEY
-        print(f"[{jid}] Pipeline started.")
+        print(f"[{jid}] Pipeline started (Kling 2.5 + sync-lipsync).")
 
-        # Stage 1: Remove background with rembg (bria model - best quality)
-        set_job(jid, {"status": "running", "stage": "removing_background", "progress": 10})
+        # Stage 1: Remove background
+        set_job(jid, {"status": "running", "stage": "removing_background", "progress": 5})
         print(f"[{jid}] Removing background...")
         portrait_rgba = rembg_remove(Image.open(portrait_path))
         print(f"[{jid}] Background removed.")
 
         # Stage 2: Composite onto scene if provided
         if scene_path and Path(scene_path).exists():
-            set_job(jid, {"status": "running", "stage": "compositing", "progress": 20})
+            set_job(jid, {"status": "running", "stage": "compositing", "progress": 10})
             print(f"[{jid}] Compositing...")
             bg = Image.open(scene_path).convert("RGBA")
             bg = bg.resize(portrait_rgba.size, Image.LANCZOS)
@@ -989,68 +989,83 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         else:
             final_portrait_path = portrait_path
 
-        # Stage 3: Upload files
-        set_job(jid, {"status": "running", "stage": "uploading", "progress": 30})
-        print(f"[{jid}] Uploading...")
+        # Stage 3: Upload portrait
+        set_job(jid, {"status": "running", "stage": "uploading", "progress": 15})
+        print(f"[{jid}] Uploading portrait...")
         portrait_url = fal_client.upload_file(final_portrait_path)
-        audio_url = fal_client.upload_file(audio_path)
-        print(f"[{jid}] Uploaded.")
+        print(f"[{jid}] Portrait uploaded: {portrait_url}")
 
-        # Stage 4: Generate video with flashtalk
-        set_job(jid, {"status": "running", "stage": "generating_video", "progress": 40})
-        print(f"[{jid}] Starting flashtalk...")
-        result = fal_client.subscribe(
-            "fal-ai/flashtalk",
-            arguments={"image_url": portrait_url, "audio_url": audio_url, "enhance_quality": True, "sync_mode": "high"}
+        # Stage 4: Kling 2.5 image-to-video (natural motion, 9:16 native)
+        set_job(jid, {"status": "running", "stage": "generating_motion", "progress": 20})
+        print(f"[{jid}] Starting Kling 2.5...")
+        kling_result = fal_client.subscribe(
+            "fal-ai/kling-video/v2.5/standard/image-to-video",
+            arguments={
+                "image_url": portrait_url,
+                "prompt": (
+                    "Person speaking naturally to camera, subtle head nods, natural eye blinks, "
+                    "slight shoulder sway, realistic breathing, photorealistic, "
+                    "cinematic lighting, steady handheld camera"
+                ),
+                "duration": "5",
+                "aspect_ratio": "9:16",
+                "negative_prompt": "static, frozen, blur, grain, artifacts, jerky motion, unnatural"
+            }
         )
-        print(f"[{jid}] Flashtalk done: duration={result.get('duration')}s")
-        output_url = result.get("video", {}).get("url")
-        if not output_url:
-            raise Exception("No video URL from flashtalk: " + str(result))
+        print(f"[{jid}] Kling 2.5 done.")
+        motion_url = kling_result.get("video", {}).get("url")
+        if not motion_url:
+            raise Exception("No video URL from Kling 2.5: " + str(kling_result))
+        print(f"[{jid}] Motion URL: {motion_url}")
 
-        # Stage 5: Download
-        set_job(jid, {"status": "running", "stage": "downloading", "progress": 80})
+        # Stage 5: Upload audio + apply lipsync
+        set_job(jid, {"status": "running", "stage": "lipsync", "progress": 55})
+        print(f"[{jid}] Uploading audio...")
+        audio_url = fal_client.upload_file(audio_path)
+        print(f"[{jid}] Applying lipsync (sync-lipsync)...")
+        lipsync_result = fal_client.subscribe(
+            "fal-ai/sync-lipsync",
+            arguments={
+                "video_url": motion_url,
+                "audio_url": audio_url,
+                "sync_mode": "bounce",
+                "output_format": "mp4",
+                "max_face_cutout_size": 0.5
+            }
+        )
+        print(f"[{jid}] Lipsync done.")
+        output_url = lipsync_result.get("video", {}).get("url")
+        if not output_url:
+            raise Exception("No video URL from sync-lipsync: " + str(lipsync_result))
+
+        # Stage 6: Download
+        set_job(jid, {"status": "running", "stage": "downloading", "progress": 75})
         import urllib.request
         raw_path = str(OUTPUT_DIR / f"{jid}_raw.mp4")
         urllib.request.urlretrieve(output_url, raw_path)
-        print(f"[{jid}] Downloaded.")
+        print(f"[{jid}] Downloaded to {raw_path}")
 
-        # Stage 6: Fix aspect ratio + grain filter + optional background music
-        set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
+        # Stage 7: FFmpeg post-process (ensure 9:16 + cinematic grade)
+        set_job(jid, {"status": "running", "stage": "processing", "progress": 85})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
-        # Scale to true 9:16 (720x1280) � flashtalk outputs landscape so we
-        # scale to height 1280 then center-crop to 720 wide.
-        # ?? Build video filters ?????????????????????????????????????????????
-        # Vignette filter
-        vignette = ",vignette=PI/4"
-
-        # Opening zoom-in 1.0x -> 1.08x over first 1.5s (45 frames @ 25fps)
-        zoom_filter = (
-            "zoompan=z='if(lte(on,45),1.0+0.08*(on/45),1.08)'"
-            ":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-            ":d=1:s=720x1280,"
-        )
         vf = (
-            "scale=760:1352,"
+            "scale=720:1280:force_original_aspect_ratio=increase,"
             "crop=720:1280,"
-            + zoom_filter +
-            "noise=alls=8:allf=t+u,"
-            "unsharp=5:5:1.2:5:5:0.0,"
-            "eq=contrast=1.05:brightness=-0.02:saturation=0.92"
-            + vignette
+            "noise=alls=4:allf=t+u,"
+            "unsharp=5:5:0.8:5:5:0.0,"
+            "eq=contrast=1.05:brightness=0.02:saturation=1.08"
         )
         if music_path and Path(music_path).exists():
             print(f"[{jid}] Mixing background music: {music_path}")
             ret = subprocess.run([
-                "ffmpeg",
-                "-i", raw_path,
+                "ffmpeg", "-i", raw_path,
                 "-stream_loop", "-1", "-i", music_path,
                 "-vf", vf,
                 "-filter_complex",
-                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=2.2[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=1.8[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
-                "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-c:a", "aac", "-b:a", "128k",
-                "-movflags", "+faststart",
+                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
                 final_path, "-y"
             ], capture_output=True)
         else:
@@ -1058,7 +1073,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 "ffmpeg", "-i", raw_path,
                 "-vf", vf,
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                "-af", "volume=2.2", "-c:a", "aac", "-b:a", "128k",
+                "-af", "volume=1.8", "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
                 final_path, "-y"
             ], capture_output=True)
@@ -1069,13 +1084,12 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         if not Path(final_path).exists():
             final_path = raw_path
 
-        # Upload final video to fal.ai storage for permanent URL
-        # Upload final video to fal.ai storage for permanent URL
-        print(f"[{jid}] Uploading final video to fal.ai storage...")
+        # Stage 8: Upload final video to fal.ai storage
+        print(f"[{jid}] Uploading final video...")
         final_url = fal_client.upload_file(final_path)
         print(f"[{jid}] Final URL: {final_url}")
 
-        set_job(jid, {"status": "complete", "progress": 100, "stage": "done", 
+        set_job(jid, {"status": "complete", "progress": 100, "stage": "done",
                       "output": final_path, "url": final_url})
         print(f"[{jid}] Pipeline complete!")
 
@@ -1084,6 +1098,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         import traceback
         traceback.print_exc()
         set_job(jid, {"status": "error", "error": str(e), "progress": 0})
+
 
 @app.get("/video-status/{job_id}")
 async def video_status(job_id: str):
