@@ -962,23 +962,60 @@ async def generate_video(
     asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path, script_text=script, caption_style=caption_style))
     return {"job_id": jid, "status": "running"}
 
-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None, script_text=None, caption_style=None):
+async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None, script_text=None, caption_style=None, clip_prompts=None):
+    # Default motion prompts — used when caller leaves a slot blank
+    DEFAULT_PROMPTS = [
+        (
+            "Young man snapping sharply into frame mid-motion, leans forward toward camera, "
+            "intense direct eye contact, natural blinking, bright Scandinavian apartment, "
+            "floor-to-ceiling windows, natural white light, photorealistic, cinematic"
+        ),
+        (
+            "Young man speaking confidently with subtle hand gesture, slight head tilt, "
+            "relaxed posture, bright interior with pale oak furniture and green plant, "
+            "natural window light, photorealistic, cinematic"
+        ),
+        (
+            "Young man walking slowly toward camera then stopping, calm composed expression, "
+            "arms at sides, natural shoulder movement, bright white-lit room, "
+            "photorealistic, cinematic"
+        ),
+        (
+            "Young man making direct sustained eye contact, slight knowing smile, "
+            "minimal movement, deliberate pause, bright clean background, "
+            "photorealistic, cinematic close-up, steady camera"
+        ),
+    ]
+    resolved_prompts = [
+        (clip_prompts[i] if clip_prompts and clip_prompts[i] and clip_prompts[i].strip() else DEFAULT_PROMPTS[i])
+        for i in range(4)
+    ]
     try:
         import fal_client
         from PIL import Image
         from rembg import remove as rembg_remove
+        from functools import partial
         os.environ["FAL_KEY"] = FAL_KEY
-        print(f"[{jid}] Pipeline started (Kling 2.5 + sync-lipsync).")
+        loop = asyncio.get_event_loop()
+        print(f"[{jid}] Pipeline started (Phase 2: 4-clip cinematic 20s).")
+
+        # Beat map: 4 clips x 5s = 20s
+        CLIPS = [
+            {"idx": 0, "start": 0.0,  "end": 5.0,  "label": "hook",   "motion": resolved_prompts[0]},
+            {"idx": 1, "start": 5.0,  "end": 10.0, "label": "bridge",  "motion": resolved_prompts[1]},
+            {"idx": 2, "start": 10.0, "end": 15.0, "label": "value",   "motion": resolved_prompts[2]},
+            {"idx": 3, "start": 15.0, "end": 20.0, "label": "cta",     "motion": resolved_prompts[3]},
+        ]
 
         # Stage 1: Remove background
-        set_job(jid, {"status": "running", "stage": "removing_background", "progress": 5})
+        set_job(jid, {"status": "running", "stage": "removing_background", "progress": 3})
         print(f"[{jid}] Removing background...")
         portrait_rgba = rembg_remove(Image.open(portrait_path))
         print(f"[{jid}] Background removed.")
 
         # Stage 2: Composite onto scene if provided
         if scene_path and Path(scene_path).exists():
-            set_job(jid, {"status": "running", "stage": "compositing", "progress": 10})
+            set_job(jid, {"status": "running", "stage": "compositing", "progress": 6})
             print(f"[{jid}] Compositing...")
             bg = Image.open(scene_path).convert("RGBA")
             bg = bg.resize(portrait_rgba.size, Image.LANCZOS)
@@ -989,80 +1026,141 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         else:
             final_portrait_path = portrait_path
 
-        # Stage 3: Upload portrait
-        set_job(jid, {"status": "running", "stage": "uploading", "progress": 15})
+        # Stage 3: Upload portrait once — reused for all 4 Kling jobs
+        set_job(jid, {"status": "running", "stage": "uploading", "progress": 8})
         print(f"[{jid}] Uploading portrait...")
         portrait_url = fal_client.upload_file(final_portrait_path)
-        print(f"[{jid}] Portrait uploaded: {portrait_url}")
+        print(f"[{jid}] Portrait URL: {portrait_url}")
 
-        # Stage 4: Kling 2.5 image-to-video (natural motion, 9:16 native)
-        set_job(jid, {"status": "running", "stage": "generating_motion", "progress": 20})
-        print(f"[{jid}] Starting Kling 2.5...")
-        kling_result = fal_client.subscribe(
-            "fal-ai/kling-video/v2.5/standard/image-to-video",
-            arguments={
-                "image_url": portrait_url,
-                "prompt": (
-                    "Person speaking naturally to camera, subtle head nods, natural eye blinks, "
-                    "slight shoulder sway, realistic breathing, photorealistic, "
-                    "cinematic lighting, steady handheld camera"
-                ),
-                "duration": "5",
-                "aspect_ratio": "9:16",
-                "negative_prompt": "static, frozen, blur, grain, artifacts, jerky motion, unnatural"
-            }
-        )
-        print(f"[{jid}] Kling 2.5 done.")
-        motion_url = kling_result.get("video", {}).get("url")
-        if not motion_url:
-            raise Exception("No video URL from Kling 2.5: " + str(kling_result))
-        print(f"[{jid}] Motion URL: {motion_url}")
+        # Stage 4: Slice audio into 4 x 5s segments
+        set_job(jid, {"status": "running", "stage": "slicing_audio", "progress": 10})
+        print(f"[{jid}] Slicing audio into {len(CLIPS)} segments...")
+        audio_clips = []
+        for clip in CLIPS:
+            clip_audio = str(UPLOAD_DIR / f"{jid}_audio_{clip['idx']}.mp3")
+            duration = clip["end"] - clip["start"]
+            subprocess.run([
+                "ffmpeg", "-i", audio_path,
+                "-ss", str(clip["start"]),
+                "-t", str(duration),
+                "-c", "copy",
+                clip_audio, "-y"
+            ], capture_output=True)
+            audio_clips.append(clip_audio)
+        print(f"[{jid}] Audio sliced.")
 
-        # Stage 5: Upload audio + apply lipsync
-        set_job(jid, {"status": "running", "stage": "lipsync", "progress": 55})
-        print(f"[{jid}] Uploading audio...")
-        audio_url = fal_client.upload_file(audio_path)
-        print(f"[{jid}] Applying lipsync (sync-lipsync)...")
-        lipsync_result = fal_client.subscribe(
-            "fal-ai/sync-lipsync",
-            arguments={
-                "video_url": motion_url,
-                "audio_url": audio_url,
-                "sync_mode": "bounce",
-                "output_format": "mp4",
-                "max_face_cutout_size": 0.5
-            }
-        )
-        print(f"[{jid}] Lipsync done.")
-        output_url = lipsync_result.get("video", {}).get("url")
-        if not output_url:
-            raise Exception("No video URL from sync-lipsync: " + str(lipsync_result))
+        # Stage 5: Launch all 4 Kling 2.5 jobs in parallel
+        set_job(jid, {"status": "running", "stage": "generating_motion", "progress": 15})
+        print(f"[{jid}] Launching {len(CLIPS)} Kling 2.5 jobs in parallel...")
 
-        # Stage 6: Download
-        set_job(jid, {"status": "running", "stage": "downloading", "progress": 75})
+        def kling_job(motion_prompt):
+            return fal_client.subscribe(
+                "fal-ai/kling-video/v2.5/standard/image-to-video",
+                arguments={
+                    "image_url": portrait_url,
+                    "prompt": motion_prompt,
+                    "duration": "5",
+                    "aspect_ratio": "9:16",
+                    "negative_prompt": "static, frozen, blur, artifacts, jerky, unnatural, multiple people"
+                }
+            )
+
+        kling_tasks = [
+            loop.run_in_executor(None, partial(kling_job, clip["motion"]))
+            for clip in CLIPS
+        ]
+        kling_results = await asyncio.gather(*kling_tasks)
+
+        motion_urls = []
+        for i, result in enumerate(kling_results):
+            url = result.get("video", {}).get("url")
+            if not url:
+                raise Exception(f"No video URL from Kling clip {i}: {result}")
+            motion_urls.append(url)
+            print(f"[{jid}] Clip {i} ({CLIPS[i]['label']}) motion ready.")
+
+        # Stage 6: Upload audio slices + apply lipsync to all clips in parallel
+        set_job(jid, {"status": "running", "stage": "lipsync", "progress": 60})
+        print(f"[{jid}] Applying lipsync to all clips in parallel...")
+
+        def lipsync_job(video_url, audio_path_local):
+            audio_url = fal_client.upload_file(audio_path_local)
+            return fal_client.subscribe(
+                "fal-ai/sync-lipsync",
+                arguments={
+                    "video_url": video_url,
+                    "audio_url": audio_url,
+                    "sync_mode": "bounce",
+                    "output_format": "mp4",
+                    "max_face_cutout_size": 0.5
+                }
+            )
+
+        lipsync_tasks = [
+            loop.run_in_executor(None, partial(lipsync_job, motion_urls[i], audio_clips[i]))
+            for i in range(len(CLIPS))
+        ]
+        lipsync_results = await asyncio.gather(*lipsync_tasks)
+
+        synced_urls = []
+        for i, result in enumerate(lipsync_results):
+            url = result.get("video", {}).get("url")
+            if not url:
+                raise Exception(f"No video URL from lipsync clip {i}: {result}")
+            synced_urls.append(url)
+            print(f"[{jid}] Clip {i} lipsync ready.")
+
+        # Stage 7: Download all clips
+        set_job(jid, {"status": "running", "stage": "downloading", "progress": 78})
         import urllib.request
-        raw_path = str(OUTPUT_DIR / f"{jid}_raw.mp4")
-        urllib.request.urlretrieve(output_url, raw_path)
-        print(f"[{jid}] Downloaded to {raw_path}")
+        raw_clips = []
+        for i, url in enumerate(synced_urls):
+            clip_path = str(OUTPUT_DIR / f"{jid}_clip{i}.mp4")
+            urllib.request.urlretrieve(url, clip_path)
+            raw_clips.append(clip_path)
+            print(f"[{jid}] Downloaded clip {i}")
 
-        # Stage 7: FFmpeg post-process (ensure 9:16 + cinematic grade)
-        set_job(jid, {"status": "running", "stage": "processing", "progress": 85})
+        # Stage 8: FFmpeg concat stitch
+        set_job(jid, {"status": "running", "stage": "stitching", "progress": 85})
+        print(f"[{jid}] Stitching {len(raw_clips)} clips...")
+        concat_list = str(UPLOAD_DIR / f"{jid}_concat.txt")
+        with open(concat_list, "w") as cf:
+            for cp in raw_clips:
+                cf.write(f"file '{cp}'
+")
+
+        stitched_path = str(OUTPUT_DIR / f"{jid}_stitched.mp4")
+        ret_stitch = subprocess.run([
+            "ffmpeg", "-f", "concat", "-safe", "0",
+            "-i", concat_list,
+            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+            "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
+            stitched_path, "-y"
+        ], capture_output=True)
+        print(f"[{jid}] Stitch rc={ret_stitch.returncode}")
+        if ret_stitch.returncode != 0:
+            print(f"[{jid}] stitch stderr: {ret_stitch.stderr.decode()[:500]}")
+
+        # Stage 9: Cinematic grade + optional background music
+        set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
         final_path = str(OUTPUT_DIR / f"{jid}_final.mp4")
         vf = (
             "scale=720:1280:force_original_aspect_ratio=increase,"
             "crop=720:1280,"
-            "noise=alls=4:allf=t+u,"
-            "unsharp=5:5:0.8:5:5:0.0,"
-            "eq=contrast=1.05:brightness=0.02:saturation=1.08"
+            "noise=alls=3:allf=t+u,"
+            "unsharp=5:5:0.6:5:5:0.0,"
+            "eq=contrast=1.04:brightness=0.02:saturation=1.06"
         )
+        src = stitched_path if Path(stitched_path).exists() else raw_clips[-1]
         if music_path and Path(music_path).exists():
             print(f"[{jid}] Mixing background music: {music_path}")
             ret = subprocess.run([
-                "ffmpeg", "-i", raw_path,
+                "ffmpeg", "-i", src,
                 "-stream_loop", "-1", "-i", music_path,
                 "-vf", vf,
                 "-filter_complex",
-                "[1:a]volume=0.02,aloop=loop=-1:size=2147483647[bg];[0:a]volume=1.8[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                "[1:a]volume=0.015,aloop=loop=-1:size=2147483647[bg];[0:a]volume=1.6[voice];[voice][bg]amix=inputs=2:duration=first:dropout_transition=2[a]",
                 "-map", "0:v", "-map", "[a]",
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                 "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
@@ -1070,28 +1168,27 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
             ], capture_output=True)
         else:
             ret = subprocess.run([
-                "ffmpeg", "-i", raw_path,
-                "-vf", vf,
+                "ffmpeg", "-i", src, "-vf", vf,
                 "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                "-af", "volume=1.8", "-c:a", "aac", "-b:a", "128k",
+                "-af", "volume=1.6", "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
                 final_path, "-y"
             ], capture_output=True)
-        print(f"[{jid}] ffmpeg done. Return code: {ret.returncode}")
+        print(f"[{jid}] Grade done. rc={ret.returncode}")
         if ret.returncode != 0:
-            print(f"[{jid}] ffmpeg stderr: {ret.stderr.decode()[:500]}")
+            print(f"[{jid}] grade stderr: {ret.stderr.decode()[:500]}")
 
         if not Path(final_path).exists():
-            final_path = raw_path
+            final_path = src
 
-        # Stage 8: Upload final video to fal.ai storage
-        print(f"[{jid}] Uploading final video...")
+        # Stage 10: Upload final video
+        print(f"[{jid}] Uploading final 20s video...")
         final_url = fal_client.upload_file(final_path)
         print(f"[{jid}] Final URL: {final_url}")
 
         set_job(jid, {"status": "complete", "progress": 100, "stage": "done",
                       "output": final_path, "url": final_url})
-        print(f"[{jid}] Pipeline complete!")
+        print(f"[{jid}] Pipeline complete! 20-second cinematic video ready.")
 
     except Exception as e:
         print(f"[{jid}] ERROR: {e}")
