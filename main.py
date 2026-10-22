@@ -1,6 +1,6 @@
 import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
-from fastapi import FastAPI, Form, UploadFile, File
+from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
@@ -15,6 +15,19 @@ ELEVENLABS_KEY = os.environ.get("ELEVENLABS_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+
+async def get_current_user(authorization: str = Header(None)):
+    """Validate Supabase JWT and return user_id."""
+    if not sb:
+        return "anon"
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ", 1)[1]
+    try:
+        resp = sb.auth.get_user(token)
+        return resp.user.id
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
 FAL_KEY        = os.environ.get("FAL_KEY", "")
 PEXELS_KEY     = os.environ.get("PEXELS_KEY", "")
 
@@ -198,13 +211,13 @@ async def get_voices():
 
 
 @app.get("/personas")
-async def get_personas():
+async def get_personas(user_id: str = Depends(get_current_user)):
     """Return all personas from Supabase, merging portrait and LoRA data."""
     if not sb:
         return {"personas": []}
     # Try a dedicated personas table first
     try:
-        rows = sb.table("personas").select("*").execute().data
+        rows = sb.table("personas").select("*").eq("user_id", user_id).execute().data
         if rows:
             # Normalise column names to what the frontend expects
             out = []
@@ -252,7 +265,7 @@ async def get_personas():
 
 
 @app.post("/personas")
-async def upsert_persona(request: Request):
+async def upsert_persona(request: Request, user_id: str = Depends(get_current_user)):
     """Create or update a persona in Supabase (upsert by name)."""
     if not sb:
         return JSONResponse({"error": "DB not configured"}, status_code=503)
@@ -277,9 +290,10 @@ async def upsert_persona(request: Request):
         "skill_name":  data.get("skill_name"),
         "skill_text":  data.get("skill") or data.get("skill_text"),
         "updated_at":  "now()",
+        "user_id":     user_id,
     }.items() if v is not None}
     try:
-        sb.table("personas").upsert(row, on_conflict="name").execute()
+        sb.table("personas").upsert(row, on_conflict="name,user_id").execute()
         return {"ok": True}
     except Exception as e:
         print(f"upsert persona error: {e}")
@@ -287,12 +301,12 @@ async def upsert_persona(request: Request):
 
 
 @app.get("/videos")
-async def get_videos():
+async def get_videos(user_id: str = Depends(get_current_user)):
     """Return all videos from Supabase, newest first."""
     if not sb:
         return {"videos": []}
     try:
-        rows = sb.table("videos").select("*").order("created_at", desc=True).execute().data or []
+        rows = sb.table("videos").select("*").eq("user_id", user_id).order("created_at", desc=True).execute().data or []
         return {"videos": [{
             "jid":       r["jid"],
             "title":     r.get("title", ""),
@@ -309,7 +323,7 @@ async def get_videos():
 
 
 @app.post("/videos")
-async def upsert_video(request: Request):
+async def upsert_video(request: Request, user_id: str = Depends(get_current_user)):
     """Create or update a video record in Supabase (upsert by jid)."""
     if not sb:
         return JSONResponse({"error": "DB not configured"}, status_code=503)
@@ -326,6 +340,7 @@ async def upsert_video(request: Request):
         "time":         data.get("time", ""),
         "url":          data.get("url", ""),
         "published":    data.get("published", False),
+        "user_id":      user_id,
     }.items() if v is not None}
     try:
         sb.table("videos").upsert(row, on_conflict="jid").execute()
@@ -336,12 +351,12 @@ async def upsert_video(request: Request):
 
 
 @app.delete("/videos/{jid}")
-async def delete_video(jid: str):
+async def delete_video(jid: str, user_id: str = Depends(get_current_user)):
     """Delete a video record from Supabase."""
     if not sb:
         return JSONResponse({"error": "DB not configured"}, status_code=503)
     try:
-        sb.table("videos").delete().eq("jid", jid).execute()
+        sb.table("videos").delete().eq("jid", jid).eq("user_id", user_id).execute()
         return {"ok": True}
     except Exception as e:
         print(f"delete video error: {e}")
