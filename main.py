@@ -1,3 +1,4 @@
+import json
 import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException
@@ -1313,8 +1314,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         concat_list = str(UPLOAD_DIR / f"{jid}_concat.txt")
         with open(concat_list, "w") as cf:
             for cp in raw_clips:
-                cf.write(f"file '{cp}'
-")
+                cf.write("file '" + cp + "'\n")
 
         stitched_path = str(OUTPUT_DIR / f"{jid}_stitched.mp4")
         ret_stitch = subprocess.run([
