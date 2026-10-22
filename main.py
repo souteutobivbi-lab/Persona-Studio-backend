@@ -2161,3 +2161,49 @@ async def admin_fix_encoding(secret: str = Form(...)):
     save_jobs(fixed)
     changed = sum(1 for jid in fixed if str(fixed[jid]) != str(jobs.get(jid,{})))
     return {"status": "done", "jobs_processed": len(fixed)}
+
+# -- Folders ----------------------------------------------------------
+@app.get("/folders")
+async def get_folders(user_id: str = Depends(get_current_user)):
+    r = sb.table("folders").select("*").eq("user_id", user_id).order("created_at").execute()
+    return r.data or []
+
+@app.post("/folders")
+async def create_folder(request: Request, user_id: str = Depends(get_current_user)):
+    d = await request.json()
+    row = {"user_id": user_id, "name": d.get("name","New Folder"),
+           "icon": d.get("icon","??"), "persona_id": d.get("persona_id")}
+    r = sb.table("folders").insert(row).execute()
+    return r.data[0] if r.data else {}
+
+@app.delete("/folders/{fid}")
+async def delete_folder(fid: str, user_id: str = Depends(get_current_user)):
+    sb.table("folders").delete().eq("id", fid).eq("user_id", user_id).execute()
+    return {"ok": True}
+
+# -- Saved Scripts -----------------------------------------------------
+@app.get("/scripts")
+async def get_scripts(user_id: str = Depends(get_current_user)):
+    r = sb.table("saved_scripts").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    return r.data or []
+
+@app.post("/scripts")
+async def save_script(request: Request, user_id: str = Depends(get_current_user)):
+    d = await request.json()
+    row = {"user_id": user_id, "title": d.get("title","Untitled"),
+           "content": d.get("content",""), "instructions": d.get("instructions",""),
+           "persona_id": d.get("persona_id"), "persona_name": d.get("persona_name",""),
+           "niche": d.get("niche",""), "folder_id": d.get("folder_id")}
+    r = sb.table("saved_scripts").insert(row).execute()
+    return r.data[0] if r.data else {}
+
+@app.patch("/scripts/{sid}")
+async def update_script(sid: str, request: Request, user_id: str = Depends(get_current_user)):
+    d = await request.json()
+    r = sb.table("saved_scripts").update(d).eq("id", sid).eq("user_id", user_id).execute()
+    return r.data[0] if r.data else {}
+
+@app.delete("/scripts/{sid}")
+async def delete_script(sid: str, user_id: str = Depends(get_current_user)):
+    sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", user_id).execute()
+    return {"ok": True}
