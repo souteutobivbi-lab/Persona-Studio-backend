@@ -9,6 +9,23 @@ import httpx
 from supabase import create_client
 
 app = FastAPI()
+@app.get("/")
+async def root():
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "static" / "landing.html"
+    if not p.exists():
+        p = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(str(p))
+
+@app.get("/app")
+async def app_page():
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(str(p))
+
+
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEY       = os.environ.get("GROQ_KEY", "")
@@ -85,6 +102,13 @@ async def health():
 
 @app.get("/")
 async def root():
+    p = Path(__file__).parent / "static" / "landing.html"
+    if not p.exists():
+        p = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(str(p))
+
+@app.get("/app")
+async def app_page():
     p = Path(__file__).parent / "static" / "index.html"
     if p.exists():
         content = p.read_text()
