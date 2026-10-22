@@ -178,13 +178,175 @@ async def get_voices():
     if r.status_code != 200:
         return JSONResponse({"error": "ElevenLabs error"}, status_code=400)
     voices = r.json().get("voices", [])
-    custom_voice = {"id": "mGzBE5uXRa6uy9ilKVOD", "name": "Soute - CEO", "description": "Custom cloned voice", "is_cloned": True}
-    vlist = [{"id": v["voice_id"], "name": v["name"],
-              "description": ", ".join(v.get("labels", {}).values()),
-              "is_cloned": v.get("category") == "cloned"} for v in voices]
-    if not any(v["id"] == "mGzBE5uXRa6uy9ilKVOD" for v in vlist):
+    custom_voice = {
+        "voice_id": "mGzBE5uXRa6uy9ilKVOD",
+        "name": "Soute - CEO",
+        "labels": {"description": "Custom cloned voice"},
+        "preview_url": None,
+        "is_cloned": True
+    }
+    vlist = [{
+        "voice_id": v["voice_id"],
+        "name": v["name"],
+        "labels": v.get("labels", {}),
+        "preview_url": v.get("preview_url"),
+        "is_cloned": v.get("category") == "cloned"
+    } for v in voices]
+    if not any(v["voice_id"] == "mGzBE5uXRa6uy9ilKVOD" for v in vlist):
         vlist.insert(0, custom_voice)
-    return sorted(vlist, key=lambda x: (0 if x["is_cloned"] else 1))
+    return {"voices": sorted(vlist, key=lambda x: (0 if x["is_cloned"] else 1))}
+
+
+@app.get("/personas")
+async def get_personas():
+    """Return all personas from Supabase, merging portrait and LoRA data."""
+    if not sb:
+        return {"personas": []}
+    # Try a dedicated personas table first
+    try:
+        rows = sb.table("personas").select("*").execute().data
+        if rows:
+            # Normalise column names to what the frontend expects
+            out = []
+            for r in rows:
+                out.append({
+                    "name":        r.get("name") or r.get("persona_name", ""),
+                    "role":        r.get("role", ""),
+                    "age":         r.get("age", ""),
+                    "sex":         r.get("sex", "female"),
+                    "appearance":  r.get("appearance", ""),
+                    "color":       r.get("color", ""),
+                    "portrait":    r.get("portrait") or r.get("portrait_url"),
+                    "lora_url":    r.get("lora_url"),
+                    "lora_trigger":r.get("lora_trigger") or r.get("trigger_word"),
+                    "skill":       r.get("skill", ""),
+                    "skill_name":  r.get("skill_name", ""),
+                    "niche":       r.get("niche", ""),
+                    "topic":       r.get("topic", ""),
+                    "scene":       r.get("scene", ""),
+                    "voice_id":    r.get("voice_id"),
+                })
+            return {"personas": out}
+    except Exception as e:
+        print(f"personas table query error: {e}")
+
+    # Fallback: join portraits + loras tables by persona_name
+    personas: dict = {}
+    try:
+        for r in (sb.table("portraits").select("*").execute().data or []):
+            n = r.get("persona_name", "")
+            if n:
+                personas[n] = {"name": n, "portrait": r.get("portrait_url")}
+    except Exception as e:
+        print(f"portraits query error: {e}")
+    try:
+        for r in (sb.table("loras").select("*").execute().data or []):
+            n = r.get("persona_name", "")
+            if n:
+                personas.setdefault(n, {"name": n})
+                personas[n]["lora_url"]     = r.get("lora_url")
+                personas[n]["lora_trigger"] = r.get("trigger_word")
+    except Exception as e:
+        print(f"loras query error: {e}")
+    return {"personas": list(personas.values())}
+
+
+@app.post("/personas")
+async def upsert_persona(request: Request):
+    """Create or update a persona in Supabase (upsert by name)."""
+    if not sb:
+        return JSONResponse({"error": "DB not configured"}, status_code=503)
+    data = await request.json()
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JSONResponse({"error": "name required"}, status_code=400)
+    row = {k: v for k, v in {
+        "name":        name,
+        "role":        data.get("role"),
+        "age":         data.get("age"),
+        "sex":         data.get("sex", "female"),
+        "color":       data.get("color"),
+        "appearance":  data.get("appearance"),
+        "portrait_url": data.get("portrait") or data.get("portrait_url"),
+        "lora_url":    data.get("lora_url"),
+        "lora_trigger": data.get("lora_trigger"),
+        "voice_id":    data.get("voice_id"),
+        "niche":       data.get("niche"),
+        "topic":       data.get("topic"),
+        "scene":       data.get("scene"),
+        "skill_name":  data.get("skill_name"),
+        "skill_text":  data.get("skill") or data.get("skill_text"),
+        "updated_at":  "now()",
+    }.items() if v is not None}
+    try:
+        sb.table("personas").upsert(row, on_conflict="name").execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"upsert persona error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/videos")
+async def get_videos():
+    """Return all videos from Supabase, newest first."""
+    if not sb:
+        return {"videos": []}
+    try:
+        rows = sb.table("videos").select("*").order("created_at", desc=True).execute().data or []
+        return {"videos": [{
+            "jid":       r["jid"],
+            "title":     r.get("title", ""),
+            "persona":   r.get("persona_name", ""),
+            "color":     r.get("color", ""),
+            "niche":     r.get("niche", ""),
+            "time":      r.get("time", ""),
+            "url":       r.get("url", ""),
+            "published": r.get("published", False),
+        } for r in rows]}
+    except Exception as e:
+        print(f"get videos error: {e}")
+        return {"videos": []}
+
+
+@app.post("/videos")
+async def upsert_video(request: Request):
+    """Create or update a video record in Supabase (upsert by jid)."""
+    if not sb:
+        return JSONResponse({"error": "DB not configured"}, status_code=503)
+    data = await request.json()
+    jid = (data.get("jid") or "").strip()
+    if not jid:
+        return JSONResponse({"error": "jid required"}, status_code=400)
+    row = {k: v for k, v in {
+        "jid":          jid,
+        "title":        data.get("title", ""),
+        "persona_name": data.get("persona", ""),
+        "color":        data.get("color", ""),
+        "niche":        data.get("niche", ""),
+        "time":         data.get("time", ""),
+        "url":          data.get("url", ""),
+        "published":    data.get("published", False),
+    }.items() if v is not None}
+    try:
+        sb.table("videos").upsert(row, on_conflict="jid").execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"upsert video error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.delete("/videos/{jid}")
+async def delete_video(jid: str):
+    """Delete a video record from Supabase."""
+    if not sb:
+        return JSONResponse({"error": "DB not configured"}, status_code=503)
+    try:
+        sb.table("videos").delete().eq("jid", jid).execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"delete video error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 
 @app.post("/generate-script")
 async def generate_script(

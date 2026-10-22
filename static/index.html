@@ -8160,6 +8160,27 @@ function deleteVideo(jid){
 
 // →→ PERSISTENCE →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
+function pushPersonasToDB() {
+  const api = API();
+  S.personas.forEach(p => {
+    fetch(api + '/personas', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name:p.name, role:p.role||'', age:p.age||'', sex:p.sex||'female',
+        color:p.color||'', appearance:p.appearance||'', portrait:p.portrait||'',
+        lora_url:p.loraUrl||'', lora_trigger:p.loraTrigger||'',
+        voice_id:p.voiceId||'', niche:p.niche||'', topic:p.topic||'',
+        scene:p.scene||'', skill_name:p.skillName||'', skill:p.skill||''
+      })
+    }).catch(()=>{});
+  });
+  S.videos.forEach(v => {
+    fetch(api + '/videos', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(v)
+    }).catch(()=>{});
+  });
+}
 function saveAll(){
 
   try{
@@ -8179,6 +8200,7 @@ function saveAll(){
       savedPortraits:S.savedPortraits};
 
     localStorage.setItem('persona_v1',JSON.stringify(d));
+    setTimeout(pushPersonasToDB, 0);
 
     S.skills.forEach((s,i)=>{try{localStorage.setItem('persona_skill_'+i,s.text);}catch(e){}});
 
@@ -8256,7 +8278,47 @@ function toast(msg,type='ok'){
 
 // →→ INIT →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
-loadAll();
+
+
+// -- DB sync -------------------------------------------------------------------
+async function syncFromDB() {
+  try {
+    const api = API();
+    const [pRes, vRes] = await Promise.all([
+      fetch(api + '/personas').then(r => r.ok ? r.json() : {personas:[]}),
+      fetch(api + '/videos').then(r => r.ok ? r.json() : {videos:[]})
+    ]);
+    // Merge personas � DB wins for existing, keep local-only ones
+    const dbMap = {};
+    (pRes.personas || []).forEach(p => { if(p.name) dbMap[p.name] = p; });
+    const merged = [...S.personas];
+    Object.values(dbMap).forEach(dp => {
+      const idx = merged.findIndex(p => p.name === dp.name);
+      const local = idx >= 0 ? merged[idx] : {};
+      const mp = {
+        ...local, ...dp,
+        portrait: dp.portrait || dp.portrait_url || local.portrait,
+        loraUrl: dp.lora_url || local.loraUrl,
+        loraTrigger: dp.lora_trigger || local.loraTrigger,
+        voiceId: dp.voice_id || local.voiceId,
+        skill: dp.skill_text || dp.skill || local.skill || '',
+        skillName: dp.skill_name || local.skillName || '',
+        role: dp.role || local.role || '',
+      };
+      if(idx >= 0) merged[idx] = mp; else merged.push(mp);
+    });
+    if(merged.length) { S.personas = merged; S.persona = S.personas[0]; }
+    // Merge videos � DB wins, deduplicate by jid
+    const vidMap = {};
+    S.videos.forEach(v => { if(v.jid) vidMap[v.jid] = v; });
+    (vRes.videos || []).forEach(v => { if(v.jid) vidMap[v.jid] = {...(vidMap[v.jid]||{}), ...v}; });
+    S.videos = Object.values(vidMap).sort((a,b) => (b.jid||'').localeCompare(a.jid||''));
+    saveAll();
+    renderSidePersonas(); renderCreatePersonas(); updateDashboard();
+    try { renderHistory(); } catch(e) {}
+  } catch(e) { console.warn('syncFromDB failed', e); }
+}
+syncFromDB();
 
 if(!S.personas.length)S.personas=DEFAULTS.map(p=>({...p}));
 
