@@ -9,10 +9,11 @@ import httpx
 from supabase import create_client
 
 app = FastAPI()
+
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
 @app.get("/")
 async def root():
-    from pathlib import Path
-    from fastapi.responses import FileResponse
     p = Path(__file__).parent / "static" / "landing.html"
     if not p.exists():
         p = Path(__file__).parent / "static" / "index.html"
@@ -20,13 +21,9 @@ async def root():
 
 @app.get("/app")
 async def app_page():
-    from pathlib import Path
-    from fastapi.responses import FileResponse
     p = Path(__file__).parent / "static" / "index.html"
     return FileResponse(str(p))
 
-
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEY       = os.environ.get("GROQ_KEY", "")
 ELEVENLABS_KEY = os.environ.get("ELEVENLABS_KEY", "")
@@ -90,6 +87,23 @@ def set_job(jid, data):
     jobs = load_jobs()
     jobs[jid] = data
     save_jobs(jobs)
+
+
+@app.get("/")
+async def root():
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "static" / "landing.html"
+    if not p.exists():
+        p = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(str(p))
+
+@app.get("/app")
+async def app_page():
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(str(p))
 
 
 @app.get("/robots.txt")
