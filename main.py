@@ -1121,6 +1121,7 @@ async def generate_video(
     bg_music: str = Form(""),  # track id from MUSIC_TRACKS, empty = no music
     script: Optional[str] = Form(None),
     caption_style: Optional[str] = Form(None),
+    clip_prompts_json: Optional[str] = Form(None),
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
@@ -1136,7 +1137,8 @@ async def generate_video(
     if bg_music and bg_music in MUSIC_TRACKS:
         music_path = str(MUSIC_DIR / MUSIC_TRACKS[bg_music]["file"])
         print(f"[{jid}] Background music: {bg_music}")
-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path, script_text=script, caption_style=caption_style))
+    parsed_clips = json.loads(clip_prompts_json) if clip_prompts_json else None
+    asyncio.create_task(run_video_pipeline(jid, portrait_path, audio_path, scene_path=scene_path, script_text=script, caption_style=caption_style, clip_prompts=parsed_clips))
     return {"job_id": jid, "status": "running"}
 
 async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None, script_text=None, caption_style=None, clip_prompts=None):
@@ -1163,10 +1165,17 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
             "photorealistic, cinematic close-up, steady camera"
         ),
     ]
-    resolved_prompts = [
-        (clip_prompts[i] if clip_prompts and clip_prompts[i] and clip_prompts[i].strip() else DEFAULT_PROMPTS[i])
-        for i in range(4)
+    n_clips = len(clip_prompts) if clip_prompts else 4
+    EXTRA_PROMPTS = [
+        "Person gestures expressively with both hands, leans slightly forward, natural blinking, bright clean background, photorealistic, cinematic",
+        "Person steps back slightly, arms open wide, warm confident smile, natural movement, bright studio, photorealistic, cinematic",
+        "Person turns slightly to side then back to camera, thoughtful expression, minimal movement, clean background, photorealistic, cinematic",
+        "Person nods slowly, direct eye contact, subtle smile, calm composed, bright clean background, photorealistic, cinematic close-up",
     ]
+    _all_defaults = DEFAULT_PROMPTS + EXTRA_PROMPTS
+    resolved_prompts = [
+        (clip_prompts[i] if clip_prompts and clip_prompts[i] and clip_prompts[i].strip() else _all_defaults[i % len(_all_defaults)])
+        for i in range(n_clips)]
     try:
         import fal_client
         from PIL import Image
@@ -1177,11 +1186,12 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         print(f"[{jid}] Pipeline started (Phase 2: 4-clip cinematic 20s).")
 
         # Beat map: 4 clips x 5s = 20s
+        _labels = ["hook","bridge","value","cta","expand","proof","close","outro"]
         CLIPS = [
-            {"idx": 0, "start": 0.0,  "end": 5.0,  "label": "hook",   "motion": resolved_prompts[0]},
-            {"idx": 1, "start": 5.0,  "end": 10.0, "label": "bridge",  "motion": resolved_prompts[1]},
-            {"idx": 2, "start": 10.0, "end": 15.0, "label": "value",   "motion": resolved_prompts[2]},
-            {"idx": 3, "start": 15.0, "end": 20.0, "label": "cta",     "motion": resolved_prompts[3]},
+            {"idx": i, "start": i*5.0, "end": (i+1)*5.0,
+             "label": _labels[i] if i < len(_labels) else f"clip{i+1}",
+             "motion": resolved_prompts[i]}
+            for i in range(n_clips)
         ]
 
         # Stage 1: Remove background
