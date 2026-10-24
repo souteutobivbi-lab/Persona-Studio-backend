@@ -1,7 +1,6 @@
-import json
 import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
-from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException, Request
+from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
@@ -9,21 +8,7 @@ import httpx
 from supabase import create_client
 
 app = FastAPI()
-
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
-@app.get("/")
-async def root():
-    p = Path(__file__).parent / "static" / "landing.html"
-    if not p.exists():
-        p = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(str(p))
-
-@app.get("/app")
-async def app_page():
-    p = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(str(p))
-
 
 GROQ_KEY       = os.environ.get("GROQ_KEY", "")
 ELEVENLABS_KEY = os.environ.get("ELEVENLABS_KEY", "")
@@ -89,23 +74,6 @@ def set_job(jid, data):
     save_jobs(jobs)
 
 
-@app.get("/")
-async def root():
-    from pathlib import Path
-    from fastapi.responses import FileResponse
-    p = Path(__file__).parent / "static" / "landing.html"
-    if not p.exists():
-        p = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(str(p))
-
-@app.get("/app")
-async def app_page():
-    from pathlib import Path
-    from fastapi.responses import FileResponse
-    p = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(str(p))
-
-
 @app.get("/robots.txt")
 async def robots():
     return HTMLResponse("User-agent: *\nDisallow: /\n", media_type="text/plain")
@@ -116,13 +84,6 @@ async def health():
 
 @app.get("/")
 async def root():
-    p = Path(__file__).parent / "static" / "landing.html"
-    if not p.exists():
-        p = Path(__file__).parent / "static" / "index.html"
-    return FileResponse(str(p))
-
-@app.get("/app")
-async def app_page():
     p = Path(__file__).parent / "static" / "index.html"
     if p.exists():
         content = p.read_text()
@@ -1160,7 +1121,6 @@ async def generate_video(
     bg_music: str = Form(""),  # track id from MUSIC_TRACKS, empty = no music
     script: Optional[str] = Form(None),
     caption_style: Optional[str] = Form(None),
-    clip_prompts_json: Optional[str] = Form(None),
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
@@ -1176,8 +1136,7 @@ async def generate_video(
     if bg_music and bg_music in MUSIC_TRACKS:
         music_path = str(MUSIC_DIR / MUSIC_TRACKS[bg_music]["file"])
         print(f"[{jid}] Background music: {bg_music}")
-    parsed_clips = json.loads(clip_prompts_json) if clip_prompts_json else None
-    asyncio.create_task(run_video_pipeline(jid, portrait_path, audio_path, scene_path=scene_path, script_text=script, caption_style=caption_style, clip_prompts=parsed_clips))
+    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path, script_text=script, caption_style=caption_style))
     return {"job_id": jid, "status": "running"}
 
 async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None, script_text=None, caption_style=None, clip_prompts=None):
@@ -1204,17 +1163,10 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
             "photorealistic, cinematic close-up, steady camera"
         ),
     ]
-    n_clips = len(clip_prompts) if clip_prompts else 4
-    EXTRA_PROMPTS = [
-        "Person gestures expressively with both hands, leans slightly forward, natural blinking, bright clean background, photorealistic, cinematic",
-        "Person steps back slightly, arms open wide, warm confident smile, natural movement, bright studio, photorealistic, cinematic",
-        "Person turns slightly to side then back to camera, thoughtful expression, minimal movement, clean background, photorealistic, cinematic",
-        "Person nods slowly, direct eye contact, subtle smile, calm composed, bright clean background, photorealistic, cinematic close-up",
-    ]
-    _all_defaults = DEFAULT_PROMPTS + EXTRA_PROMPTS
     resolved_prompts = [
-        (clip_prompts[i] if clip_prompts and clip_prompts[i] and clip_prompts[i].strip() else _all_defaults[i % len(_all_defaults)])
-        for i in range(n_clips)]
+        (clip_prompts[i] if clip_prompts and clip_prompts[i] and clip_prompts[i].strip() else DEFAULT_PROMPTS[i])
+        for i in range(4)
+    ]
     try:
         import fal_client
         from PIL import Image
@@ -1225,12 +1177,11 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         print(f"[{jid}] Pipeline started (Phase 2: 4-clip cinematic 20s).")
 
         # Beat map: 4 clips x 5s = 20s
-        _labels = ["hook","bridge","value","cta","expand","proof","close","outro"]
         CLIPS = [
-            {"idx": i, "start": i*5.0, "end": (i+1)*5.0,
-             "label": _labels[i] if i < len(_labels) else f"clip{i+1}",
-             "motion": resolved_prompts[i]}
-            for i in range(n_clips)
+            {"idx": 0, "start": 0.0,  "end": 5.0,  "label": "hook",   "motion": resolved_prompts[0]},
+            {"idx": 1, "start": 5.0,  "end": 10.0, "label": "bridge",  "motion": resolved_prompts[1]},
+            {"idx": 2, "start": 10.0, "end": 15.0, "label": "value",   "motion": resolved_prompts[2]},
+            {"idx": 3, "start": 15.0, "end": 20.0, "label": "cta",     "motion": resolved_prompts[3]},
         ]
 
         # Stage 1: Remove background
@@ -1352,7 +1303,8 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         concat_list = str(UPLOAD_DIR / f"{jid}_concat.txt")
         with open(concat_list, "w") as cf:
             for cp in raw_clips:
-                cf.write("file '" + cp + "'\n")
+                cf.write(f"file '{cp}'
+")
 
         stitched_path = str(OUTPUT_DIR / f"{jid}_stitched.mp4")
         ret_stitch = subprocess.run([
@@ -2209,49 +2161,3 @@ async def admin_fix_encoding(secret: str = Form(...)):
     save_jobs(fixed)
     changed = sum(1 for jid in fixed if str(fixed[jid]) != str(jobs.get(jid,{})))
     return {"status": "done", "jobs_processed": len(fixed)}
-
-# -- Folders ----------------------------------------------------------
-@app.get("/folders")
-async def get_folders(user_id: str = Depends(get_current_user)):
-    r = sb.table("folders").select("*").eq("user_id", user_id).order("created_at").execute()
-    return r.data or []
-
-@app.post("/folders")
-async def create_folder(request: Request, user_id: str = Depends(get_current_user)):
-    d = await request.json()
-    row = {"user_id": user_id, "name": d.get("name","New Folder"),
-           "icon": d.get("icon","??"), "persona_id": d.get("persona_id")}
-    r = sb.table("folders").insert(row).execute()
-    return r.data[0] if r.data else {}
-
-@app.delete("/folders/{fid}")
-async def delete_folder(fid: str, user_id: str = Depends(get_current_user)):
-    sb.table("folders").delete().eq("id", fid).eq("user_id", user_id).execute()
-    return {"ok": True}
-
-# -- Saved Scripts -----------------------------------------------------
-@app.get("/scripts")
-async def get_scripts(user_id: str = Depends(get_current_user)):
-    r = sb.table("saved_scripts").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
-    return r.data or []
-
-@app.post("/scripts")
-async def save_script(request: Request, user_id: str = Depends(get_current_user)):
-    d = await request.json()
-    row = {"user_id": user_id, "title": d.get("title","Untitled"),
-           "content": d.get("content",""), "instructions": d.get("instructions",""),
-           "persona_id": d.get("persona_id"), "persona_name": d.get("persona_name",""),
-           "niche": d.get("niche",""), "folder_id": d.get("folder_id")}
-    r = sb.table("saved_scripts").insert(row).execute()
-    return r.data[0] if r.data else {}
-
-@app.patch("/scripts/{sid}")
-async def update_script(sid: str, request: Request, user_id: str = Depends(get_current_user)):
-    d = await request.json()
-    r = sb.table("saved_scripts").update(d).eq("id", sid).eq("user_id", user_id).execute()
-    return r.data[0] if r.data else {}
-
-@app.delete("/scripts/{sid}")
-async def delete_script(sid: str, user_id: str = Depends(get_current_user)):
-    sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", user_id).execute()
-    return {"ok": True}

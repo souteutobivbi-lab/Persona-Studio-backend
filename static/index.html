@@ -4731,7 +4731,7 @@ async function qsGenerate(){
 
 function useScript(){S.script=document.getElementById('qsScript').textContent;document.getElementById('scriptBox').textContent=S.script;document.getElementById('scriptCard').style.display='block';showPanel('create',null);goStep(3);}
 
-async function saveScript(){const t=document.getElementById('scriptBox').textContent.trim();if(!t)return;const title=prompt('Name this script:','Script – '+(S.persona?.name||S.niche||'Draft'));if(title===null)return;const res=await fetch('/scripts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content:t,persona_id:S.persona?.id||null,persona_name:S.persona?.name||'',niche:S.niche||''})});if(res.ok){toast('Script saved ?');await loadSavedScripts();}else toast('Save failed','err');}
+function saveScript(){const t=document.getElementById('scriptBox').textContent;if(!t)return;S.savedScripts.push({text:t,persona:S.persona?.name||'',niche:S.niche,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
 
 function saveScriptQS(){const t=document.getElementById('qsScript').textContent;if(!t)return;S.savedScripts.push({text:t,persona:document.getElementById('qsPersona').value,niche:document.getElementById('qsNiche').value,time:new Date().toLocaleString()});saveAll();updateDocCounts();toast('Script saved');}
 
@@ -7196,7 +7196,7 @@ async function startGen(){
 
       uploading:'Uploading files to fal.ai...',
 
-      generating_video:'Kling 2.5 generating motion clips (4x parallel) — 60-90 seconds...',
+      generating_video:'Flashtalk generating lip-sync video â€” this takes 30â€“90 seconds...',
 
       downloading:'Downloading generated video...',
 
@@ -8656,122 +8656,6 @@ async function enhanceVideo(btn) {
 
 }
 
-
-// -- Saved Scripts + Folders ------------------------------------------
-var _savedScripts=[], _folders=[], _activeFolder=null;
-
-async function loadSavedScripts(){
-  try{
-    const [sr,fr]=await Promise.all([fetch('/scripts'),fetch('/folders')]);
-    _savedScripts=await sr.json();
-    _folders=await fr.json();
-  }catch(e){_savedScripts=[];_folders=[];}
-  renderFolders();renderSavedScripts();updateDocCounts();
-}
-
-function renderFolders(){
-  const el=document.getElementById('docFolderList');if(!el)return;
-  const btns=_folders.map(f=>`<button class="btn ghost sm" style="display:inline-flex;align-items:center;gap:4px;${_activeFolder===f.id?'background:var(--purple);color:#fff;':''}" onclick="setActiveFolder('${f.id}')">${f.icon||'??'} ${f.name}<span onclick="event.stopPropagation();deleteFolder('${f.id}')" style="margin-left:4px;opacity:.5;cursor:pointer;">×</span></button>`).join('');
-  el.innerHTML=(btns?`<button class="btn ghost sm" onclick="setActiveFolder(null)" style="${!_activeFolder?'background:var(--purple);color:#fff;':''}">All</button>`+btns:'');
-}
-
-function setActiveFolder(id){_activeFolder=id;renderFolders();renderSavedScripts();}
-
-function renderSavedScripts(){
-  const el=document.getElementById('docScriptList');if(!el)return;
-  const q=(document.getElementById('scriptFilter')?.value||'').toLowerCase();
-  let list=_savedScripts.filter(s=>!_activeFolder||s.folder_id===_activeFolder);
-  if(q)list=list.filter(s=>s.title.toLowerCase().includes(q)||s.content.toLowerCase().includes(q));
-  if(!list.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">No saved scripts yet.</div>';return;}
-  el.innerHTML=list.map(s=>`
-    <div class="doc-item" style="cursor:default;">
-      <div class="doc-item-icon">??</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:13px;">${s.title}</div>
-        <div style="font-size:11px;color:var(--muted);">${s.persona_name||''}${s.niche?' · '+s.niche:''} · ${new Date(s.created_at).toLocaleDateString()}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(s.content||'').substring(0,100)}…</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-        <button class="btn ghost sm" onclick="useScript('${s.id}')">? Use</button>
-        <select class="inp" style="font-size:11px;padding:2px 4px;" onchange="moveScriptToFolder('${s.id}',this.value)">
-          <option value="">Move to…</option>
-          ${_folders.map(f=>`<option value="${f.id}" ${s.folder_id===f.id?'selected':''}>${f.name}</option>`).join('')}
-        </select>
-        <button class="btn ghost sm" style="color:var(--red);" onclick="deleteScript('${s.id}')">??</button>
-      </div>
-    </div>`).join('');
-  document.getElementById('docScriptCount').textContent=list.length;
-}
-
-function useScript(id){
-  const s=_savedScripts.find(x=>x.id===id);if(!s)return;
-  showPanel('create',null);goStep(2);
-  setTimeout(()=>{
-    const box=document.getElementById('scriptBox');
-    if(box){box.textContent=s.content;document.getElementById('scriptCard').style.display='block';}
-    toast('Script loaded: '+s.title);
-  },300);
-}
-
-async function deleteScript(id){
-  if(!confirm('Delete this script?'))return;
-  await fetch('/scripts/'+id,{method:'DELETE'});
-  await loadSavedScripts();
-}
-
-async function moveScriptToFolder(sid,fid){
-  await fetch('/scripts/'+sid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({folder_id:fid||null})});
-  await loadSavedScripts();
-}
-
-function showNewFolderModal(){
-  const name=prompt('Folder name:');if(!name)return;
-  const icon=prompt('Icon (emoji):','??')||'??';
-  createFolder(name,icon);
-}
-
-async function createFolder(name,icon){
-  const pid=S.persona?.id||null;
-  await fetch('/folders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,icon,persona_id:pid})});
-  await loadSavedScripts();
-  toast('Folder created');
-}
-
-async function deleteFolder(id){
-  if(!confirm('Delete folder? Scripts inside will be unassigned.'))return;
-  await fetch('/folders/'+id,{method:'DELETE'});
-  if(_activeFolder===id)_activeFolder=null;
-  await loadSavedScripts();
-}
-
-// -- Clips editor -----------------------------------------------------
-var _clipLabels=["Hook","Bridge","Value","CTA","Expand","Proof","Close","Outro"];
-function updateClipBadge(){
-  const n=document.querySelectorAll('.clip-row').length;
-  const b=document.getElementById('clipCountBadge');
-  if(b)b.textContent=n+' clip'+(n===1?'':'s')+' · '+(n*5)+'s';
-}
-function addClip(){
-  const list=document.getElementById('clipsList');if(!list)return;
-  const rows=list.querySelectorAll('.clip-row');
-  if(rows.length>=8){toast('Max 8 clips (40s)','warn');return;}
-  const idx=rows.length;
-  const label=_clipLabels[idx]||('Clip '+(idx+1));
-  const div=document.createElement('div');
-  div.className='clip-row';div.dataset.idx=idx;div.style.marginTop='8px';
-  div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="badge">${label}</span><button class="btn ghost sm" style="color:var(--red);margin-left:auto;" onclick="removeClip(${idx})">??</button></div><textarea class="inp clip-prompt-input" rows="2" placeholder="Motion prompt for clip ${idx+1}..."></textarea>`;
-  list.appendChild(div);
-  updateClipBadge();
-}
-function removeClip(idx){
-  const list=document.getElementById('clipsList');if(!list)return;
-  const rows=list.querySelectorAll('.clip-row');
-  if(rows.length<=1){toast('Need at least 1 clip','warn');return;}
-  rows[idx]?.remove();
-  // Re-index remaining
-  list.querySelectorAll('.clip-row').forEach((r,i)=>{r.dataset.idx=i;});
-  updateClipBadge();
-}
 </script>
 
 </body>
