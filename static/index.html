@@ -8578,7 +8578,7 @@ async function loadPersonaFolders(personaId) {
       ? (await window.supabaseClient.auth.getSession()).data.session?.access_token : '';
     const res = await fetch('/folders', { headers: { Authorization: 'Bearer ' + token } });
     const all = await res.json();
-    _activeFolders = all.filter(f => f.persona_id === personaId || !f.persona_id);
+    _activeFolders = all.filter(f => !f.persona_id || f.persona_id === personaId);
     renderPersonaFolders(personaId);
   } catch(e) { console.warn('folders load error', e); }
 }
@@ -8689,9 +8689,9 @@ async function finishFolderRename(fid, span, old) {
 // Hook into existing persona selection
 const _origActivatePersona = window.activatePersona;
 window.activatePersona = function(p, ...args) {
-  window.currentPersonaId = p && p.id;
+  window.currentPersonaId = p && (p.id || p.name);
   if (_origActivatePersona) _origActivatePersona(p, ...args);
-  loadPersonaFolders(p && p.id);
+  loadPersonaFolders(p && (p.id || p.name));
 };
 </script>
 
