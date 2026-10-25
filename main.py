@@ -70,17 +70,16 @@ async def health():
     return {"status": "ok", "version": "3.0", "host": "railway"}
 
 @app.get("/")
-@app.get("/app")
 async def root():
-    p = Path(__file__).parent / "static" / "index.html"
+    lp = Path(__file__).parent / "static" / "landing.html"
+    ip = Path(__file__).parent / "static" / "index.html"
+    p = lp if lp.exists() else ip
     return FileResponse(str(p))
 
-@app.get("/landing")
-async def landing():
-    p = Path(__file__).parent / "static" / "landing.html"
-    if p.exists():
-        return FileResponse(str(p))
-    return RedirectResponse("/")
+@app.get("/app")
+async def app_page():
+    p = Path(__file__).parent / "static" / "index.html"
+    return FileResponse(str(p))
 
 from fastapi.staticfiles import StaticFiles
 static_path = Path(__file__).parent / "static"
@@ -2097,87 +2096,4 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     uid = user.user.id if user and user.user else None
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
-    return {"ok": True}
-
-@app.get("/config")
-async def get_config():
-    return {
-        "supabase_url": SUPABASE_URL or "",
-        "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY") or SUPABASE_KEY or ""
-    }
-
-import json as _json
-
-@app.get("/personas-sync")
-async def get_personas_sync(authorization: str = Header(None)):
-    if not sb: return []
-    token = (authorization or "").replace("Bearer ","").strip()
-    user = sb.auth.get_user(token)
-    uid = user.user.id if user and user.user else None
-    if not uid: raise HTTPException(401)
-    r = sb.table("personas").select("*").eq("user_id", uid).execute()
-    result = []
-    for row in (r.data or []):
-        p = row.get("data") or {}
-        if isinstance(p, str):
-            try: p = _json.loads(p)
-            except: p = {}
-        p["_db_id"] = row["id"]
-        result.append(p)
-    return result
-
-@app.post("/personas-sync")
-async def post_personas_sync(request: Request, authorization: str = Header(None)):
-    if not sb: raise HTTPException(503)
-    token = (authorization or "").replace("Bearer ","").strip()
-    user = sb.auth.get_user(token)
-    uid = user.user.id if user and user.user else None
-    if not uid: raise HTTPException(401)
-    personas = await request.json()
-    for p in personas:
-        name = p.get("name","")
-        if not name: continue
-        existing = sb.table("personas").select("id").eq("user_id", uid).eq("name", name).execute()
-        if existing.data:
-            sb.table("personas").update({"data": p}).eq("id", existing.data[0]["id"]).execute()
-        else:
-            sb.table("personas").insert({"user_id": uid, "name": name, "data": p}).execute()
-    return {"ok": True}
-
-import json as _json
-
-@app.get("/personas-sync")
-async def get_personas_sync(authorization: str = Header(None)):
-    if not sb: return []
-    token = (authorization or "").replace("Bearer ","").strip()
-    user = sb.auth.get_user(token)
-    uid = user.user.id if user and user.user else None
-    if not uid: raise HTTPException(401)
-    r = sb.table("personas").select("*").eq("user_id", uid).execute()
-    result = []
-    for row in (r.data or []):
-        p = row.get("data") or {}
-        if isinstance(p, str):
-            try: p = _json.loads(p)
-            except: p = {}
-        p["_db_id"] = row["id"]
-        result.append(p)
-    return result
-
-@app.post("/personas-sync")
-async def post_personas_sync(request: Request, authorization: str = Header(None)):
-    if not sb: raise HTTPException(503)
-    token = (authorization or "").replace("Bearer ","").strip()
-    user = sb.auth.get_user(token)
-    uid = user.user.id if user and user.user else None
-    if not uid: raise HTTPException(401)
-    personas = await request.json()
-    for p in personas:
-        name = p.get("name","")
-        if not name: continue
-        existing = sb.table("personas").select("id").eq("user_id", uid).eq("name", name).execute()
-        if existing.data:
-            sb.table("personas").update({"data": p}).eq("id", existing.data[0]["id"]).execute()
-        else:
-            sb.table("personas").insert({"user_id": uid, "name": name, "data": p}).execute()
     return {"ok": True}

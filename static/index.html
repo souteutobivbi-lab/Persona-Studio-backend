@@ -10,7 +10,6 @@
 
 <title>MediaHouz</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <style>
 
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -809,7 +808,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
 ════════════════════════════════════ -->
 
-<div id="public" class="view">
+<div id="public" class="view active">
 
   <nav class="pub-nav">
 
@@ -989,12 +988,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
 ════════════════════════════════════ -->
 
-
-
-  </div>
-</div>
-
-<div id="studio" class="view active">
+<div id="studio" class="view">
 
   <div class="sidebar">
 
@@ -2943,13 +2937,6 @@ const DEFAULTS=[
 
 // →→ VIEWS →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
-// Hash-based routing - runs immediately
-if(window.location.hash === '#studio' || window.location.pathname.indexOf('/app') === 0){
-  document.querySelectorAll('.view').forEach(function(e){e.classList.remove('active');});
-  var s = document.getElementById('studio');
-  if(s) s.classList.add('active');
-}
-
 function showView(v){
 
   document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
@@ -2961,16 +2948,6 @@ function showView(v){
 }
 
 function openStudio(){showView('studio');}
-
-// Auto-open studio if URL is /app
-(function(){
-  function tryShowStudio(){
-    var el = document.getElementById('studio');
-    if(el){ showView('studio'); }
-    else { setTimeout(tryShowStudio, 50); }
-  }
-  if(window.location.pathname.indexOf('/app') === 0){ tryShowStudio(); }
-})();
 
 
 
@@ -8586,234 +8563,6 @@ async function enhanceVideo(btn) {
   }
 
 }
-
-
-
-// -- Auth + Supabase Init -----------------------------------------
-let _sbClient = null;
-let _sbUser = null;
-
-async function initSupabase() {
-  try {
-    const res = await fetch('/config');
-    const cfg = await res.json();
-    if (!cfg.supabase_url || !cfg.supabase_anon_key) return;
-    _sbClient = supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
-    window.supabaseClient = _sbClient;
-
-    // Check existing session
-    const { data: { session } } = await _sbClient.auth.getSession();
-    if (session) {
-      _sbUser = session.user;
-      onLoggedIn();
-    } else {
-      document.getElementById('loginOverlay').style.display = 'flex';
-    }
-  } catch(e) {
-    console.warn('Supabase init failed', e);
-    // Fall through to local mode
-    document.getElementById('loginOverlay').style.display = 'none';
-  }
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  err.style.display = 'none';
-  if (!_sbClient) { await initSupabase(); }
-  if (!_sbClient) { err.textContent = 'Could not connect to server'; err.style.display='block'; return; }
-  try {
-    const { data, error } = await _sbClient.auth.signInWithPassword({ email, password: pass });
-    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
-    _sbUser = data.user;
-    onLoggedIn();
-  } catch(e) { err.textContent = 'Login failed'; err.style.display = 'block'; }
-}
-
-async function doSignup() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  err.style.display = 'none';
-  if (!email || !pass) { err.textContent = 'Enter email and password'; err.style.display = 'block'; return; }
-  try {
-    const { data, error } = await _sbClient.auth.signUp({ email, password: pass });
-    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
-    err.style.color = '#4ade80'; err.textContent = 'Check your email to confirm signup.'; err.style.display = 'block';
-  } catch(e) { err.textContent = 'Signup failed'; err.style.display = 'block'; }
-}
-
-async function onLoggedIn() {
-  document.getElementById('loginOverlay').style.display = 'none';
-  await syncPersonasFromDB();
-}
-
-// -- Persona Sync -------------------------------------------------
-async function getAuthToken() {
-  if (!_sbClient) return '';
-  const { data: { session } } = await _sbClient.auth.getSession();
-  return session?.access_token || '';
-}
-
-async function syncPersonasFromDB() {
-  try {
-    const token = await getAuthToken();
-    const res = await fetch('/personas-sync', { headers: { Authorization: 'Bearer ' + token } });
-    if (!res.ok) return;
-    const dbPersonas = await res.json();
-    if (dbPersonas && dbPersonas.length > 0) {
-      // Merge DB personas with local - DB wins for matching names
-      const localPersonas = S.personas || [];
-      const merged = [...dbPersonas];
-      localPersonas.forEach(lp => {
-        if (!merged.find(dp => dp.name === lp.name)) merged.push(lp);
-      });
-      S.personas = merged;
-      saveAll();
-      renderSidePersonas();
-      renderCreatePersonas && renderCreatePersonas();
-    } else if (S.personas && S.personas.length > 0) {
-      // Push local personas to DB
-      await pushPersonasToDB();
-    }
-  } catch(e) { console.warn('Persona sync error', e); }
-}
-
-async function pushPersonasToDB() {
-  try {
-    const token = await getAuthToken();
-    await fetch('/personas-sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify(S.personas)
-    });
-  } catch(e) { console.warn('Persona push error', e); }
-}
-
-// Override saveAll to also sync personas
-const _origSaveAll = window.saveAll;
-window.saveAll = function() {
-  if (_origSaveAll) _origSaveAll();
-  if (_sbUser) pushPersonasToDB();
-};
-
-// Init on load
-initSupabase();
-
-
-
-// -- Auth + Supabase Init -----------------------------------------
-let _sbClient = null;
-let _sbUser = null;
-
-async function initSupabase() {
-  try {
-    const res = await fetch('/config');
-    const cfg = await res.json();
-    if (!cfg.supabase_url || !cfg.supabase_anon_key) return;
-    _sbClient = supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
-    window.supabaseClient = _sbClient;
-
-    // Check existing session
-    const { data: { session } } = await _sbClient.auth.getSession();
-    if (session) {
-      _sbUser = session.user;
-      onLoggedIn();
-    } else {
-      document.getElementById('loginOverlay').style.display = 'flex';
-    }
-  } catch(e) {
-    console.warn('Supabase init failed', e);
-    // Fall through to local mode
-    document.getElementById('loginOverlay').style.display = 'none';
-  }
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  err.style.display = 'none';
-  if (!_sbClient) { await initSupabase(); }
-  if (!_sbClient) { err.textContent = 'Could not connect to server'; err.style.display='block'; return; }
-  try {
-    const { data, error } = await _sbClient.auth.signInWithPassword({ email, password: pass });
-    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
-    _sbUser = data.user;
-    onLoggedIn();
-  } catch(e) { err.textContent = 'Login failed'; err.style.display = 'block'; }
-}
-
-async function doSignup() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  err.style.display = 'none';
-  if (!email || !pass) { err.textContent = 'Enter email and password'; err.style.display = 'block'; return; }
-  try {
-    const { data, error } = await _sbClient.auth.signUp({ email, password: pass });
-    if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
-    err.style.color = '#4ade80'; err.textContent = 'Check your email to confirm signup.'; err.style.display = 'block';
-  } catch(e) { err.textContent = 'Signup failed'; err.style.display = 'block'; }
-}
-
-async function onLoggedIn() {
-  document.getElementById('loginOverlay').style.display = 'none';
-  await syncPersonasFromDB();
-}
-
-// -- Persona Sync -------------------------------------------------
-async function getAuthToken() {
-  if (!_sbClient) return '';
-  const { data: { session } } = await _sbClient.auth.getSession();
-  return session?.access_token || '';
-}
-
-async function syncPersonasFromDB() {
-  try {
-    const token = await getAuthToken();
-    const res = await fetch('/personas-sync', { headers: { Authorization: 'Bearer ' + token } });
-    if (!res.ok) return;
-    const dbPersonas = await res.json();
-    if (dbPersonas && dbPersonas.length > 0) {
-      // Merge DB personas with local - DB wins for matching names
-      const localPersonas = S.personas || [];
-      const merged = [...dbPersonas];
-      localPersonas.forEach(lp => {
-        if (!merged.find(dp => dp.name === lp.name)) merged.push(lp);
-      });
-      S.personas = merged;
-      saveAll();
-      renderSidePersonas();
-      renderCreatePersonas && renderCreatePersonas();
-    } else if (S.personas && S.personas.length > 0) {
-      // Push local personas to DB
-      await pushPersonasToDB();
-    }
-  } catch(e) { console.warn('Persona sync error', e); }
-}
-
-async function pushPersonasToDB() {
-  try {
-    const token = await getAuthToken();
-    await fetch('/personas-sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify(S.personas)
-    });
-  } catch(e) { console.warn('Persona push error', e); }
-}
-
-// Override saveAll to also sync personas
-const _origSaveAll = window.saveAll;
-window.saveAll = function() {
-  if (_origSaveAll) _origSaveAll();
-  if (_sbUser) pushPersonasToDB();
-};
-
-// Init on load
-initSupabase();
 
 
 // -- Persona Folders ----------------------------------------------
