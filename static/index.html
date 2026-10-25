@@ -2943,6 +2943,13 @@ const DEFAULTS=[
 
 // →→ VIEWS →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
 
+// Hash-based routing - runs immediately
+if(window.location.hash === '#studio' || window.location.pathname.indexOf('/app') === 0){
+  document.querySelectorAll('.view').forEach(function(e){e.classList.remove('active');});
+  var s = document.getElementById('studio');
+  if(s) s.classList.add('active');
+}
+
 function showView(v){
 
   document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
