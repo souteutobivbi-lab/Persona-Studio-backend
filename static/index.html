@@ -999,7 +999,7 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
   <div style="background:#1a1a2e;border:1px solid #2a2a3e;border-radius:16px;padding:32px;width:320px;display:flex;flex-direction:column;gap:16px;">
     <div id="loginError" style="color:#ff6b6b;font-size:12px;text-align:center;display:none;"></div>
     <input id="loginEmail" type="email" placeholder="Email" style="background:#0d0d1a;border:1px solid #2a2a3e;border-radius:8px;padding:12px 14px;color:#fff;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
-    <input id="loginPass" type="password" placeholder="Password" style="background:#0d0d1a;border:1px solid #2a2a3e;border-radius:8px;padding:12px 14px;color:#fff;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
+    <input id="loginPass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" style="background:#0d0d1a;border:1px solid #2a2a3e;border-radius:8px;padding:12px 14px;color:#fff;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
     <button onclick="doLogin()" style="background:#7c3aed;border:none;color:#fff;padding:13px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Sign in</button>
     <div style="text-align:center;font-size:12px;color:#666;">
       <span onclick="doSignup()" style="color:#a78bfa;cursor:pointer;">Create account</span>
@@ -8617,6 +8617,8 @@ async function doLogin() {
   const pass = document.getElementById('loginPass').value;
   const err = document.getElementById('loginError');
   err.style.display = 'none';
+  if (!_sbClient) { await initSupabase(); }
+  if (!_sbClient) { err.textContent = 'Could not connect to server'; err.style.display='block'; return; }
   try {
     const { data, error } = await _sbClient.auth.signInWithPassword({ email, password: pass });
     if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
@@ -8729,6 +8731,8 @@ async function doLogin() {
   const pass = document.getElementById('loginPass').value;
   const err = document.getElementById('loginError');
   err.style.display = 'none';
+  if (!_sbClient) { await initSupabase(); }
+  if (!_sbClient) { err.textContent = 'Could not connect to server'; err.style.display='block'; return; }
   try {
     const { data, error } = await _sbClient.auth.signInWithPassword({ email, password: pass });
     if (error) { err.textContent = error.message; err.style.display = 'block'; return; }
