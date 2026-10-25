@@ -70,16 +70,17 @@ async def health():
     return {"status": "ok", "version": "3.0", "host": "railway"}
 
 @app.get("/")
-async def root():
-    lp = Path(__file__).parent / "static" / "landing.html"
-    ip = Path(__file__).parent / "static" / "index.html"
-    p = lp if lp.exists() else ip
-    return FileResponse(str(p))
-
 @app.get("/app")
-async def app_page():
+async def root():
     p = Path(__file__).parent / "static" / "index.html"
     return FileResponse(str(p))
+
+@app.get("/landing")
+async def landing():
+    p = Path(__file__).parent / "static" / "landing.html"
+    if p.exists():
+        return FileResponse(str(p))
+    return RedirectResponse("/")
 
 from fastapi.staticfiles import StaticFiles
 static_path = Path(__file__).parent / "static"
