@@ -2956,9 +2956,14 @@ function showView(v){
 function openStudio(){showView('studio');}
 
 // Auto-open studio if URL is /app
-if(window.location.pathname === '/app' || window.location.pathname.startsWith('/app')){
-  document.addEventListener('DOMContentLoaded', function(){ showView('studio'); });
-}
+(function(){
+  function tryShowStudio(){
+    var el = document.getElementById('studio');
+    if(el){ showView('studio'); }
+    else { setTimeout(tryShowStudio, 50); }
+  }
+  if(window.location.pathname.indexOf('/app') === 0){ tryShowStudio(); }
+})();
 
 
 
