@@ -2097,3 +2097,10 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
     return {"ok": True}
+
+@app.get("/config")
+async def get_config():
+    return {
+        "supabase_url": SUPABASE_URL or "",
+        "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY") or SUPABASE_KEY or ""
+    }
