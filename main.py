@@ -1,6 +1,6 @@
 import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
-from fastapi import FastAPI, Form, UploadFile, File
+from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
@@ -71,12 +71,15 @@ async def health():
 
 @app.get("/")
 async def root():
+    lp = Path(__file__).parent / "static" / "landing.html"
+    ip = Path(__file__).parent / "static" / "index.html"
+    p = lp if lp.exists() else ip
+    return FileResponse(str(p))
+
+@app.get("/app")
+async def app_page():
     p = Path(__file__).parent / "static" / "index.html"
-    if p.exists():
-        content = p.read_text()
-        content = content.replace('<head>', '<head><meta name="robots" content="noindex,nofollow">')
-        return HTMLResponse(content)
-    return {"api": "Persona Studio v3.0"}
+    return FileResponse(str(p))
 
 from fastapi.staticfiles import StaticFiles
 static_path = Path(__file__).parent / "static"
@@ -996,23 +999,58 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         audio_url = fal_client.upload_file(audio_path)
         print(f"[{jid}] Uploaded.")
 
-        # Stage 4: Generate video with flashtalk
-        set_job(jid, {"status": "running", "stage": "generating_video", "progress": 40})
-        print(f"[{jid}] Starting flashtalk...")
-        result = fal_client.subscribe(
-            "fal-ai/flashtalk",
-            arguments={"image_url": portrait_url, "audio_url": audio_url, "enhance_quality": True, "sync_mode": "high"}
-        )
-        print(f"[{jid}] Flashtalk done: duration={result.get('duration')}s")
-        output_url = result.get("video", {}).get("url")
+        # Stage 4: Kling 2.5 motion clips + sync-lipsync
+        import asyncio as _aio, urllib.request as _ur2
+        DEFAULT_PROMPTS = [
+            "subtle natural head movement, slight body sway, confident presenter, cinematic",
+            "gentle breathing, slight lean forward, engaged storytelling, warm lighting",
+            "natural eye movement, slight hand gesture, authoritative delivery, bokeh",
+            "smooth camera drift, confident posture shift, direct eye contact, professional",
+        ]
+        N_CLIPS = 4
+
+        set_job(jid, {"status": "running", "stage": "kling_motion_clips", "progress": 35})
+        print(f"[{jid}] Kling 2.5 generating {N_CLIPS} motion clips in parallel...")
+
+        async def _gen_clip(idx, prompt):
+            r = fal_client.subscribe("fal-ai/kling-video/v2.5/standard/image-to-video", arguments={
+                "image_url": portrait_url, "prompt": prompt, "duration": "5", "aspect_ratio": "9:16",
+            })
+            url = (r.get("video") or {}).get("url") or r.get("url","")
+            cp = str(OUTPUT_DIR / f"{jid}_clip{idx}.mp4")
+            _ur2.urlretrieve(url, cp)
+            print(f"[{jid}] Clip {idx} done")
+            return cp
+
+        clip_paths = await _aio.gather(*[_gen_clip(i, DEFAULT_PROMPTS[i]) for i in range(N_CLIPS)])
+
+        set_job(jid, {"status": "running", "stage": "concat_clips", "progress": 55})
+        concat_list = str(OUTPUT_DIR / f"{jid}_concat.txt")
+        with open(concat_list, "w") as cf:
+            for cp in clip_paths:
+                cf.write("file '" + cp + "'\n")
+        silent_path = str(OUTPUT_DIR / f"{jid}_silent.mp4")
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+            "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-an", silent_path
+        ], capture_output=True, check=True)
+
+        set_job(jid, {"status": "running", "stage": "lipsync", "progress": 65})
+        print(f"[{jid}] Running sync-lipsync...")
+        silent_url = fal_client.upload_file(silent_path)
+        ls_result = fal_client.subscribe("fal-ai/sync-lipsync", arguments={
+            "video_url": silent_url, "audio_url": audio_url,
+            "sync_mode": "bounce", "output_format": "mp4",
+        })
+        output_url = (ls_result.get("video") or {}).get("url") or ls_result.get("url","")
         if not output_url:
-            raise Exception("No video URL from flashtalk: " + str(result))
+            raise Exception("No URL from sync-lipsync: " + str(ls_result))
+        print(f"[{jid}] Lipsync done")
 
         # Stage 5: Download
         set_job(jid, {"status": "running", "stage": "downloading", "progress": 80})
-        import urllib.request
         raw_path = str(OUTPUT_DIR / f"{jid}_raw.mp4")
-        urllib.request.urlretrieve(output_url, raw_path)
+        _ur2.urlretrieve(output_url, raw_path)
         print(f"[{jid}] Downloaded.")
 
         # Stage 6: Fix aspect ratio + grain filter + optional background music
@@ -1975,3 +2013,87 @@ async def admin_fix_encoding(secret: str = Form(...)):
     save_jobs(fixed)
     changed = sum(1 for jid in fixed if str(fixed[jid]) != str(jobs.get(jid,{})))
     return {"status": "done", "jobs_processed": len(fixed)}
+
+
+# ---------------------------------------------------------------------------
+# Folders
+# ---------------------------------------------------------------------------
+@app.get("/folders")
+async def get_folders(authorization: str = Header(None)):
+    if not sb: return []
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    r = sb.table("folders").select("*").eq("user_id", uid).order("created_at").execute()
+    return r.data or []
+
+@app.post("/folders")
+async def create_folder(request: Request, authorization: str = Header(None)):
+    if not sb: raise HTTPException(503, "DB unavailable")
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    d = await request.json()
+    row = {"user_id": uid, "name": d.get("name","New Folder"), "icon": d.get("icon","folder"), "persona_id": d.get("persona_id")}
+    r = sb.table("folders").insert(row).execute()
+    return r.data[0] if r.data else {}
+
+@app.delete("/folders/{fid}")
+async def delete_folder(fid: str, authorization: str = Header(None)):
+    if not sb: raise HTTPException(503, "DB unavailable")
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    sb.table("folders").delete().eq("id", fid).eq("user_id", uid).execute()
+    return {"ok": True}
+
+# ---------------------------------------------------------------------------
+# Saved Scripts
+# ---------------------------------------------------------------------------
+@app.get("/scripts")
+async def get_scripts(authorization: str = Header(None)):
+    if not sb: return []
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    r = sb.table("saved_scripts").select("*").eq("user_id", uid).order("created_at", desc=True).execute()
+    return r.data or []
+
+@app.post("/scripts")
+async def save_script(request: Request, authorization: str = Header(None)):
+    if not sb: raise HTTPException(503, "DB unavailable")
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    d = await request.json()
+    row = {"user_id": uid, "title": d.get("title","Untitled"), "content": d.get("content",""),
+           "instructions": d.get("instructions",""), "persona_id": d.get("persona_id"),
+           "persona_name": d.get("persona_name",""), "niche": d.get("niche",""), "folder_id": d.get("folder_id")}
+    r = sb.table("saved_scripts").insert(row).execute()
+    return r.data[0] if r.data else {}
+
+@app.patch("/scripts/{sid}")
+async def update_script(sid: str, request: Request, authorization: str = Header(None)):
+    if not sb: raise HTTPException(503, "DB unavailable")
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    d = await request.json()
+    r = sb.table("saved_scripts").update(d).eq("id", sid).eq("user_id", uid).execute()
+    return r.data[0] if r.data else {}
+
+@app.delete("/scripts/{sid}")
+async def delete_script(sid: str, authorization: str = Header(None)):
+    if not sb: raise HTTPException(503, "DB unavailable")
+    token = (authorization or "").replace("Bearer ","").strip()
+    user = sb.auth.get_user(token)
+    uid = user.user.id if user and user.user else None
+    if not uid: raise HTTPException(401, "Unauthorized")
+    sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
+    return {"ok": True}
