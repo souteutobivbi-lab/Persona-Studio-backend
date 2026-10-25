@@ -8687,10 +8687,10 @@ async function finishFolderRename(fid, span, old) {
 }
 
 // Hook into existing persona selection
-const _origShowPersonaDetail = window.showPersonaDetail;
-window.showPersonaDetail = function(p, ...args) {
+const _origActivatePersona = window.activatePersona;
+window.activatePersona = function(p, ...args) {
   window.currentPersonaId = p && p.id;
-  if (_origShowPersonaDetail) _origShowPersonaDetail(p, ...args);
+  if (_origActivatePersona) _origActivatePersona(p, ...args);
   loadPersonaFolders(p && p.id);
 };
 </script>
