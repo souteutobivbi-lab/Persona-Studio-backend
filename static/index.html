@@ -2955,6 +2955,11 @@ function showView(v){
 
 function openStudio(){showView('studio');}
 
+// Auto-open studio if URL is /app
+if(window.location.pathname === '/app' || window.location.pathname.startsWith('/app')){
+  document.addEventListener('DOMContentLoaded', function(){ showView('studio'); });
+}
+
 
 
 // →→ PUBLIC SITE →→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→
