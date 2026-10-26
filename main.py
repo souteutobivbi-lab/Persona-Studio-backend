@@ -1015,6 +1015,8 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
             "smooth camera drift, confident posture shift, direct eye contact, professional",
         ]
         N_CLIPS = 4
+        import random as _rnd
+        _selected = _rnd.sample(DEFAULT_PROMPTS, N_CLIPS)
 
         set_job(jid, {"status": "running", "stage": "kling_motion_clips", "progress": 35})
         print(f"[{jid}] Kling 2.5 generating {N_CLIPS} motion clips in parallel...")
@@ -1029,7 +1031,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
             print(f"[{jid}] Clip {idx} done")
             return cp
 
-        clip_paths = await _aio.gather(*[_gen_clip(i, DEFAULT_PROMPTS[i]) for i in range(N_CLIPS)])
+        clip_paths = await _aio.gather(*[_gen_clip(i, _selected[i]) for i in range(N_CLIPS)])
 
         set_job(jid, {"status": "running", "stage": "concat_clips", "progress": 55})
         concat_list = str(OUTPUT_DIR / f"{jid}_concat.txt")
