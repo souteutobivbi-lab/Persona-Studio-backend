@@ -1,4 +1,4 @@
-import asyncio, os, random, subprocess, uuid, json
+﻿import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
@@ -1020,7 +1020,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         print(f"[{jid}] Kling 2.5 generating {N_CLIPS} motion clips in parallel...")
 
         async def _gen_clip(idx, prompt):
-            r = fal_client.subscribe("fal-ai/kling-video/v2.5/standard/image-to-video", arguments={
+            r = fal_client.subscribe("fal-ai/kling-video/v2.5/pro/image-to-video", arguments={
                 "image_url": portrait_url, "prompt": prompt, "duration": "5", "aspect_ratio": "9:16",
             })
             url = (r.get("video") or {}).get("url") or r.get("url","")
