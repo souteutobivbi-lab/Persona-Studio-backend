@@ -1395,6 +1395,16 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
               </div>
 
+
+            <div class="card" style="margin-top:12px;">
+              <div class="card-hd">Scene prompts <span class="badge" style="background:rgba(123,92,245,.15);color:#9b7fff;">Kling 2.5 · 4 clips</span></div>
+              <div style="font-size:11px;color:var(--dim);margin-bottom:10px;">Each prompt drives one motion clip. They are merged into your final video. Edit or keep the defaults.</div>
+              <div style="display:flex;flex-direction:column;gap:8px;" id="scenePromptsWrap">
+                <textarea id="sp_0" rows="2" style="width:100%;background:var(--g2);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:vertical;">subtle natural head movement, slight body sway, confident presenter, cinematic</textarea>
+                <textarea id="sp_1" rows="2" style="width:100%;background:var(--g2);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:vertical;">gentle eye contact with camera, micro-expressions, breathing naturally, professional</textarea>
+                <textarea id="sp_2" rows="2" style="width:100%;background:var(--g2);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:vertical;">slight lean forward, engaged storytelling posture, hands visible, warm lighting</textarea>
+                <textarea id="sp_3" rows="2" style="width:100%;background:var(--g2);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;color:var(--text);resize:vertical;">relaxed confident stance, occasional nod, direct address, cinematic depth of field</textarea>
+              </div>
             </div>
 
             <div class="card" id="portraitCard">
@@ -1621,13 +1631,13 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
               <div class="pipeline" id="pipelineEl">
 
-                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Preparing portrait</div><div class="pipe-sub">Background removal</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">1</div><div><div class="pipe-lbl">Preparing portrait</div><div class="pipe-sub">Background removal + scene composite</div></div></div>
 
-                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Building scene</div><div class="pipe-sub">Portrait + background composite</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">2</div><div><div class="pipe-lbl">Kling 2.5 — motion clips</div><div class="pipe-sub">4 cinematic clips generating in parallel</div></div></div>
 
-                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Generating talking video</div><div class="pipe-sub">AI lip sync · ~30–90 seconds</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">3</div><div><div class="pipe-lbl">Lip sync</div><div class="pipe-sub">sync-lipsync · audio-driven mouth animation</div></div></div>
 
-                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Processing video</div><div class="pipe-sub">Colour grade + export</div></div></div>
+                <div class="pipe wait"><div class="pipe-n">4</div><div><div class="pipe-lbl">Merging &amp; grading</div><div class="pipe-sub">Clips merged · colour grade + export</div></div></div>
 
                 <div class="pipe wait"><div class="pipe-n">5</div><div><div class="pipe-lbl">Uploading</div><div class="pipe-sub" id="ratioLabel">9:16</div></div></div>
 
@@ -7140,6 +7150,13 @@ async function startGen(){
 
     if(S.script) fd.append('script',S.script);
 
+    // Send custom Kling scene prompts
+    const spEls = document.querySelectorAll('#scenePromptsWrap textarea');
+    if(spEls.length){
+      const prompts = Array.from(spEls).map(t=>t.value.trim()).filter(Boolean);
+      if(prompts.length) fd.append('scene_prompts', JSON.stringify(prompts));
+    }
+
     if(S.captionStyle&&S.captionStyle!=='none') fd.append('caption_style',S.captionStyle);
 
     if(S.sceneFile)fd.append('scene',S.sceneFile,'scene.png');
@@ -7159,29 +7176,19 @@ async function startGen(){
     // Stage label map for human-readable display
 
     const stageLabels={
-
       starting:'Starting pipeline...',
-
-      removing_background:'Removing background from portrait...',
-
-      compositing:'Compositing portrait onto scene...',
-
-      uploading:'Uploading files to fal.ai...',
-
-      generating_video:'Flashtalk generating lip-sync video — this takes 30–90 seconds...',
-
-      downloading:'Downloading generated video...',
-
-      processing:'Encoding video for mobile streaming...',
-
-      grain_filter:'Applying grain filter...',
-
-      uploading_cdn:'Uploading to CDN...',
-
-      captions:'Burning captions into video...',
-
-      done:'Complete!'
-
+      remove_bg:'Removing background...',
+      composite:'Building scene...',
+      kling_motion_clips:'Kling 2.5 generating motion clips...',
+      kling_clip_0:'Clip 1 of 4 — generating...',
+      kling_clip_1:'Clip 2 of 4 — generating...',
+      kling_clip_2:'Clip 3 of 4 — generating...',
+      kling_clip_3:'Clip 4 of 4 — generating...',
+      lipsync:'Syncing lips to audio...',
+      merge:'Merging clips...',
+      grade:'Colour grading...',
+      uploading:'Uploading final video...',
+      done:'Done!'
     };
 
     pollIv=setInterval(async()=>{
