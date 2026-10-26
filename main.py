@@ -71,10 +71,7 @@ async def health():
 
 @app.get("/")
 async def root():
-    lp = Path(__file__).parent / "static" / "landing.html"
-    ip = Path(__file__).parent / "static" / "index.html"
-    p = lp if lp.exists() else ip
-    return FileResponse(str(p))
+    return FileResponse("static/mediahouz-home.html")
 
 @app.get("/app")
 async def app_page():
@@ -95,6 +92,16 @@ MUSIC_TRACKS = {
 @app.get("/music-tracks")
 async def list_music_tracks():
     return {"tracks": [{"id": k, "label": v["label"]} for k, v in MUSIC_TRACKS.items()]}
+
+@app.get("/studio")
+async def serve_studio():
+    return FileResponse("static/index.html")
+
+@app.get("/app")
+async def serve_app_legacy():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/studio", status_code=301)
+
 
 @app.post("/parse-skill")
 async def parse_skill(skill_text: str = Form(...)):
