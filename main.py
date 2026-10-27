@@ -1050,7 +1050,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 print(f"[{jid}] Pre-roll prompt: {scene_prompt}")
                 pr_result = fal_client.subscribe(
                     "fal-ai/minimax/video-01",
-                    arguments={"prompt": scene_prompt, "duration": 4}
+                    arguments={"prompt": scene_prompt, "duration": 4, "aspect_ratio": "9:16"}
                 )
                 pr_url = (pr_result.get("video") or {}).get("url") or pr_result.get("url")
                 if pr_url:
@@ -1081,7 +1081,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                         _cl.write(f"file '{pr_norm}'\nfile '{raw_norm}'\n")
                     subprocess.run([
                         "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                        "-i", concat_list, "-c", "copy", concat_out
+                        "-i", concat_list, "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-c:a", "aac", "-b:a", "128k", concat_out
                     ], check=True)
                     raw_path = concat_out
                     print(f"[{jid}] Pre-roll prepended: {scene_prompt[:50]}")
@@ -2029,6 +2029,8 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
     return {"ok": True}
+
+
 
 
 
