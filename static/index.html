@@ -1735,6 +1735,10 @@ textarea.inp{resize:vertical;min-height:68px;line-height:1.5;}
 
             </div>
 
+            <label id="prerollToggle" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px;cursor:pointer;user-select:none;">
+              <input type="checkbox" id="prerollCheck" style="accent-color:var(--purple);width:14px;height:14px;">
+              Cinematic pre-roll &middot; 4s scene intro before talking head
+            </label>
             <button class="gen-btn" id="mainGenBtn" onclick="startGen()">✦ Generate video</button>
 
             <button class="btn ghost" id="cancelGenBtn" style="width:100%;margin-top:6px;display:none;" onclick="cancelGen()">◈ Cancel</button>
@@ -7166,6 +7170,7 @@ async function startGen(){
     const bgMusicEl=document.querySelector('input[name="bgMusic"]:checked');
 
     if(bgMusicEl&&bgMusicEl.value) fd.append('bg_music',bgMusicEl.value);
+    if(document.getElementById('prerollCheck')?.checked) fd.append('preroll','true');
 
     const r=await fetch(`${API()}/generate-video`,{method:'POST',body:fd});const d=await r.json();
 
