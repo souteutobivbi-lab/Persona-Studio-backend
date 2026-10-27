@@ -1005,62 +1005,24 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
         portrait_url = fal_client.upload_file(final_portrait_path)
         audio_url = fal_client.upload_file(audio_path)
         print(f"[{jid}] Uploaded.")
-
-        # Stage 4: Kling 2.5 motion clips + sync-lipsync
-        import asyncio as _aio, urllib.request as _ur2
-        DEFAULT_PROMPTS = [
-            "subtle natural head movement, slight body sway, confident presenter, cinematic",
-            "gentle breathing, slight lean forward, engaged storytelling, warm lighting",
-            "natural eye movement, slight hand gesture, authoritative delivery, bokeh",
-            "smooth camera drift, confident posture shift, direct eye contact, professional",
-        ]
-        N_CLIPS = 4
-        import random as _rnd
-        _selected = _rnd.sample(DEFAULT_PROMPTS, N_CLIPS)
-
-        set_job(jid, {"status": "running", "stage": "kling_motion_clips", "progress": 35})
-        print(f"[{jid}] Kling 2.5 generating {N_CLIPS} motion clips in parallel...")
-
-        async def _gen_clip(idx, prompt):
-            r = fal_client.subscribe("fal-ai/kling-video/v1.6/pro/image-to-video", arguments={
-                "image_url": portrait_url, "prompt": prompt, "duration": "5", "aspect_ratio": "9:16",
-            })
-            url = (r.get("video") or {}).get("url") or r.get("url","")
-            cp = str(OUTPUT_DIR / f"{jid}_clip{idx}.mp4")
-            _ur2.urlretrieve(url, cp)
-            print(f"[{jid}] Clip {idx} done")
-            return cp
-
-        clip_paths = await _aio.gather(*[_gen_clip(i, _selected[i]) for i in range(N_CLIPS)])
-
-        set_job(jid, {"status": "running", "stage": "concat_clips", "progress": 55})
-        concat_list = str(OUTPUT_DIR / f"{jid}_concat.txt")
-        with open(concat_list, "w") as cf:
-            for cp in clip_paths:
-                cf.write("file '" + cp + "'\n")
-        silent_path = str(OUTPUT_DIR / f"{jid}_silent.mp4")
-        subprocess.run([
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
-            "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-an", silent_path
-        ], capture_output=True, check=True)
-
-        set_job(jid, {"status": "running", "stage": "lipsync", "progress": 65})
-        print(f"[{jid}] Running sync-lipsync...")
-        silent_url = fal_client.upload_file(silent_path)
-        ls_result = fal_client.subscribe("fal-ai/sync-lipsync", arguments={
-            "video_url": silent_url, "audio_url": audio_url,
-            "sync_mode": "bounce", "output_format": "mp4",
-        })
-        output_url = (ls_result.get("video") or {}).get("url") or ls_result.get("url","")
+        # Stage 4: Generate video with flashtalk (talking head with natural movement)
+        set_job(jid, {"status": "running", "stage": "generating_video", "progress": 40})
+        print(f"[{jid}] Starting flashtalk...")
+        result = fal_client.subscribe(
+            "fal-ai/flashtalk",
+            arguments={"image_url": portrait_url, "audio_url": audio_url, "enhance_quality": True, "sync_mode": "high"}
+        )
+        print(f"[{jid}] Flashtalk done: duration={result.get('duration')}s")
+        output_url = result.get("video", {}).get("url")
         if not output_url:
-            raise Exception("No URL from sync-lipsync: " + str(ls_result))
-        print(f"[{jid}] Lipsync done")
+            raise Exception("No video URL from flashtalk: " + str(result))
 
         # Stage 5: Download
         set_job(jid, {"status": "running", "stage": "downloading", "progress": 80})
         raw_path = str(OUTPUT_DIR / f"{jid}_raw.mp4")
+        import urllib.request as _ur2
         _ur2.urlretrieve(output_url, raw_path)
-        print(f"[{jid}] Downloaded.")
+        print(f"[{jid}] Downloaded raw video.")
 
         # Stage 6: Fix aspect ratio + grain filter + optional background music
         set_job(jid, {"status": "running", "stage": "processing", "progress": 90})
@@ -1115,109 +1077,6 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
 
         if not Path(final_path).exists():
             final_path = raw_path
-
-        # -- Photo montage + hook card pre-roll ---------------------------------
-        if script_text:
-            try:
-                import re as _re, urllib.request as _ur, json as _json2
-                _par = Path(final_path).parent
-
-                # 1. Fetch 5 portrait photos from Pexels
-                # Use bundled local images (shipped with container)
-                _preroll_dir = Path("/app/static/preroll")
-                _photos = sorted([str(p) for p in _preroll_dir.glob("couple*.jpg")])[:5]
-                print(f"[{jid}] Using {len(_photos)} bundled photos from {_preroll_dir} exists={_preroll_dir.exists()} files={list(_preroll_dir.iterdir()) if _preroll_dir.exists() else []}")
-
-                # Camera snap sound (synthesised)
-                _snap = str(_par / f"{jid}_snap.aac")
-                subprocess.run([
-                    "ffmpeg", "-y", "-f", "lavfi", "-i",
-                    "anoisesrc=d=0.08:c=white:a=0.9,aeval=val(ch)*exp(-200*t),bandpass=f=5000:width_type=h:w=8000,volume=12,afade=t=out:st=0.04:d=0.04",
-                    "-t", "0.08", "-c:a", "aac", "-b:a", "64k", _snap
-                ], capture_output=True)
-
-                # Build 1s clip per photo
-                _photo_clips = []
-
-                for _pi, _img in enumerate(_photos):
-                    _clip = str(_par / f"{jid}_px{_pi}.mp4")
-                    try:
-                        _pr = subprocess.run([
-                            "ffmpeg", "-y",
-                            "-loop", "1", "-i", _img,
-                            "-i", _snap,
-                            "-vf", "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
-                            "-t", "1", "-c:v", "libx264", "-crf", "20", "-preset", "fast",
-                            "-af", "apad=whole_dur=1", "-c:a", "aac", "-b:a", "64k", "-pix_fmt", "yuv420p", "-r", "25",
-                            _clip
-                        ], capture_output=True)
-                        if _pr.returncode == 0:
-                            _photo_clips.append(_clip)
-                            print(f"[{jid}] Photo clip {_pi} ok")
-                        else:
-                            print(f"[{jid}] Photo clip {_pi} err: {_pr.stderr.decode()[-2000:]}")
-                    except Exception as _pie:
-                        print(f"[{jid}] Photo {_pi} error: {_pie}")
-
-                # 4. Hook card (black screen + text)
-                _sent = _re.search(r'[^.!?]+[.!?]', script_text)
-                _sent = _sent.group(0).strip() if _sent else script_text.split("\n")[0].strip()
-                _words = _sent.split()
-                _chunks = [" ".join(_words[i:i+3]) for i in range(0, len(_words), 3)]
-                _l1 = _chunks[0] if len(_chunks) > 0 else ""
-                _l2 = _chunks[1] if len(_chunks) > 1 else ""
-                _l3 = _chunks[2] if len(_chunks) > 2 else ""
-                def _esc(t):
-                    return t.replace("\\", "\\\\").replace("'", "\u2019").replace(":", "\\:").replace("%", "\\%")
-                _hook_card = str(_par / f"{jid}_hook.mp4")
-                _y_base = "h/2-102" if _l3 else "h/2-34"
-                _dt1 = f"drawtext=text='{_esc(_l1)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y={_y_base}"
-                _dt2 = f",drawtext=text='{_esc(_l2)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2+34" if _l2 else ""
-                _dt3 = f",drawtext=text='{_esc(_l3)}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=h/2+102" if _l3 else ""
-                _zoom = ",zoompan=z='min(1.0+0.12*(on/30),1.12)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=720x1280"
-                _hvf = _dt1 + _dt2 + _dt3 + _zoom
-                _hhr = subprocess.run([
-                    "ffmpeg", "-y",
-                    "-f", "lavfi", "-i", "color=c=black:s=720x1280:d=1.5",
-                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-                    "-vf", _hvf, "-t", "1.5",
-                    "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                    "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p",
-                    _hook_card
-                ], capture_output=True)
-                print(f"[{jid}] Hook card rc={_hhr.returncode}")
-                if _hhr.returncode != 0:
-                    print(f"[{jid}] Hook stderr: {_hhr.stderr.decode()[:300]}")
-
-                # 5. Concat: photos + hook card + main video
-                _all_clips = list(_photo_clips)
-                if _hhr.returncode == 0 and Path(_hook_card).exists():
-                    _all_clips.append(_hook_card)
-                _all_clips.append(final_path)
-                if len(_all_clips) > 1:
-                    _hooked = str(_par / f"{jid}_hooked.mp4")
-                    _n = len(_all_clips)
-                    _inputs = []
-                    for _c in _all_clips:
-                        _inputs += ["-i", _c]
-                    _fc = "".join(f"[{i}:v][{i}:a]" for i in range(_n))
-                    _fc += f"concat=n={_n}:v=1:a=1[v][a]"
-                    _cr = subprocess.run(
-                        ["ffmpeg", "-y"] + _inputs + [
-                            "-filter_complex", _fc,
-                            "-map", "[v]", "-map", "[a]",
-                            "-c:v", "libx264", "-crf", "18", "-preset", "fast",
-                            "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p",
-                            _hooked
-                        ], capture_output=True)
-                    print(f"[{jid}] Montage concat rc={_cr.returncode}")
-                    if _cr.returncode != 0:
-                        print(f"[{jid}] Montage stderr: {_cr.stderr.decode()[:800]}")
-                    if _cr.returncode == 0 and Path(_hooked).exists():
-                        final_path = _hooked
-                        print(f"[{jid}] Montage OK ({_n} clips total)")
-            except Exception as _he:
-                print(f"[{jid}] Montage error (non-fatal): {_he}")
 
         # Upload final video to fal.ai storage for permanent URL
         # Upload final video to fal.ai storage for permanent URL
