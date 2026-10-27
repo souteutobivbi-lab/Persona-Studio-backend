@@ -1032,7 +1032,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 from groq import Groq as _Groq
                 _gc = _Groq(api_key=GROQ_KEY)
                 _sr = _gc.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model="openai/gpt-oss-20b",
                     messages=[{"role": "user", "content": (
                         f"Script: {script_text[:350]}\n\n"
                         "Write ONE cinematic scene prompt (12-18 words) for a 4-second text-to-video opening shot "
@@ -2026,3 +2026,6 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
     return {"ok": True}
+
+
+
