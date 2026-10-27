@@ -1043,7 +1043,8 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     )}],
                     max_tokens=50, temperature=0.7
                 )
-                _raw = (_sr.choices[0].message.content or "").strip()
+                _raw = (_sr.choices[0].message.content or _sr.choices[0].message.get("reasoning_content","") or "").strip()
+                print(f"[{jid}] Full Groq msg: {_sr.choices[0].message}")
                 scene_prompt = _raw
                 print(f"[{jid}] Raw Groq response: {repr(_raw)}")
                 print(f"[{jid}] Pre-roll prompt: {scene_prompt}")
@@ -2028,6 +2029,7 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
     return {"ok": True}
+
 
 
 
