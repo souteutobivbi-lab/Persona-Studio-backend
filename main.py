@@ -1070,6 +1070,8 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     raw_norm = str(OUTPUT_DIR / f"{jid}_raw_norm.mp4")
                     subprocess.run([
                         "ffmpeg", "-y", "-i", raw_path,
+                        "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                        "-shortest",
                         "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,"
                                "pad=720:1280:(ow-iw)/2:(oh-ih)/2,fps=25,format=yuv420p",
                         "-c:v", "libx264", "-preset", "fast", "-crf", "22",
@@ -1080,8 +1082,11 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     with open(concat_list, "w") as _cl:
                         _cl.write(f"file '{pr_norm}'\nfile '{raw_norm}'\n")
                     subprocess.run([
-                        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                        "-i", concat_list, "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-c:a", "aac", "-b:a", "128k", concat_out
+                        "ffmpeg", "-y", "-i", pr_norm, "-i", raw_norm,
+                        "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
+                        "-map", "[v]", "-map", "[a]",
+                        "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+                        "-c:a", "aac", "-b:a", "128k", concat_out
                     ], check=True)
                     raw_path = concat_out
                     print(f"[{jid}] Pre-roll prepended: {scene_prompt[:50]}")
@@ -2029,6 +2034,8 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
     return {"ok": True}
+
+
 
 
 
