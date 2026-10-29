@@ -337,9 +337,10 @@ FOUR BEATS:
         "QUESTION HOOK RULE: When you open with a question, do NOT answer it in the next sentence. "
         "Let it hang. The answer should be earned through the middle and only land in the REWARD at the end.\n"
         "REPETITION RULE: No phrase, sentence, or line may appear in more than ONE of the 5 scripts. "
-        "If a line is a persona signature, use it in one script only. Every script must feel distinct.\n\n")
+        "If a line is a persona signature, use it in one script only. Every script must feel distinct.\n\n"
         'Return ONLY a JSON array of 5 objects:\n'
         '[{"title": "Short searchable title", "script": "Full script text", "keywords": ["#tag1"]}]'
+    )
     )
     max_tok = 2500
     model = "qwen/qwen3.8-27b"
