@@ -232,7 +232,6 @@ async def generate_script(
         has_custom_script_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
                                    or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
         print(f"DEBUG2: has_custom={has_custom_script_structure} struct_in_sc={'SCRIPT STRUCTURE' in sc} sc_len={len(sc)}")
-        print(f"DEBUG post-detect: has_custom={has_custom_script_structure} sc_has={chr(39)SCRIPT STRUCTURE{chr(39)} in sc} sc[:50]={repr(sc[:50])}")
 
         def extract_section(text, heading):
             """Extract content between a heading and the next heading/separator."""
