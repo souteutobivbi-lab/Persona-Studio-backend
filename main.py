@@ -313,7 +313,7 @@ WRITING MANDATE - this overrides all generic defaults:
 - Each script must end with ONE line the viewer will screenshot, save, or send to someone they love
 """
 
-    # Skill sheet defines its own structure — suppress generic niche override
+    # Skill sheet defines its own structure ï¿½ suppress generic niche override
     if has_custom_script_structure:
         niche_note = ""
 
@@ -1066,7 +1066,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                         "Her world: warm London interiors, terracotta and cream tones, lush tropical plants, afternoon golden light, contemporary open-plan spaces with wooden floors and floor-to-ceiling windows, cream upholstered chairs, home offices with trailing plants and books.\n\n"
                         f"Script topic: {script_text[:200] if script_text else 'relationships and self-worth'}\n\n"
                         "Write ONE 4-second cinematic opening shot (12-18 words). "
-                        "Set in Vivienne's warm London world — arriving at a beautiful home, an entrance hall, a light-filled living room, or a lush interior. "
+                        "Set in Vivienne's warm London world ï¿½ arriving at a beautiful home, an entrance hall, a light-filled living room, or a lush interior. "
                         "Slow camera movement. Warm cinematic light. Vertical 9:16 frame. "
                         "Return ONLY the shot description, nothing else, no quotes."
                     )}],
