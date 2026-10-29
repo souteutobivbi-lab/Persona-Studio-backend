@@ -215,7 +215,9 @@ async def generate_script(
     if niche.lower() in ["motivation","entrepreneurship"] or any(k in topic.lower() for k in _ceo_topic_kws) or any(k in (skill_context or "").lower() for k in _ceo_skill_kws):
         has_ceo_structure = True  # CEO/founder always uses CEO path
 
-    print(f"DEBUG flags: has_ceo={has_ceo_structure} has_custom={has_custom_script_structure} niche={niche!r}")
+    sc_len = len(skill_context or "")
+    sc_has = "SCRIPT STRUCTURE" in (skill_context or "")
+    print(f"DEBUG flags: has_ceo={has_ceo_structure} has_custom={has_custom_script_structure} niche={niche!r} sc_len={sc_len} sc_has_struct={sc_has}")
     structure_rules = ""
     script_examples = ""
     signoffs = ""
