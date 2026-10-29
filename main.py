@@ -8,6 +8,9 @@ import httpx
 from supabase import create_client
 
 app = FastAPI()
+
+# In-memory skill file cache: persona_name -> full skill text
+_skill_cache: dict = {}
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEY       = os.environ.get("GROQ_KEY", "")
@@ -104,8 +107,10 @@ async def serve_app_legacy():
 
 
 @app.post("/parse-skill")
-async def parse_skill(skill_text: str = Form(...)):
+async def parse_skill(skill_text: str = Form(...), persona_name: str = Form("")):
     from groq import Groq
+    if persona_name:
+        _skill_cache[persona_name.lower()] = skill_text
     client = Groq(api_key=GROQ_KEY)
     response = client.chat.completions.create(
         model="qwen/qwen3.8-27b",
@@ -210,6 +215,7 @@ async def generate_script(
     # Detect Vivienne-style skill vs generic ? look for structure markers
     has_custom_script_structure = False
     has_ceo_structure = False
+    _full_skill = _skill_cache.get((persona_name or "").lower(), "") or (skill_context or "")
     _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
     _ceo_skill_kws = ["nutlip","homivis","serial tech founder","building in public"]
     if niche.lower() in ["motivation","entrepreneurship"] or any(k in topic.lower() for k in _ceo_topic_kws) or any(k in (skill_context or "").lower() for k in _ceo_skill_kws):
@@ -221,8 +227,8 @@ async def generate_script(
     structure_rules = ""
     script_examples = ""
     signoffs = ""
-    if skill_context and not has_ceo_structure:
-        sc = skill_context
+    if (skill_context or _full_skill) and not has_ceo_structure:
+        sc = _full_skill or skill_context
         has_custom_script_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
                                    or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
 
