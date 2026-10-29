@@ -304,6 +304,10 @@ WRITING MANDATE - this overrides all generic defaults:
 - Each script must end with ONE line the viewer will screenshot, save, or send to someone they love
 """
 
+    # Skill sheet defines its own structure — suppress generic niche override
+    if has_custom_script_structure:
+        niche_note = ""
+
     prompt = (
         f"You are writing 5 short-form video scripts for {persona_name}, aged {persona_age}, "
         f"in the {niche} niche.\nTopic: {topic}\n"
