@@ -231,7 +231,7 @@ async def generate_script(
             rest = text[idx + len(heading):]
             # Find next section heading (ALL CAPS word followed by newline, or separator line)
             import re as _re
-            m = _re.search(r'\n(?=[A-Z][A-Z ]{3,}\n|[-=--?]{4,})', rest)
+            m = _re.search(r'\n(?=[A-Z][A-Z ]{3,}\n|[=\-]{4,})', rest)
             end = m.start() if m else len(rest)
             return rest[:end].strip()
 
@@ -2032,6 +2032,7 @@ async def delete_script(sid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(401, "Unauthorized")
     sb.table("saved_scripts").delete().eq("id", sid).eq("user_id", uid).execute()
     return {"ok": True}
+
 
 
 
