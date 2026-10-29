@@ -215,6 +215,7 @@ async def generate_script(
     if niche.lower() in ["motivation","entrepreneurship"] or any(k in topic.lower() for k in _ceo_topic_kws) or any(k in (skill_context or "").lower() for k in _ceo_skill_kws):
         has_ceo_structure = True  # CEO/founder always uses CEO path
 
+    print(f"DEBUG flags: has_ceo={has_ceo_structure} has_custom={has_custom_script_structure} niche={niche!r}")
     structure_rules = ""
     script_examples = ""
     signoffs = ""
@@ -370,6 +371,7 @@ FOUR BEATS:
 
     scripts = []
     all_keywords = []
+    all_titles = []
     try:
         parsed = json.loads(raw)
         if not isinstance(parsed, list): parsed = [parsed]
@@ -397,7 +399,7 @@ FOUR BEATS:
             all_keywords = []
 
     # Filter out any malformed/too-short items
-    valid = [(s, k, t) for s, k, t in zip(scripts, all_keywords, all_titles) if s and len(s.split()) >= 70]
+    valid = [(s, k, t) for s, k, t in zip(scripts, all_keywords, all_titles) if s and len(s.split()) >= 40]
     if valid:
         scripts, all_keywords, all_titles = zip(*valid)
         scripts, all_keywords, all_titles = list(scripts), list(all_keywords), list(all_titles)
