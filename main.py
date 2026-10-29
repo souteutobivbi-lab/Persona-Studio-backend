@@ -208,7 +208,7 @@ async def generate_script(
     client = Groq(api_key=GROQ_KEY)
 
     # Detect Vivienne-style skill vs generic ? look for structure markers
-    has_vivienne_structure = False
+    has_custom_script_structure = False
     has_ceo_structure = False
     _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
     _ceo_skill_kws = ["nutlip","homivis","mediahouz","serial tech founder","building in public"]
@@ -220,7 +220,7 @@ async def generate_script(
     signoffs = ""
     if skill_context and not has_ceo_structure:
         sc = skill_context
-        has_vivienne_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
+        has_custom_script_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
                                    or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
 
         def extract_section(text, heading):
@@ -308,14 +308,25 @@ WRITING MANDATE - this overrides all generic defaults:
         f"You are writing 5 short-form video scripts for {persona_name}, aged {persona_age}, "
         f"in the {niche} niche.\nTopic: {topic}\n"
         + ceo_note + niche_note + skill_block +
+        ("""
+
+FORMAT - SKILL SHEET OVERRIDES EVERYTHING:
+Write FIRST PERSON only: I, my, me. Vivienne lived this. Never second person.
+NO question hooks. Open with a specific lived scene already in motion.
+FOUR BEATS:
+[0:00-0:03] Scene Drop-In: exact time, exact place, exact object. First person. Already happening.
+[0:03-0:12] Escalation: old impulse shown in full, then exact moment of awareness.
+[0:12-0:17] Write ...[0.8-second pause] then the decisive action. One sentence.
+[0:17-0:20] One earned close line + CTA. Vary CTA every script.
+60-75 words per script. 18-22 seconds. Each of the 5 covers a DIFFERENT angle.
+
+""" if has_custom_script_structure else
         "\n\nUNIVERSAL RULES (apply to every script regardless of persona):\n\n"
         "1. HOOK - every script MUST open with a provocative question (first sentence only).\n"
         "   Do NOT answer the question in the next sentence or anywhere in the middle.\n"
         "   The answer is the REWARD at the very end. The whole script builds toward it.\n"
         "   e.g. Why do the people who give the most always end up with the least?\n"
         "   e.g. What do you do the morning after you realise you have been shrinking yourself for years?\n"
-        "   e.g. Why is it that the moment you stop explaining yourself, everything changes?\n"
-        "   Each question must be completely different - no repeating the same angle across 5 scripts.\n\n"
         "2. MIDDLE - deliver the real value. Specific, earned, no waffle. "
         "Follow the skill sheet structure if one is provided.\n\n"
         "3. REWARD - last 1-2 sentences: the payoff that makes the whole watch worthwhile. "
@@ -326,7 +337,7 @@ WRITING MANDATE - this overrides all generic defaults:
         "QUESTION HOOK RULE: When you open with a question, do NOT answer it in the next sentence. "
         "Let it hang. The answer should be earned through the middle and only land in the REWARD at the end.\n"
         "REPETITION RULE: No phrase, sentence, or line may appear in more than ONE of the 5 scripts. "
-        "If a line is a persona signature, use it in one script only. Every script must feel distinct.\n\n"
+        "If a line is a persona signature, use it in one script only. Every script must feel distinct.\n\n")
         'Return ONLY a JSON array of 5 objects:\n'
         '[{"title": "Short searchable title", "script": "Full script text", "keywords": ["#tag1"]}]'
     )
