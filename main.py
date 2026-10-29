@@ -1035,11 +1035,11 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                     model="qwen/qwen3.8-27b",
                     messages=[{"role": "user", "content": (
                         f"Script: {script_text[:350]}\n\n"
-                        "Write ONE cinematic scene prompt (12-18 words) for a 4-second text-to-video opening shot "
-                        "that visually matches the emotional tone of this script. "
-                        "Scene: warm London podcast studio, cream upholstered armchair, lush tropical plant, "
-                        "soft amber light. No people. No text on screen. Slow camera drift. "
-                        "Return ONLY the prompt, nothing else, no quotes."
+                        "Write ONE 4-second cinematic opening shot (12-18 words) that is a visual metaphor for this script's core emotional idea. "
+                        "Make the viewer ask what is this about before anyone speaks. "
+                        "No people. Slow camera movement. Cinematic light. Vertical frame. "
+                        "Can be interior, exterior, abstract or symbolic. "
+                        "Return ONLY the shot description, nothing else, no quotes."
                     )}],
                     max_tokens=50, temperature=0.7
                 )
