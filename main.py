@@ -210,6 +210,7 @@ async def generate_script(
     # Detect Vivienne-style skill vs generic ? look for structure markers
     has_custom_script_structure = False
     has_ceo_structure = False
+    print("DEBUG skill_context:", repr((skill_context or "")[:300]))
     _ceo_topic_kws = ["nutlip","homivis","mediahouz","ceo","founder","launch","platform","investors","funding","startup","building","serial","proptech","yorkshire","second launch"]
     _ceo_skill_kws = ["nutlip","homivis","mediahouz","serial tech founder","building in public"]
     if niche.lower() in ["motivation","entrepreneurship"] or any(k in topic.lower() for k in _ceo_topic_kws) or any(k in (skill_context or "").lower() for k in _ceo_skill_kws):
