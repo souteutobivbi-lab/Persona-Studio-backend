@@ -324,15 +324,13 @@ WRITING MANDATE - this overrides all generic defaults:
         + ceo_note + niche_note + skill_block +
         ("""
 
-FORMAT - SKILL SHEET OVERRIDES EVERYTHING:
-Write FIRST PERSON only: I, my, me. Vivienne lived this. Never second person.
-NO question hooks. Open with a specific lived scene already in motion.
-FOUR BEATS:
-[0:00-0:03] Scene Drop-In: exact time, exact place, exact object. First person. Already happening.
-[0:03-0:12] Escalation: old impulse shown in full, then exact moment of awareness.
-[0:12-0:17] Write ...[0.8-second pause] then the decisive action. One sentence.
-[0:17-0:20] One earned close line + CTA. Vary CTA every script.
-60-75 words per script. 18-22 seconds. Each of the 5 covers a DIFFERENT angle.
+SKILL SHEET STRUCTURE OVERRIDES EVERYTHING. Follow the SCRIPT STRUCTURE and EXAMPLE SCRIPTS sections from the skill sheet exactly.
+Write in FIRST PERSON only (I, my, me). Open with the persona's name as the skill sheet shows.
+NO question hooks. Each of the 5 scripts covers a DIFFERENT angle of the topic.
+100-140 words per script.
+
+Return ONLY a JSON array of 5 objects:
+[{"title": "Short searchable title", "script": "Full script text", "keywords": ["#tag1"]}]
 
 """ if has_custom_script_structure else
         "\n\nUNIVERSAL RULES (apply to every script regardless of persona):\n\n"
