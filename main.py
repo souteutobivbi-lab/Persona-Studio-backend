@@ -1,4 +1,4 @@
-import asyncio, os, random, subprocess, uuid, json
+﻿import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
@@ -955,6 +955,8 @@ async def generate_video(
     script: Optional[str] = Form(None),
     caption_style: Optional[str] = Form(None),
     preroll: bool = Form(False),
+    lora_url: str = Form(""),
+    trigger_word: str = Form(""),
 ):
     jid = job_id or str(uuid.uuid4())[:8]
     set_job(jid, {"status": "running", "progress": 0, "stage": "starting"})
@@ -970,10 +972,10 @@ async def generate_video(
     if bg_music and bg_music in MUSIC_TRACKS:
         music_path = str(MUSIC_DIR / MUSIC_TRACKS[bg_music]["file"])
         print(f"[{jid}] Background music: {bg_music}")
-    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path, script_text=script, caption_style=caption_style, preroll=preroll))
+    asyncio.create_task(run_video_pipeline(jid, str(portrait_path), str(audio_path), scene_path, music_path, script_text=script, caption_style=caption_style, preroll=preroll, lora_url=lora_url, trigger_word=trigger_word))
     return {"job_id": jid, "status": "running"}
 
-async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None, script_text=None, caption_style=None, preroll=False):
+async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, music_path=None, script_text=None, caption_style=None, preroll=False, lora_url="", trigger_word=""):
     try:
         import fal_client
         from PIL import Image
@@ -1034,11 +1036,12 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 _sr = _gc.chat.completions.create(
                     model="qwen/qwen3.8-27b",
                     messages=[{"role": "user", "content": (
-                        f"Script: {script_text[:350]}\n\n"
-                        "Write ONE 4-second cinematic opening shot (12-18 words) that is a visual metaphor for this script's core emotional idea. "
-                        "Make the viewer ask what is this about before anyone speaks. "
-                        "No people. Slow camera movement. Cinematic light. Vertical frame. "
-                        "Can be interior, exterior, abstract or symbolic. "
+                        "You are generating a cinematic opening shot for a short-form video by Vivienne, a 28-year-old British-Nigerian woman based in London who talks about relationships, self-worth and motivation.\n\n"
+                        "Her world: warm London interiors, terracotta and cream tones, lush tropical plants, afternoon golden light, contemporary open-plan spaces with wooden floors and floor-to-ceiling windows, cream upholstered chairs, home offices with trailing plants and books.\n\n"
+                        f"Script topic: {script_text[:200] if script_text else 'relationships and self-worth'}\n\n"
+                        "Write ONE 4-second cinematic opening shot (12-18 words). "
+                        "Set in Vivienne's warm London world — arriving at a beautiful home, an entrance hall, a light-filled living room, or a lush interior. "
+                        "Slow camera movement. Warm cinematic light. Vertical 9:16 frame. "
                         "Return ONLY the shot description, nothing else, no quotes."
                     )}],
                     max_tokens=50, temperature=0.7
@@ -1048,9 +1051,48 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                 scene_prompt = _raw
                 print(f"[{jid}] Raw Groq response: {repr(_raw)}")
                 print(f"[{jid}] Pre-roll prompt: {scene_prompt}")
+                # If LoRA available: generate character-consistent frame then animate
+                first_frame_url = None
+                if lora_url.strip():
+                    _tw = trigger_word.strip() or "VIVIENNE"
+                    _lora_to_use = lora_url.strip()
+                    if _lora_to_use.startswith("/lora-file/"):
+                        _slug = _lora_to_use.split("/lora-file/")[-1]
+                        _reg = LORA_REGISTRY.get(_slug)
+                        if _reg and _reg.get("fal_url"):
+                            _lora_to_use = _reg["fal_url"]
+                        elif HARDCODED_LORAS.get(_slug):
+                            _lora_to_use = HARDCODED_LORAS[_slug]
+                    _flux_prompt = (
+                        f"{_tw}, 28-year-old British-Nigerian woman, deep warm amber-brown skin, "
+                        "long voluminous natural black curls, full-figured curvy body, "
+                        f"burnt orange bodycon midi dress, large gold hoop earrings, {scene_prompt}, "
+                        "cinematic warm golden light, photorealistic, vertical 9:16"
+                    )
+                    print(f"[{jid}] Pre-roll LoRA frame: {_flux_prompt[:80]}...")
+                    try:
+                        _flux_res = fal_client.subscribe(
+                            "fal-ai/flux-lora",
+                            arguments={
+                                "prompt": _flux_prompt,
+                                "image_size": {"width": 720, "height": 1280},
+                                "loras": [{"path": _lora_to_use, "scale": 0.85}],
+                                "num_inference_steps": 28,
+                                "guidance_scale": 3.5,
+                            }
+                        )
+                        _imgs = _flux_res.get("images") or []
+                        if _imgs:
+                            first_frame_url = (_imgs[0].get("url") if isinstance(_imgs[0], dict) else _imgs[0])
+                            print(f"[{jid}] Pre-roll frame ready: {str(first_frame_url)[:60]}")
+                    except Exception as _fe:
+                        print(f"[{jid}] LoRA frame failed (falling back to text-to-video): {_fe}")
+                _minimax_args = {"prompt": scene_prompt, "duration": 4, "aspect_ratio": "9:16"}
+                if first_frame_url:
+                    _minimax_args["first_frame_image"] = first_frame_url
                 pr_result = fal_client.subscribe(
                     "fal-ai/minimax/video-01",
-                    arguments={"prompt": scene_prompt, "duration": 4, "aspect_ratio": "9:16"}
+                    arguments=_minimax_args
                 )
                 pr_url = (pr_result.get("video") or {}).get("url") or pr_result.get("url")
                 if pr_url:
