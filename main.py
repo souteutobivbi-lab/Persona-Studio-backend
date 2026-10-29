@@ -1,4 +1,4 @@
-ï»¿import asyncio, os, random, subprocess, uuid, json
+import asyncio, os, random, subprocess, uuid, json
 from pathlib import Path
 from fastapi import FastAPI, Form, UploadFile, File, Depends, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
@@ -228,7 +228,7 @@ async def generate_script(
     script_examples = ""
     signoffs = ""
     if (skill_context or _full_skill) and not has_ceo_structure:
-        sc = _full_skill or skill_context
+        sc = skill_context or _full_skill
         has_custom_script_structure = ("SCRIPT STRUCTURE" in sc or "podcast confession" in sc.lower()
                                    or "EXAMPLE SCRIPTS" in sc or "The Claim" in sc)
 
@@ -313,7 +313,7 @@ WRITING MANDATE - this overrides all generic defaults:
 - Each script must end with ONE line the viewer will screenshot, save, or send to someone they love
 """
 
-    # Skill sheet defines its own structure â€” suppress generic niche override
+    # Skill sheet defines its own structure — suppress generic niche override
     if has_custom_script_structure:
         niche_note = ""
 
@@ -1066,7 +1066,7 @@ async def run_video_pipeline(jid, portrait_path, audio_path, scene_path=None, mu
                         "Her world: warm London interiors, terracotta and cream tones, lush tropical plants, afternoon golden light, contemporary open-plan spaces with wooden floors and floor-to-ceiling windows, cream upholstered chairs, home offices with trailing plants and books.\n\n"
                         f"Script topic: {script_text[:200] if script_text else 'relationships and self-worth'}\n\n"
                         "Write ONE 4-second cinematic opening shot (12-18 words). "
-                        "Set in Vivienne's warm London world â€” arriving at a beautiful home, an entrance hall, a light-filled living room, or a lush interior. "
+                        "Set in Vivienne's warm London world — arriving at a beautiful home, an entrance hall, a light-filled living room, or a lush interior. "
                         "Slow camera movement. Warm cinematic light. Vertical 9:16 frame. "
                         "Return ONLY the shot description, nothing else, no quotes."
                     )}],
